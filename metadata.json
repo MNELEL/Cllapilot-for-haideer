@@ -1,0 +1,6 @@
+{
+  "name": "ClassPro",
+  "description": "הערכה המלאה והמתקדמת ביותר לניהול כיתה: אופטימיזציית מקומות ישיבה מבוססת בינה מלאכותית, אינטגרציית לוח חכם ומנגנון סנכרון מתקדם",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
