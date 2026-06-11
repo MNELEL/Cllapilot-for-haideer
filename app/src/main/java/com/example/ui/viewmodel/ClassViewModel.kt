@@ -58,6 +58,8 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
     // Undo / Redo Stacks for Seat Placements
     private val undoStack = mutableListOf<List<DeskEntity>>()
     private val redoStack = mutableListOf<List<DeskEntity>>()
+    val canUndo = MutableStateFlow(false)
+    val canRedo = MutableStateFlow(false)
 
     // Gamification & Timers
     val selectedStudentWheelName = MutableStateFlow("")
@@ -158,6 +160,8 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
         undoStack.add(currentState)
         redoStack.clear()
         if (undoStack.size > 15) undoStack.removeAt(0)
+        canUndo.value = undoStack.isNotEmpty()
+        canRedo.value = redoStack.isNotEmpty()
     }
 
     fun undoPlacement() {
@@ -165,6 +169,8 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
             val previous = undoStack.removeAt(undoStack.lastIndex)
             val currentState = desks.value.map { it.copy() }
             redoStack.add(currentState)
+            canUndo.value = undoStack.isNotEmpty()
+            canRedo.value = redoStack.isNotEmpty()
             viewModelScope.launch {
                 repository.clearAllDesks()
                 repository.insertDesks(previous)
@@ -177,6 +183,8 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
             val next = redoStack.removeAt(redoStack.lastIndex)
             val currentState = desks.value.map { it.copy() }
             undoStack.add(currentState)
+            canUndo.value = undoStack.isNotEmpty()
+            canRedo.value = redoStack.isNotEmpty()
             viewModelScope.launch {
                 repository.clearAllDesks()
                 repository.insertDesks(next)
@@ -657,5 +665,218 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
             AttendanceLogEntity("6_$today", "6", today, "PRESENT")
         )
         repository.insertLogs(logs)
+    }
+
+    fun exportToCSV(context: android.content.Context) {
+        val allDesks = desks.value
+        val allSt = students.value
+        val rCount = layoutRows.value
+        val cCount = layoutCols.value
+
+        val csvBuilder = java.lang.StringBuilder()
+        // CSV Headers
+        csvBuilder.append("Row,Column,Type,StudentName,Height,RowPreference,Points,Locked\n")
+        for (r in 0 until rCount) {
+            for (c in 0 until cCount) {
+                val d = allDesks.find { it.row == r && it.col == c }
+                if (d != null) {
+                    val s = allSt.find { it.id == d.studentId }
+                    val nameStr = s?.name ?: ""
+                    val heightStr = s?.height ?: ""
+                    val rPrefStr = s?.rowPreference ?: ""
+                    val pts = if (s != null) getStudentPoints(s) else 0
+                    csvBuilder.append("$r,$c,${d.type},\"${nameStr.replace("\"", "\"\"")}\",${heightStr},${rPrefStr},$pts,${d.isLocked}\n")
+                } else {
+                    csvBuilder.append("$r,$c,WALKWAY,,,,,\n")
+                }
+            }
+        }
+
+        try {
+            val file = java.io.File(context.cacheDir, "ClassPro_Seating_Layout.csv")
+            file.writeText(csvBuilder.toString(), charset = java.nio.charset.StandardCharsets.UTF_8)
+
+            val uri = androidx.core.content.FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.provider",
+                file
+            )
+
+            val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                type = "text/csv"
+                putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                putExtra(android.content.Intent.EXTRA_SUBJECT, "לוח הושבה כיתתי - ClassPro Seating Layout")
+                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+
+            val chooser = android.content.Intent.createChooser(intent, "ייצא מפת ישיבה כיתתית - CSV")
+            chooser.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(chooser)
+        } catch (e: Exception) {
+            Log.e("ExportCSV", "Error sharing seating layout CSV", e)
+        }
+    }
+
+    fun exportToPDF(context: android.content.Context) {
+        val allDesks = desks.value
+        val allSt = students.value
+        val rCount = layoutRows.value
+        val cCount = layoutCols.value
+
+        val pdfDoc = android.graphics.pdf.PdfDocument()
+        val pageInfo = android.graphics.pdf.PdfDocument.PageInfo.Builder(595, 842, 1).create()
+        val page = pdfDoc.startPage(pageInfo)
+        val canvas = page.canvas
+
+        val paint = android.graphics.Paint().apply {
+            color = android.graphics.Color.BLACK
+            textSize = 12f
+            isAntiAlias = true
+        }
+
+        val titlePaint = android.graphics.Paint().apply {
+            color = android.graphics.Color.rgb(30, 27, 75) // #1E1B4B
+            textSize = 18f
+            isFakeBoldText = true
+            isAntiAlias = true
+        }
+
+        val headerPaint = android.graphics.Paint().apply {
+            color = android.graphics.Color.DKGRAY
+            textSize = 11f
+            isFakeBoldText = true
+            isAntiAlias = true
+        }
+
+        val textPaint = android.graphics.Paint().apply {
+            color = android.graphics.Color.BLACK
+            textSize = 10f
+            isAntiAlias = true
+        }
+
+        val activeDeskPaint = android.graphics.Paint().apply {
+            color = android.graphics.Color.rgb(224, 231, 255) // light blue
+            style = android.graphics.Paint.Style.FILL
+        }
+
+        val emptyDeskPaint = android.graphics.Paint().apply {
+            color = android.graphics.Color.rgb(243, 244, 246)
+            style = android.graphics.Paint.Style.FILL
+        }
+
+        val borderPaint = android.graphics.Paint().apply {
+            color = android.graphics.Color.LTGRAY
+            style = android.graphics.Paint.Style.STROKE
+            strokeWidth = 1f
+        }
+
+        // Header
+        canvas.drawText("מפת ישיבה כיתתית - ClassPro", 40f, 50f, titlePaint)
+        val dateText = "תאריך הדפסה: " + java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.US).format(java.util.Date())
+        canvas.drawText(dateText, 40f, 75f, paint)
+
+        // classroom layout params
+        val startX = 40f
+        val startY = 130f
+        val maxGridWidth = 515f
+        val cellSizeX = (maxGridWidth / cCount.coerceAtLeast(1).toFloat()).coerceAtMost(100f)
+        val cellSizeY = 55f
+
+        // "Front of Classroom" bar
+        val barPaint = android.graphics.Paint().apply {
+            color = android.graphics.Color.rgb(165, 180, 252)
+            style = android.graphics.Paint.Style.FILL
+        }
+        canvas.drawRect(startX, startY - 35f, startX + (cCount * cellSizeX), startY - 15f, barPaint)
+
+        val barTextPaint = android.graphics.Paint().apply {
+            color = android.graphics.Color.BLACK
+            textSize = 11f
+            isFakeBoldText = true
+            isAntiAlias = true
+        }
+        canvas.drawText("חזית הכיתה / הלוח החכם", startX + 20f, startY - 21f, barTextPaint)
+
+        // Draw Desks
+        for (r in 0 until rCount) {
+            for (c in 0 until cCount) {
+                val d = allDesks.find { it.row == r && it.col == c }
+                val x = startX + (c * cellSizeX)
+                val y = startY + (r * cellSizeY)
+
+                if (d != null) {
+                    when (d.type) {
+                        "DESK" -> {
+                            val student = allSt.find { it.id == d.studentId }
+                            if (student != null) {
+                                canvas.drawRect(x, y, x + cellSizeX - 4f, y + cellSizeY - 4f, activeDeskPaint)
+                                canvas.drawRect(x, y, x + cellSizeX - 4f, y + cellSizeY - 4f, borderPaint)
+                                
+                                val displayName = if (student.name.length > 14) student.name.substring(0, 12) + ".." else student.name
+                                canvas.drawText(displayName, x + 6f, y + 20f, textPaint)
+
+                                val pts = getStudentPoints(student)
+                                val infoText = "שורה: ${when(student.rowPreference) { "Front" -> "ק" "Back" -> "א" else -> "אמ" }} | $pts נק'"
+                                val subTextPaint = android.graphics.Paint().apply {
+                                    color = android.graphics.Color.GRAY
+                                    textSize = 7.5f
+                                    isAntiAlias = true
+                                }
+                                canvas.drawText(infoText, x + 6f, y + 36f, subTextPaint)
+                            } else {
+                                canvas.drawRect(x, y, x + cellSizeX - 4f, y + cellSizeY - 4f, emptyDeskPaint)
+                                canvas.drawRect(x, y, x + cellSizeX - 4f, y + cellSizeY - 4f, borderPaint)
+                                val textP = android.graphics.Paint().apply { textSize = 8f; color = android.graphics.Color.GRAY }
+                                canvas.drawText("[מושב פנוי]", x + 6f, y + 25f, textP)
+                            }
+                        }
+                        "BLOCK" -> {
+                            val blockFill = android.graphics.Paint().apply {
+                                color = android.graphics.Color.rgb(209, 213, 219)
+                                style = android.graphics.Paint.Style.FILL
+                            }
+                            canvas.drawRect(x, y, x + cellSizeX - 4f, y + cellSizeY - 4f, blockFill)
+                            canvas.drawRect(x, y, x + cellSizeX - 4f, y + cellSizeY - 4f, borderPaint)
+                            val textP = android.graphics.Paint().apply { textSize = 8f; color = android.graphics.Color.DKGRAY }
+                            canvas.drawText("[מחסום]", x + 6f, y + 25f, textP)
+                        }
+                    }
+                }
+            }
+        }
+
+        // Legend
+        val legendY = startY + (rCount * cellSizeY) + 30f
+        canvas.drawText("סטטיסטיקת כיתה:", startX, legendY, headerPaint)
+        canvas.drawText("סה\"כ תלמידים רשומים: ${allSt.size} | תלמידים שהושבו: ${allDesks.count { it.studentId != null }}", startX, legendY + 20f, paint)
+
+        pdfDoc.finishPage(page)
+
+        try {
+            val file = java.io.File(context.cacheDir, "ClassPro_Seating_Layout.pdf")
+            val outputStream = java.io.FileOutputStream(file)
+            pdfDoc.writeTo(outputStream)
+            pdfDoc.close()
+            outputStream.close()
+
+            val uri = androidx.core.content.FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.provider",
+                file
+            )
+
+            val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                type = "application/pdf"
+                putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                putExtra(android.content.Intent.EXTRA_SUBJECT, "לוח ישיבה כיתתי - Seating Layout PDF")
+                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+
+            val chooser = android.content.Intent.createChooser(intent, "ייצא כ-PDF")
+            chooser.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(chooser)
+        } catch (e: Exception) {
+            Log.e("ExportPDF", "Error saving PDF file", e)
+        }
     }
 }

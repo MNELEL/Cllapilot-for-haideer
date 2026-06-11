@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -30,6 +31,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.foundation.focusable
+import androidx.compose.ui.input.key.*
 import com.example.data.model.DeskEntity
 import com.example.data.model.StudentEntity
 import com.example.ui.viewmodel.ClassViewModel
@@ -44,6 +49,8 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
     val selectedMode by viewModel.selectedMode.collectAsState()
     val selectedUnassignedStudent by viewModel.selectedUnassignedStudent.collectAsState()
     val selectedStudentHighlight by viewModel.selectedStudentForHighlight.collectAsState()
+    val canUndo by viewModel.canUndo.collectAsState()
+    val canRedo by viewModel.canRedo.collectAsState()
 
     val unassignedStudents = students.filter { s ->
         desks.none { it.studentId == s.id }
@@ -61,9 +68,23 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
         Color(0xFF2D2319)
     }
 
+    val context = LocalContext.current
+
+    // Keyboard support focused grid cells
+    var focusedRow by remember { mutableStateOf<Int?>(0) }
+    var focusedCol by remember { mutableStateOf<Int?>(0) }
+    val focusRequester = remember { FocusRequester() }
+
+    // Color coding performance
+    var showPerformanceColors by remember { mutableStateOf(false) }
+
     // Grid sizing inputs
     var rowInput by remember { mutableStateOf(rows.toString()) }
     var colInput by remember { mutableStateOf(cols.toString()) }
+
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+    }
 
     Box(
         modifier = Modifier
@@ -74,6 +95,86 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                 )
             )
             .windowInsetsPadding(WindowInsets.safeDrawing)
+            .focusRequester(focusRequester)
+            .focusable()
+            .onKeyEvent { keyEvent ->
+                if (keyEvent.type == KeyEventType.KeyDown) {
+                    when (keyEvent.key) {
+                        Key.DirectionUp, Key.W -> {
+                            focusedRow = ((focusedRow ?: 0) - 1).coerceIn(0, rows - 1)
+                            true
+                        }
+                        Key.DirectionDown, Key.S -> {
+                            focusedRow = ((focusedRow ?: 0) + 1).coerceIn(0, rows - 1)
+                            true
+                        }
+                        Key.DirectionLeft, Key.A -> {
+                            focusedCol = ((focusedCol ?: 0) - 1).coerceIn(0, cols - 1)
+                            true
+                        }
+                        Key.DirectionRight, Key.D -> {
+                            focusedCol = ((focusedCol ?: 0) + 1).coerceIn(0, cols - 1)
+                            true
+                        }
+                        Key.Z -> {
+                            if (keyEvent.isCtrlPressed) {
+                                viewModel.undoPlacement()
+                                true
+                            } else false
+                        }
+                        Key.Y -> {
+                            if (keyEvent.isCtrlPressed) {
+                                viewModel.redoPlacement()
+                                true
+                            } else false
+                        }
+                        Key.L -> {
+                            focusedRow?.let { r ->
+                                focusedCol?.let { c ->
+                                    viewModel.toggleDeskLock(r, c)
+                                }
+                            }
+                            true
+                        }
+                        Key.Backspace, Key.Delete -> {
+                            focusedRow?.let { r ->
+                                focusedCol?.let { c ->
+                                    val cell = desks.find { it.row == r && it.col == c }
+                                    cell?.studentId?.let { id ->
+                                        viewModel.removeStudentFromLayout(id)
+                                    }
+                                }
+                            }
+                            true
+                        }
+                        Key.Enter, Key.Spacebar -> {
+                            focusedRow?.let { r ->
+                                focusedCol?.let { c ->
+                                    val desk = desks.find { it.row == r && it.col == c }
+                                    if (desk != null) {
+                                        if (selectedMode == "STRUCTURE") {
+                                            viewModel.toggleCellType(r, c)
+                                        } else {
+                                            val assignedStudent = students.find { it.id == desk.studentId }
+                                            if (assignedStudent != null) {
+                                                if (viewModel.selectedStudentForHighlight.value == assignedStudent) {
+                                                    viewModel.selectedStudentForHighlight.value = null
+                                                } else {
+                                                    viewModel.selectedStudentForHighlight.value = assignedStudent
+                                                }
+                                            } else {
+                                                viewModel.placeStudentAt(r, c)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            true
+                        }
+                        else -> false
+                    }
+                } else false
+            }
     ) {
         Column(
             modifier = Modifier
@@ -82,7 +183,9 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
         ) {
             // Screen Header & AI Solver Execution Row
             Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -93,7 +196,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.testTag("ai_optimize_button")
                 ) {
-                    Icon(Icons.Default.Build, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Star, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("סידור מקומות חכם (AI)", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
@@ -106,12 +209,16 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
 
             // Grid controller inputs
             Card(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f))
             ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -132,7 +239,9 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                             value = colInput,
                             onValueChange = { colInput = it },
                             label = { Text("עמודות", fontSize = 10.sp) },
-                            modifier = Modifier.width(65.dp).height(50.dp),
+                            modifier = Modifier
+                                .width(65.dp)
+                                .height(50.dp),
                             textStyle = TextStyle(color = Color.White, fontSize = 12.sp, fontFamily = FontFamily.Monospace),
                             singleLine = true,
                             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = primaryColor, unfocusedBorderColor = Color.Gray)
@@ -142,7 +251,9 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                             value = rowInput,
                             onValueChange = { rowInput = it },
                             label = { Text("שורות", fontSize = 10.sp) },
-                            modifier = Modifier.width(65.dp).height(50.dp),
+                            modifier = Modifier
+                                .width(65.dp)
+                                .height(50.dp),
                             textStyle = TextStyle(color = Color.White, fontSize = 12.sp, fontFamily = FontFamily.Monospace),
                             singleLine = true,
                             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = primaryColor, unfocusedBorderColor = Color.Gray)
@@ -153,26 +264,166 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                 }
             }
 
+            // Active Pedagogical Tools & Export Card
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.06f))
+            ) {
+                Column(modifier = Modifier.padding(10.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Color coding triggers
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text("הצג הישגים פדגוגיים:", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                            Switch(
+                                checked = showPerformanceColors,
+                                onCheckedChange = { showPerformanceColors = it },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = primaryColor,
+                                    checkedTrackColor = primaryColor.copy(alpha = 0.4f)
+                                )
+                            )
+                        }
+
+                        // Export Trigger Buttons
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(
+                                onClick = { viewModel.exportToPDF(context) },
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFCA5A5)),
+                                border = BorderStroke(1.dp, Color(0xFFEF4444).copy(alpha = 0.5f)),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                modifier = Modifier.height(34.dp)
+                            ) {
+                                Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(13.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("ייצא PDF", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                            OutlinedButton(
+                                onClick = { viewModel.exportToCSV(context) },
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF86EFAC)),
+                                border = BorderStroke(1.dp, Color(0xFF22C55E).copy(alpha = 0.5f)),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                modifier = Modifier.height(34.dp)
+                            ) {
+                                Icon(Icons.Default.List, contentDescription = null, modifier = Modifier.size(13.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("ייצא CSV", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+
+                    // Display Legend if colors are active
+                    if (showPerformanceColors) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color.White.copy(alpha = 0.05f))
+                                .padding(6.dp),
+                            horizontalArrangement = Arrangement.SpaceAround,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("מקרא הישגים פדגוגיים:", color = Color.LightGray, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFF10B981)))
+                                Text("גבוה (4+ נק')", color = Color.White, fontSize = 8.sp)
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFFF59E0B)))
+                                Text("בינוני (1-3 נק')", color = Color.White, fontSize = 8.sp)
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFFEF4444)))
+                                Text("נדרש תמיכה (0 נק')", color = Color.White, fontSize = 8.sp)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Keyboard hints bar
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
+                shape = RoundedCornerShape(8.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.03f))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "⌨️ שליטה במקלדת: חיצים / WASD לניווט | רווח לסימון | L לנעילה | Delete לפינוי",
+                        color = Color.LightGray,
+                        fontSize = 9.5.sp,
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.weight(1f)
+                    )
+                    
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(primaryColor.copy(alpha = 0.15f))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text("מקלדת פעילה", color = primaryColor, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+
             // Controls & Undo Redo row
             Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Undo / Redo buttons
+                // Undo / Redo buttons with reactive enable state
                 Row {
                     IconButton(
                         onClick = { viewModel.undoPlacement() },
-                        modifier = Modifier.clip(CircleShape).background(Color.White.copy(alpha = 0.07f))
+                        enabled = canUndo,
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(if (canUndo) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.03f))
                     ) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "בטל", tint = Color.White)
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            contentDescription = "בטל",
+                            tint = if (canUndo) Color.White else Color.Gray.copy(alpha = 0.4f)
+                        )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     IconButton(
                         onClick = { viewModel.redoPlacement() },
-                        modifier = Modifier.clip(CircleShape).background(Color.White.copy(alpha = 0.07f))
+                        enabled = canRedo,
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(if (canRedo) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.03f))
                     ) {
-                        Icon(Icons.Default.ArrowForward, contentDescription = "בצע שוב", tint = Color.White)
+                        Icon(
+                            Icons.Default.ArrowForward,
+                            contentDescription = "בצע שוב",
+                            tint = if (canRedo) Color.White else Color.Gray.copy(alpha = 0.4f)
+                        )
                     }
                 }
 
@@ -183,7 +434,6 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                         .background(Color.White.copy(alpha = 0.08f))
                         .padding(2.dp)
                 ) {
-                    val modeHebrew = if (selectedMode == "STRUCTURE") "עריכת מבנה" else "הושבת תלמיד"
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(10.dp))
@@ -227,7 +477,9 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                     colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.03f))
                 ) {
                     Column(
-                        modifier = Modifier.fillMaxSize().padding(12.dp)
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(12.dp)
                     ) {
                         // FRONT indication top label (Smartboard is at front of room)
                         Box(
@@ -260,21 +512,35 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                             
                                             // Context Highlighting Outline Color Calculation
                                             var highlightBorderColor: Color? = null
-                                            if (selectedStudentHighlight != null && studentAssigned != null) {
+                                            if (r == focusedRow && c == focusedCol) {
+                                                // Highly energetic glowing white border for keyboard cell cursor
+                                                highlightBorderColor = Color.Cyan
+                                            } else if (selectedStudentHighlight != null && studentAssigned != null) {
                                                 if (studentAssigned.id == selectedStudentHighlight!!.id) {
                                                     highlightBorderColor = Color.Yellow
                                                 } else if (selectedStudentHighlight!!.loves.contains(studentAssigned.id)) {
-                                                    highlightBorderColor = Color(0xFF10B981) // preferred Lovess count in green
+                                                    highlightBorderColor = Color(0xFF10B981) // Lovess count in green
                                                 } else if (selectedStudentHighlight!!.forbids.contains(studentAssigned.id) || selectedStudentHighlight!!.separate.contains(studentAssigned.id)) {
-                                                    highlightBorderColor = Color(0xFFEF4444) // separated/conflicted in red
+                                                    highlightBorderColor = Color(0xFFEF4444) // conflicted in red
                                                 }
                                             }
+
+                                            // Performance color calculation to pass to cell
+                                            val perfColor = if (studentAssigned != null && showPerformanceColors) {
+                                                val pts = viewModel.getStudentPoints(studentAssigned)
+                                                when {
+                                                    pts >= 4 -> Color(0xFF10B981) // High Green
+                                                    pts in 1..3 -> Color(0xFFF59E0B) // Medium Yellow
+                                                    else -> Color(0xFFEF4444) // Support Needed Red
+                                                }
+                                            } else null
 
                                             DeskCell(
                                                 desk = desk,
                                                 student = studentAssigned,
                                                 mode = selectedMode,
                                                 borderColor = highlightBorderColor,
+                                                performanceColor = perfColor,
                                                 onToggleStructure = { viewModel.toggleCellType(r, c) },
                                                 onPlace = { viewModel.placeStudentAt(r, c) },
                                                 onLockToggle = { viewModel.toggleDeskLock(r, c) },
@@ -287,6 +553,23 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                                 },
                                                 onEvict = { studentId -> viewModel.removeStudentFromLayout(studentId) },
                                                 modifier = Modifier.weight(1f)
+                                                    .clickable {
+                                                        focusedRow = r
+                                                        focusedCol = c
+                                                        if (selectedMode == "STRUCTURE") {
+                                                            viewModel.toggleCellType(r, c)
+                                                        } else {
+                                                            if (studentAssigned != null) {
+                                                                if (viewModel.selectedStudentForHighlight.value == studentAssigned) {
+                                                                    viewModel.selectedStudentForHighlight.value = null
+                                                                } else {
+                                                                    viewModel.selectedStudentForHighlight.value = studentAssigned
+                                                                }
+                                                            } else {
+                                                                viewModel.placeStudentAt(r, c)
+                                                            }
+                                                        }
+                                                    }
                                             )
                                         } else {
                                             Box(modifier = Modifier.weight(1f))
@@ -306,7 +589,9 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                         colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f))
                     ) {
                         Column(
-                            modifier = Modifier.fillMaxSize().padding(8.dp)
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(8.dp)
                         ) {
                             Text(
                                 "תלמידים ללא מושב (${unassignedStudents.size})",
@@ -314,7 +599,9 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White,
                                 textAlign = TextAlign.Center,
-                                modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 6.dp)
                             )
 
                             LazyColumn(
@@ -359,6 +646,7 @@ fun DeskCell(
     student: StudentEntity?,
     mode: String,
     borderColor: Color?,
+    performanceColor: Color? = null,
     onToggleStructure: () -> Unit,
     onPlace: () -> Unit,
     onLockToggle: () -> Unit,
@@ -369,7 +657,9 @@ fun DeskCell(
     val cellColor = when (desk.type) {
         "WALKWAY" -> Color.Transparent
         "BLOCK" -> Color.DarkGray.copy(alpha = 0.3f)
-        else -> if (student != null) Color(0xFF3B82F6) else Color.White.copy(alpha = 0.12f)
+        else -> if (student != null) {
+            performanceColor ?: Color(0xFF3B82F6)
+        } else Color.White.copy(alpha = 0.12f)
     }
 
     val clickableModifier = when (mode) {
@@ -377,20 +667,12 @@ fun DeskCell(
             .aspectRatio(1f)
             .clip(RoundedCornerShape(8.dp))
             .background(cellColor)
-            .clickable { onToggleStructure() }
         else -> {
             if (desk.type == "DESK") {
                 modifier
                     .aspectRatio(1f)
                     .clip(RoundedCornerShape(8.dp))
                     .background(cellColor)
-                    .clickable {
-                        if (student != null) {
-                            onSelectHighlight()
-                        } else {
-                            onPlace()
-                        }
-                    }
             } else {
                 modifier
                     .aspectRatio(1f)
@@ -405,21 +687,19 @@ fun DeskCell(
     } else if (desk.type == "DESK" && desk.isLocked) {
         BorderStroke(1.5.dp, Color(0xFFF59E0B)) // Locked indicator in amber outline
     } else {
-        null
+        BorderStroke(0.5.dp, Color.White.copy(alpha = 0.15f))
     }
 
     Box(
-        modifier = if (borderStroke != null) {
-            clickableModifier.border(borderStroke, RoundedCornerShape(8.dp))
-        } else {
-            clickableModifier
-        },
+        modifier = clickableModifier.border(borderStroke, RoundedCornerShape(8.dp)),
         contentAlignment = Alignment.Center
     ) {
         if (desk.type == "DESK") {
             if (student != null) {
                 Column(
-                    modifier = Modifier.fillMaxSize().padding(2.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(2.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -442,7 +722,7 @@ fun DeskCell(
                             contentDescription = "Evict",
                             tint = Color.Red.copy(alpha = 0.7f),
                             modifier = Modifier
-                                .size(12.dp)
+                                .size(11.dp)
                                 .clickable { onEvict(student.id) }
                         )
                     }

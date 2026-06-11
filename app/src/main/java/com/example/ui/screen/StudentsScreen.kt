@@ -33,6 +33,7 @@ fun StudentsScreen(viewModel: ClassViewModel) {
     val attendanceLogs by viewModel.attendanceLogs.collectAsState()
     val todayDate = remember { java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date()) }
     var selectedStudentForEdit by remember { mutableStateOf<StudentEntity?>(null) }
+    var studentToDelete by remember { mutableStateOf<StudentEntity?>(null) }
     var showIntakeDialog by remember { mutableStateOf(false) }
     var bulkInputText by remember { mutableStateOf("") }
 
@@ -145,11 +146,25 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // Gamified scoring controls (+1 / -1)
+                                // Gamified scoring controls (+1 / -1) and direct remove action
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
+                                    IconButton(
+                                        onClick = { studentToDelete = student },
+                                        modifier = Modifier.size(31.dp).clip(RoundedCornerShape(6.dp)).background(Color.Red.copy(alpha = 0.1f))
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Delete,
+                                            contentDescription = "מחק תלמיד מהכיתה",
+                                            tint = Color.Red,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.width(4.dp))
+
                                     IconButton(
                                         onClick = { viewModel.incrementScore(student.id, -1) },
                                         modifier = Modifier.size(30.dp).clip(RoundedCornerShape(6.dp)).background(Color.Red.copy(alpha = 0.2f))
@@ -431,6 +446,16 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                         }
 
                         item {
+                            SocialListSelector(
+                                label = "הפרדה מבוקשת (למנוע הושבה סמוכה):",
+                                selectedIds = separateField,
+                                students = studentsList.filter { it.id != selectedStudentForEdit?.id },
+                                primaryColor = primaryColor,
+                                onSelectionChanged = { separateField = it }
+                            )
+                        }
+
+                        item {
                             OutlinedTextField(
                                 value = notesField,
                                 onValueChange = { notesField = it },
@@ -491,6 +516,48 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = primaryColor)
                         )
                     }
+                },
+                containerColor = darkBg
+            )
+        }
+
+        // 3. CONFIRM DELETE DIALOG
+        if (studentToDelete != null) {
+            AlertDialog(
+                onDismissRequest = { studentToDelete = null },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            viewModel.deleteStudent(studentToDelete!!.id)
+                            studentToDelete = null
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                    ) {
+                        Text("מחק לצמיתות", color = Color.White)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { studentToDelete = null }) {
+                        Text("ביטול", color = Color.White)
+                    }
+                },
+                title = {
+                    Text(
+                        "מחיקת תלמיד מהרשימה",
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.End
+                    )
+                },
+                text = {
+                    Text(
+                        "האם אתה בטוח שברצונך למחוק את ${studentToDelete!!.name} ממאגר הכיתה באופן סופי?",
+                        color = Color.LightGray,
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 },
                 containerColor = darkBg
             )
