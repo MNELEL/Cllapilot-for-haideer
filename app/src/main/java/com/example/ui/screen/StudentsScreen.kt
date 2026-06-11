@@ -30,6 +30,8 @@ import com.example.ui.viewmodel.ClassViewModel
 @Composable
 fun StudentsScreen(viewModel: ClassViewModel) {
     val studentsList by viewModel.students.collectAsState()
+    val attendanceLogs by viewModel.attendanceLogs.collectAsState()
+    val todayDate = remember { java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date()) }
     var selectedStudentForEdit by remember { mutableStateOf<StudentEntity?>(null) }
     var showIntakeDialog by remember { mutableStateOf(false) }
     var bulkInputText by remember { mutableStateOf("") }
@@ -127,90 +129,163 @@ fun StudentsScreen(viewModel: ClassViewModel) {
             ) {
                 items(studentsList) { student ->
                     val pts = viewModel.getStudentPoints(student)
+                    val todayLog = attendanceLogs.find { it.studentId == student.id && it.date == todayDate }
+                    val isPresent = todayLog?.status == "PRESENT"
+                    val isAbsent = todayLog?.status == "ABSENT"
+                    val isLate = todayLog?.status == "LATE"
+
                     Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                selectedStudentForEdit = student
-                                nameField = student.name
-                                heightField = student.height
-                                rowPrefField = student.rowPreference
-                                lovesField = student.loves
-                                forbidsField = student.forbids
-                                separateField = student.separate
-                                notesField = student.notes
-                            },
                         shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f))
+                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // Gamified scoring controls (+1 / -1)
+                        Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
                             Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                IconButton(
-                                    onClick = { viewModel.incrementScore(student.id, -1) },
-                                    modifier = Modifier.size(30.dp).clip(RoundedCornerShape(6.dp)).background(Color.Red.copy(alpha = 0.2f))
+                                // Gamified scoring controls (+1 / -1)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
-                                    Text("-1", color = Color.Red, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    IconButton(
+                                        onClick = { viewModel.incrementScore(student.id, -1) },
+                                        modifier = Modifier.size(30.dp).clip(RoundedCornerShape(6.dp)).background(Color.Red.copy(alpha = 0.2f))
+                                    ) {
+                                        Text("-1", color = Color.Red, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    }
+
+                                    Text(
+                                        "$pts נק'",
+                                        color = primaryColor,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp,
+                                        modifier = Modifier.padding(horizontal = 4.dp)
+                                    )
+
+                                    IconButton(
+                                        onClick = { viewModel.incrementScore(student.id, 1) },
+                                        modifier = Modifier.size(30.dp).clip(RoundedCornerShape(6.dp)).background(Color.Green.copy(alpha = 0.2f))
+                                    ) {
+                                        Text("+1", color = Color.Green, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    }
                                 }
 
-                                Text(
-                                    "$pts נק'",
-                                    color = primaryColor,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    modifier = Modifier.padding(horizontal = 4.dp)
-                                )
-
-                                IconButton(
-                                    onClick = { viewModel.incrementScore(student.id, 1) },
-                                    modifier = Modifier.size(30.dp).clip(RoundedCornerShape(6.dp)).background(Color.Green.copy(alpha = 0.2f))
+                                // Clickable Info details + Edit icon to trigger the edit popup dialog
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .clickable {
+                                            selectedStudentForEdit = student
+                                            nameField = student.name
+                                            heightField = student.height
+                                            rowPrefField = student.rowPreference
+                                            lovesField = student.loves
+                                            forbidsField = student.forbids
+                                            separateField = student.separate
+                                            notesField = student.notes
+                                        }
+                                        .padding(4.dp)
                                 ) {
-                                    Text("+1", color = Color.Green, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    Icon(
+                                        imageVector = Icons.Default.Edit,
+                                        contentDescription = "ערוך תלמיד",
+                                        tint = Color.LightGray.copy(alpha = 0.6f),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        Text(
+                                            student.name,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White,
+                                            fontSize = 15.sp,
+                                            textAlign = TextAlign.End
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                "גובה: ${when(student.height) {
+                                                    "Low" -> "נמוך"
+                                                    "Tall" -> "גבוה"
+                                                    else -> "בינוני"
+                                                }}",
+                                                color = Color.LightGray,
+                                                fontSize = 12.sp
+                                            )
+                                            Text(
+                                                "שורה מועדפת: ${when(student.rowPreference) {
+                                                    "Front" -> "קדמית"
+                                                    "Back" -> "אחורית"
+                                                    else -> "אמצעית"
+                                                }}",
+                                                color = Color.LightGray,
+                                                fontSize = 12.sp
+                                            )
+                                        }
+                                    }
                                 }
                             }
 
-                            // Info details
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text(
-                                    student.name,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White,
-                                    fontSize = 15.sp,
-                                    textAlign = TextAlign.End
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
+                            // Custom subtle divider
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(1.dp)
+                                    .background(Color.White.copy(alpha = 0.08f))
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            // Today's Attendance controls
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Status interactive selectors (3 buttons for Present, Late, Absent)
                                 Row(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(
-                                        "גובה: ${when(student.height) {
-                                            "Low" -> "נמוך"
-                                            "Tall" -> "גבוה"
-                                            else -> "בינוני"
-                                        }}",
-                                        color = Color.LightGray,
-                                        fontSize = 12.sp
+                                    AttendanceIndicatorButton(
+                                        label = "נוכח",
+                                        icon = Icons.Default.Check,
+                                        isSelected = isPresent,
+                                        selectedColor = Color(0xFF10B981), // emerald green
+                                        onClick = { viewModel.toggleAttendance(student.id, "PRESENT") }
                                     )
-                                    Text(
-                                        "שורה מועדפת: ${when(student.rowPreference) {
-                                            "Front" -> "קדמית"
-                                            "Back" -> "אחורית"
-                                            else -> "אמצעית"
-                                        }}",
-                                        color = Color.LightGray,
-                                        fontSize = 12.sp
+
+                                    AttendanceIndicatorButton(
+                                        label = "איחר",
+                                        icon = Icons.Default.Refresh,
+                                        isSelected = isLate,
+                                        selectedColor = Color(0xFFF59E0B), // amber
+                                        onClick = { viewModel.toggleAttendance(student.id, "LATE") }
+                                    )
+
+                                    AttendanceIndicatorButton(
+                                        label = "חיסור",
+                                        icon = Icons.Default.Close,
+                                        isSelected = isAbsent,
+                                        selectedColor = Color(0xFFEF4444), // red
+                                        onClick = { viewModel.toggleAttendance(student.id, "ABSENT") }
                                     )
                                 }
+
+                                Text(
+                                    text = "נוכחות להיום:",
+                                    color = Color.LightGray.copy(alpha = 0.8f),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
                             }
                         }
                     }
@@ -463,6 +538,42 @@ fun SocialListSelector(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun AttendanceIndicatorButton(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    isSelected: Boolean,
+    selectedColor: Color,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (isSelected) selectedColor.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.04f))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 6.dp)
+            .testTag("attendance_${label}_btn")
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = if (isSelected) selectedColor else Color.LightGray.copy(alpha = 0.4f),
+                modifier = Modifier.size(12.dp)
+            )
+            Text(
+                text = label,
+                color = if (isSelected) selectedColor else Color.LightGray.copy(alpha = 0.7f),
+                fontSize = 11.sp,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+            )
         }
     }
 }
