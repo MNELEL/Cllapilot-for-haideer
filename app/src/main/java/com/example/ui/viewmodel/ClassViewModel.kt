@@ -23,6 +23,7 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
     val layoutRows = MutableStateFlow(6) // default grid rows
     val layoutCols = MutableStateFlow(6) // default grid cols
     val selectedMode = MutableStateFlow("STRUCTURE") // "STRUCTURE" | "PLACEMENT"
+    val isSmartboardView = MutableStateFlow(false)
     val isSyncing = MutableStateFlow(false)
     val syncMessage = MutableStateFlow("")
 
