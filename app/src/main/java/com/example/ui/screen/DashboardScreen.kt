@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -62,54 +63,58 @@ fun DashboardScreen(viewModel: ClassViewModel) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(darkBg, darkBg.copy(alpha = 0.85f))
-                )
-            )
+            .background(Color.Transparent)
             .windowInsetsPadding(WindowInsets.safeDrawing)
     ) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(24.dp), // Generous padding
+            verticalArrangement = Arrangement.spacedBy(24.dp) // Generous gaps
         ) {
             // Header Card
             item {
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = darkBg.copy(alpha = 0.5f)),
-                    border = CardDefaults.outlinedCardBorder().copy(
-                        brush = Brush.linearGradient(listOf(primaryColor, Color.White.copy(alpha = 0.3f)))
-                    )
+                    modifier = Modifier.fillMaxWidth().shadow(12.dp, RoundedCornerShape(28.dp), spotColor = Color(0x2664748B)),
+                    shape = RoundedCornerShape(28.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha=0.6f))
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(20.dp),
+                            .padding(24.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        // Breathtaking custom 3D Logo layout
+                        // Minimalist Blue Geometric Logo
                         Box(
                             modifier = Modifier
                                 .size(72.dp)
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(Color.White.copy(alpha = 0.05f))
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(Color(0xFFEEF2FF)) // Indigo-50
                                 .border(
-                                    width = 1.5.dp,
-                                    brush = Brush.radialGradient(listOf(primaryColor, Color.Transparent)),
-                                    shape = RoundedCornerShape(16.dp)
-                                )
+                                    width = 1.dp,
+                                    color = Color(0xFFC7D2FE),
+                                    shape = RoundedCornerShape(20.dp)
+                                ),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.img_app_icon),
-                                contentDescription = "לוגו ClassPro",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
-                            )
+                            androidx.compose.foundation.Canvas(modifier = Modifier.size(36.dp)) {
+                                drawRoundRect(
+                                    color = Color(0xFF6366F1), // Soft Indigo
+                                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(12f, 12f)
+                                )
+                                drawArc(
+                                    color = Color.White,
+                                    startAngle = 0f,
+                                    sweepAngle = -180f,
+                                    useCenter = false,
+                                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = 4.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round),
+                                    size = androidx.compose.ui.geometry.Size(18.dp.toPx(), 18.dp.toPx()),
+                                    topLeft = androidx.compose.ui.geometry.Offset(9.dp.toPx(), 12.dp.toPx())
+                                )
+                            }
                         }
 
                         Spacer(modifier = Modifier.width(16.dp))
@@ -125,12 +130,12 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(6.dp))
-                                        .background(primaryColor.copy(alpha = 0.15f))
+                                        .background(Color(0xFFEEF2FF))
                                         .padding(horizontal = 6.dp, vertical = 2.dp)
                                 ) {
                                     Text(
                                         text = "V2.0",
-                                        color = primaryColor,
+                                        color = Color(0xFF6366F1),
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -139,7 +144,7 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                                     text = "ClassPro",
                                     style = MaterialTheme.typography.titleLarge.copy(
                                         fontWeight = FontWeight.Black,
-                                        color = Color.White,
+                                        color = Color(0xFF1E293B), // Dark slate text
                                         fontSize = 24.sp
                                     ),
                                     textAlign = TextAlign.End
@@ -148,7 +153,7 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = "לוח הבקרה והניווט הכיתתי החכם שלך",
-                                style = MaterialTheme.typography.bodyMedium.copy(color = Color.LightGray),
+                                style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF64748B)),
                                 textAlign = TextAlign.End
                             )
                         }
@@ -160,22 +165,22 @@ fun DashboardScreen(viewModel: ClassViewModel) {
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     // Total Students Card
                     Card(
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.08f))
+                        modifier = Modifier.weight(1f).shadow(8.dp, RoundedCornerShape(24.dp), spotColor = Color(0x1F64748B)),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White)
                     ) {
                         Column(
-                            modifier = Modifier.padding(16.dp),
+                            modifier = Modifier.padding(20.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Icon(Icons.Default.Person, contentDescription = null, tint = primaryColor)
+                            Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF6366F1))
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text("תלמידים רשומים", style = MaterialTheme.typography.bodySmall.copy(color = Color.LightGray))
-                            Text("$totalStudents", style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, color = Color.White))
+                            Text("תלמידים רשומים", style = MaterialTheme.typography.bodySmall.copy(color = Color(0xFF64748B)))
+                            Text("$totalStudents", style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, color = Color(0xFF1E293B)))
                         }
                     }
 
@@ -191,8 +196,77 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                         ) {
                             Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF10B981))
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text("נוכחות היום", style = MaterialTheme.typography.bodySmall.copy(color = Color.LightGray))
+                            Text("נוכחות היום", style = MaterialTheme.typography.bodySmall.copy(color = Color(0xFF64748B)))
                             Text("$attendanceRate%", style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, color = Color(0xFF10B981)))
+                        }
+                    }
+                }
+            }
+
+            // Profiles Algorithm Row
+            item {
+                val classProfile by viewModel.classProfileFlow.collectAsState(ClassViewModel.ClassProfile())
+                val teacherProfile by viewModel.teacherProfileFlow.collectAsState(ClassViewModel.TeacherProfile())
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Class Profile Card
+                    Card(
+                        modifier = Modifier.weight(1f).shadow(8.dp, RoundedCornerShape(24.dp), spotColor = Color(0x1F64748B)),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.5f))
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            horizontalAlignment = Alignment.End
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                modifier = Modifier.fillMaxWidth().wrapContentWidth(Alignment.End)
+                            ) {
+                                Text("פרופיל הכיתה", fontWeight = FontWeight.Bold, color = Color(0xFF6366F1), fontSize = 13.sp)
+                                Icon(Icons.Default.Info, contentDescription = null, tint = Color(0xFF6366F1), modifier = Modifier.size(16.dp))
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("ממוצע פעילות: ${classProfile.avgPoints} נק'", color = Color(0xFF1E293B), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                            Text("שיעור נוכחות: ${classProfile.attendanceRate}%", color = Color(0xFF1E293B), fontSize = 11.sp)
+                            Text("איזון גובה: ${classProfile.heightBalanceStr}", color = Color(0xFF64748B), fontSize = 10.sp)
+                            Text("העדפה: ${classProfile.prefBalanceStr}", color = Color(0xFF64748B), fontSize = 10.sp)
+                        }
+                    }
+
+                    // Teacher Profile Card
+                    Card(
+                        modifier = Modifier.weight(1f).shadow(8.dp, RoundedCornerShape(24.dp), spotColor = Color(0x1F64748B)),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.5f))
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            horizontalAlignment = Alignment.End
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                modifier = Modifier.fillMaxWidth().wrapContentWidth(Alignment.End)
+                            ) {
+                                Text("פרופיל המורה", fontWeight = FontWeight.Bold, color = Color(0xFF10B981), fontSize = 13.sp)
+                                Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFF10B981), modifier = Modifier.size(16.dp))
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("נושאים מוכנים: ${teacherProfile.materialsQuantity}", color = Color(0xFF1E293B), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                            Text("רישומי יומן כיתה: ${teacherProfile.totalAttendanceMarks}", color = Color(0xFF1E293B), fontSize = 11.sp)
+                            Text("שיעורים מתוכננים: ${teacherProfile.lessonsPrepped}", color = Color(0xFF64748B), fontSize = 10.sp)
+                            Text(teacherProfile.syncStateDesc, color = Color(0xFF10B981), fontSize = 8.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -201,18 +275,18 @@ fun DashboardScreen(viewModel: ClassViewModel) {
             // Attendance counters detail
             item {
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f))
+                    modifier = Modifier.fillMaxWidth().shadow(8.dp, RoundedCornerShape(24.dp), spotColor = Color(0x1F64748B)),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White)
                 ) {
                     Column(
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.padding(20.dp),
                         horizontalAlignment = Alignment.End
                     ) {
                         Text(
                             "מצב נוכחות עדכני",
                             fontWeight = FontWeight.Bold,
-                            color = Color.White,
+                            color = Color(0xFF1E293B),
                             style = MaterialTheme.typography.bodyLarge
                         )
                         Spacer(modifier = Modifier.height(12.dp))
@@ -231,12 +305,12 @@ fun DashboardScreen(viewModel: ClassViewModel) {
             // Sync Card
             item {
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f))
+                    modifier = Modifier.fillMaxWidth().shadow(8.dp, RoundedCornerShape(24.dp), spotColor = Color(0x1F64748B)),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White)
                 ) {
                     Column(
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.padding(20.dp),
                         horizontalAlignment = Alignment.End
                     ) {
                         Row(
@@ -246,16 +320,16 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                         ) {
                             Button(
                                 onClick = { viewModel.forceSyncNow() },
-                                colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6366F1)),
                                 shape = RoundedCornerShape(12.dp),
                                 modifier = Modifier.testTag("force_sync_button")
                             ) {
                                 if (isSyncing) {
-                                    CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Color.Black, strokeWidth = 2.dp)
+                                    CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Color.White, strokeWidth = 2.dp)
                                 } else {
-                                    Icon(Icons.Default.Refresh, contentDescription = null, tint = Color.Black)
+                                    Icon(Icons.Default.Refresh, contentDescription = null, tint = Color.White)
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("סנכרן כעת", color = Color.Black)
+                                    Text("סנכרן כעת", color = Color.White)
                                 }
                             }
 
@@ -263,12 +337,12 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                                 Text(
                                     "סנכרון ענן (Firestore Backup)",
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.White,
+                                    color = Color(0xFF1E293B),
                                     style = MaterialTheme.typography.bodyLarge
                                 )
                                 Text(
                                     "מנוע סנכרון היברידי ברקע",
-                                    color = Color.LightGray,
+                                    color = Color(0xFF64748B),
                                     style = MaterialTheme.typography.bodySmall
                                 )
                             }
@@ -278,7 +352,7 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 syncMsg,
-                                color = Color.LightGray,
+                                color = Color(0xFF64748B),
                                 fontSize = 13.sp,
                                 textAlign = TextAlign.End,
                                 modifier = Modifier.fillMaxWidth()
@@ -293,7 +367,7 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                 Text(
                     text = "רישומי נוכחות אחרונים",
                     fontWeight = FontWeight.Bold,
-                    color = Color.White,
+                    color = Color(0xFF1E293B),
                     style = MaterialTheme.typography.titleMedium,
                     textAlign = TextAlign.End,
                     modifier = Modifier
@@ -307,7 +381,7 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                 item {
                     Text(
                         "אין עדיין פעילויות רשומות.",
-                        color = Color.LightGray,
+                        color = Color(0xFF64748B),
                         textAlign = TextAlign.Center,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -331,14 +405,14 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                     }
 
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.04f))
+                        modifier = Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(16.dp), spotColor = Color(0x1A64748B)),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White)
                     ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(12.dp),
+                                .padding(16.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -352,7 +426,7 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
                                     student.name,
-                                    color = Color.White,
+                                    color = Color(0xFF1E293B),
                                     fontWeight = FontWeight.SemiBold,
                                     style = MaterialTheme.typography.bodyLarge
                                 )
@@ -360,7 +434,7 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                                 Icon(
                                     Icons.Default.Person,
                                     contentDescription = null,
-                                    tint = primaryColor,
+                                    tint = Color(0xFF6366F1),
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
@@ -376,12 +450,12 @@ fun DashboardScreen(viewModel: ClassViewModel) {
 fun StatPill(label: String, valStr: String, color: Color) {
     Column(
         modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color.White.copy(alpha = 0.04f))
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color(0xFFF8FAFC)) // bg-slate-50
             .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(valStr, style = MaterialTheme.typography.titleLarge.copy(color = color, fontWeight = FontWeight.Bold))
-        Text(label, style = MaterialTheme.typography.bodySmall.copy(color = Color.LightGray))
+        Text(label, style = MaterialTheme.typography.bodySmall.copy(color = Color(0xFF64748B)))
     }
 }

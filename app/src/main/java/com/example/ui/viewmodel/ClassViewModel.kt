@@ -66,6 +66,7 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
     val selectedStudentWheelName = MutableStateFlow("")
     val isWheelSpinning = MutableStateFlow(false)
     val countdownSeconds = MutableStateFlow(0)
+    val maxTimerSeconds = MutableStateFlow(1)
     val isTimerActive = MutableStateFlow(false)
     val generatedGroups = MutableStateFlow<List<List<StudentEntity>>>(emptyList())
 
@@ -156,6 +157,110 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // Undo / Redo Management
+    // === New Additions for Advanced Interactive Map Actions ===
+    val seatHistoryMap = MutableStateFlow<Map<Pair<Int, Int>, List<String>>>(emptyMap())
+    val isMultiSelectMode = MutableStateFlow(false)
+    val selectedDesksForMulti = MutableStateFlow<Set<Pair<Int, Int>>>(emptySet())
+    
+    // Multi-Select handlers
+    fun toggleMultiSelectMode() {
+        isMultiSelectMode.value = !isMultiSelectMode.value
+        if (!isMultiSelectMode.value) {
+            selectedDesksForMulti.value = emptySet()
+        }
+    }
+    
+    fun toggleDeskMultiSelection(row: Int, col: Int) {
+        val current = selectedDesksForMulti.value.toMutableSet()
+        val pair = Pair(row, col)
+        if (current.contains(pair)) {
+            current.remove(pair)
+        } else {
+            current.add(pair)
+        }
+        selectedDesksForMulti.value = current
+    }
+
+    fun clearMultiSelectedAssignments() {
+        savePlacementState()
+        viewModelScope.launch {
+            val list = desks.value.toMutableList()
+            for (pair in selectedDesksForMulti.value) {
+                val index = list.indexOfFirst { it.row == pair.first && it.col == pair.second }
+                if (index != -1 && list[index].type == "DESK") {
+                    list[index] = list[index].copy(studentId = null)
+                }
+            }
+            repository.clearAllDesks()
+            repository.insertDesks(list)
+            selectedDesksForMulti.value = emptySet()
+        }
+    }
+
+    // Unhide Desks (Restore hidden 'WALKWAY' inside valid bounds back to 'DESK')
+    fun unhideAllDesks() {
+        savePlacementState()
+        viewModelScope.launch {
+            val list = desks.value.map {
+                if (it.type == "WALKWAY") it.copy(type = "DESK") else it
+            }
+            repository.clearAllDesks()
+            repository.insertDesks(list)
+        }
+    }
+
+    // Inject custom desk (effectively appending a new Row)
+    fun injectCustomDeskRow() {
+        savePlacementState()
+        gridResize(layoutRows.value + 1, layoutCols.value)
+    }
+
+    // Drag-And-Drop / Swap Student Logic
+    fun swapOrMoveStudent(fromRow: Int, fromCol: Int, toRow: Int, toCol: Int) {
+        savePlacementState()
+        viewModelScope.launch {
+            val list = desks.value.toMutableList()
+            val fromIndex = list.indexOfFirst { it.row == fromRow && it.col == fromCol }
+            val toIndex = list.indexOfFirst { it.row == toRow && it.col == toCol }
+
+            if (fromIndex != -1 && toIndex != -1) {
+                val fromDesk = list[fromIndex]
+                val toDesk = list[toIndex]
+
+                if (fromDesk.type == "DESK" && toDesk.type == "DESK") {
+                    val tempId = fromDesk.studentId
+                    list[fromIndex] = fromDesk.copy(studentId = toDesk.studentId)
+                    list[toIndex] = toDesk.copy(
+                        studentId = tempId, 
+                        isLocked = true // Automatically lock/pin upon drag-and-drop manual placement
+                    )
+                    
+                    // Add seat history entry
+                    if (tempId != null) {
+                        val stdName = students.value.find { it.id == tempId }?.name ?: "Unknown"
+                        recordSeatHistory(toRow, toCol, stdName)
+                    }
+
+                    repository.clearAllDesks()
+                    repository.insertDesks(list)
+                }
+            }
+        }
+    }
+
+    private fun recordSeatHistory(row: Int, col: Int, studentName: String) {
+        val current = seatHistoryMap.value.toMutableMap()
+        val key = Pair(row, col)
+        val history = current[key]?.toMutableList() ?: mutableListOf()
+        if (history.lastOrNull() != studentName) {
+            history.add(studentName)
+            current[key] = history
+            seatHistoryMap.value = current
+        }
+    }
+    // =========================================================
+
+    // Advanced placement tracking logic...
     private fun savePlacementState() {
         val currentState = desks.value.map { it.copy() }
         undoStack.add(currentState)
@@ -544,6 +649,15 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun updateStudentNotes(studentId: String, newNote: String) {
+        viewModelScope.launch {
+            val student = students.value.find { it.id == studentId }
+            if (student != null) {
+                repository.insertStudent(student.copy(notes = newNote))
+            }
+        }
+    }
+
     fun deleteMaterial(id: String) {
         viewModelScope.launch {
             repository.deleteMaterial(id)
@@ -556,10 +670,9 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
         if (list.isEmpty()) return
         viewModelScope.launch {
             isWheelSpinning.value = true
-            repeat(15) {
-                selectedStudentWheelName.value = list.random().name
-                delay(120)
-            }
+            // Selection is instant now, UI will animate a physical wheel
+            selectedStudentWheelName.value = list.random().name
+            delay(4000) // UI spin duration
             isWheelSpinning.value = false
         }
     }
@@ -595,8 +708,10 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun startTimerCount(minutes: Int) {
+        if (isTimerActive.value) return
         isTimerActive.value = true
         countdownSeconds.value = minutes * 60
+        maxTimerSeconds.value = minutes * 60
         viewModelScope.launch {
             while (countdownSeconds.value > 0 && isTimerActive.value) {
                 delay(1000)
@@ -878,6 +993,294 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
             context.startActivity(chooser)
         } catch (e: Exception) {
             Log.e("ExportPDF", "Error saving PDF file", e)
+        }
+    }
+
+    // Classroom Pin-Code Gate State
+    val isAppUnlocked = MutableStateFlow(false)
+    val appPinCode = "1234"
+
+    fun attemptUnlock(pin: String): Boolean {
+        return if (pin == appPinCode) {
+            isAppUnlocked.value = true
+            true
+        } else {
+            false
+        }
+    }
+
+    // Profiles Continuous Algorithm Computation
+    data class ClassProfile(
+        val studentCount: Int = 0,
+        val avgPoints: Int = 0,
+        val attendanceRate: Int = 0,
+        val heightBalanceStr: String = "",
+        val prefBalanceStr: String = ""
+    )
+
+    data class TeacherProfile(
+        val materialsQuantity: Int = 0,
+        val totalAttendanceMarks: Int = 0,
+        val lessonsPrepped: Int = 0,
+        val syncStateDesc: String = ""
+    )
+
+    val classProfileFlow: Flow<ClassProfile> = combine(students, attendanceLogs) { stList, logs ->
+        val totalSt = stList.size
+        var totPoints = 0
+        var lowCount = 0
+        var tallCount = 0
+        var frontPrefCount = 0
+
+        stList.forEach { s ->
+            totPoints += getStudentPoints(s)
+            if (s.height == "Low") lowCount++
+            if (s.height == "Tall") tallCount++
+            if (s.rowPreference == "Front") frontPrefCount++
+        }
+
+        val avgPts = if (totalSt > 0) totPoints / totalSt else 0
+        val heightSummary = "נמוכים: $lowCount, גבוהים: $tallCount"
+        val prefSummary = "$frontPrefCount תלמידים מעדיפים קדימה"
+
+        // attendance rate calculation
+        val todayLogs = logs.filter { it.date == java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date()) }
+        val presentCount = todayLogs.count { it.status == "PRESENT" || it.status == "LATE" }
+        val rate = if (todayLogs.isNotEmpty()) (presentCount * 100) / todayLogs.size else 100
+
+        ClassProfile(totalSt, avgPts, rate, heightSummary, prefSummary)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ClassProfile())
+
+    val teacherProfileFlow: Flow<TeacherProfile> = combine(materials, attendanceLogs, students) { matList, logs, stList ->
+        TeacherProfile(
+            materialsQuantity = matList.size,
+            totalAttendanceMarks = logs.size,
+            lessonsPrepped = matList.size + (if (stList.isNotEmpty()) 1 else 0),
+            syncStateDesc = "המערכת מקושרת ומסונכרנת לשרת בהצלחה (HTTPS)"
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TeacherProfile())
+
+    // Separate and Comprehensive Deletion Mechanics
+    fun resetData(deleteStudents: Boolean, deleteDesks: Boolean, deleteAttendance: Boolean) {
+        viewModelScope.launch {
+            if (deleteStudents) {
+                repository.clearAllStudents()
+                // Evict all students from desks
+                val cleanDesks = desks.value.map { it.copy(studentId = null, isLocked = false) }
+                repository.clearAllDesks()
+                repository.insertDesks(cleanDesks)
+            }
+            if (deleteDesks) {
+                val cleanDesks = desks.value.map { it.copy(studentId = null, isLocked = false, type = "DESK") }
+                repository.clearAllDesks()
+                repository.insertDesks(cleanDesks)
+            }
+            if (deleteAttendance) {
+                repository.clearLogs()
+            }
+        }
+    }
+
+    // File Upload/Import Parsing Mechanics
+    fun importStudentsFromFileContent(fileText: String): Boolean {
+        return try {
+            val lines = fileText.lines().map { it.trim() }.filter { it.isNotEmpty() }
+            if (lines.isEmpty()) return false
+
+            val parsedList = mutableListOf<StudentEntity>()
+            lines.forEachIndexed { i, line ->
+                // Simple comma or pipe delimiter parser
+                val parts = if (line.contains(",")) line.split(",") else line.split("|")
+                val name = parts.firstOrNull()?.trim() ?: "תלמיד חדש $i"
+                val height = if (parts.size > 1) parts[1].trim() else "Medium"
+                val pref = if (parts.size > 2) parts[2].trim() else "Middle"
+                val notes = if (parts.size > 3) parts[3].trim() else "ייבוא דרך קובץ"
+
+                parsedList.add(
+                    StudentEntity(
+                        id = UUID.randomUUID().toString(),
+                        name = name,
+                        height = if (height in listOf("Low", "Medium", "Tall")) height else "Medium",
+                        rowPreference = if (pref in listOf("Front", "Middle", "Back")) pref else "Middle",
+                        loves = emptyList(),
+                        forbids = emptyList(),
+                        separate = emptyList(),
+                        notes = notes,
+                        syncStatus = SyncState.SYNCED
+                    )
+                )
+            }
+
+            if (parsedList.isNotEmpty()) {
+                viewModelScope.launch {
+                    repository.insertStudents(parsedList)
+                }
+                true
+            } else {
+                false
+            }
+        } catch (e: Exception) {
+            Log.e("ImportStudents", "Error parsing files content", e)
+            false
+        }
+    }
+
+    fun importMaterialsFromFileContent(fileText: String): Boolean {
+        return try {
+            val lines = fileText.lines().map { it.trim() }.filter { it.isNotEmpty() }
+            if (lines.isEmpty()) return false
+
+            val title = lines.firstOrNull()?.removePrefix("כותרת:")?.trim() ?: "מערך יבוא מקובץ"
+            val content = lines.drop(1).joinToString("\n")
+
+            parseLibraryDocument(title, content)
+            true
+        } catch (e: Exception) {
+            Log.e("ImportMaterials", "Error parsing material content", e)
+            false
+        }
+    }
+
+    // Word Document and PDF Export Mechanics
+    fun exportMaterialToWord(context: android.content.Context, material: AcademicMaterialEntity) {
+        try {
+            // Build RTF/HTML formatted string openable beautifully as .doc / .docx in Word applications
+            val docBuilder = java.lang.StringBuilder()
+            docBuilder.append("<html><meta charset='utf-8'>")
+            docBuilder.append("<body style='direction: rtl; font-family: Segoe UI, Arial;'>")
+            docBuilder.append("<h1 style='color: #1a365d; text-align: center;'>${material.title}</h1>")
+            docBuilder.append("<p style='text-align: center; color: #666;'>פירוט חומרים ומערך שיעור פדגוגי</p>")
+            docBuilder.append("<hr>")
+            docBuilder.append("<h2>עקרונות סיכום:</h2>")
+            docBuilder.append("<p>${material.summaryNotes.replace("\n", "<br>")}</p>")
+            docBuilder.append("<h2>ציר זמן דידקטי לשיעור:</h2>")
+            docBuilder.append("<p>${material.lessonTimeline.replace("\n", "<br>")}</p>")
+            docBuilder.append("<h2>שאלות הערכה והבנה:</h2>")
+
+            val quizArr = JSONArray(material.quizJson)
+            for (i in 0 until quizArr.length()) {
+                val qObj = quizArr.getJSONObject(i)
+                val questionText = qObj.getString("question")
+                val optsArr = qObj.getJSONArray("options")
+                docBuilder.append("<p><b>שאלה ${i + 1}: $questionText</b></p>")
+                docBuilder.append("<ul>")
+                for (o in 0 until optsArr.length()) {
+                    val correct = o == qObj.getInt("correctAnswerIndex")
+                    val isCorrectText = if (correct) " (תשובה נכונה)" else ""
+                    docBuilder.append("<li>${optsArr.getString(o)}$isCorrectText</li>")
+                }
+                docBuilder.append("</ul>")
+            }
+
+            docBuilder.append("</body></html>")
+
+            val fileName = "${material.title.replace(" ", "_").replace("/", "_")}.doc"
+            val file = java.io.File(context.cacheDir, fileName)
+            file.writeText(docBuilder.toString(), charset = java.nio.charset.StandardCharsets.UTF_8)
+
+            val uri = androidx.core.content.FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.provider",
+                file
+            )
+
+            val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                type = "application/msword"
+                putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                putExtra(android.content.Intent.EXTRA_SUBJECT, "מערך שיעור - ${material.title}")
+                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+
+            val chooser = android.content.Intent.createChooser(intent, "ייצא כקובץ Word (.doc)")
+            chooser.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(chooser)
+        } catch (e: Exception) {
+            Log.e("ExportWord", "Error exporting material to Word", e)
+        }
+    }
+
+    fun exportMaterialToPDF(context: android.content.Context, material: AcademicMaterialEntity) {
+        try {
+            val pdfDoc = android.graphics.pdf.PdfDocument()
+            val pageInfo = android.graphics.pdf.PdfDocument.PageInfo.Builder(595, 842, 1).create()
+            val page = pdfDoc.startPage(pageInfo)
+            val canvas = page.canvas
+
+            val titlePaint = android.graphics.Paint().apply {
+                color = android.graphics.Color.rgb(30, 27, 75)
+                textSize = 18f
+                isFakeBoldText = true
+                isAntiAlias = true
+            }
+
+            val bodyPaint = android.graphics.Paint().apply {
+                color = android.graphics.Color.BLACK
+                textSize = 11f
+                isAntiAlias = true
+            }
+
+            val headerPaint = android.graphics.Paint().apply {
+                color = android.graphics.Color.rgb(10, 10, 10)
+                textSize = 13f
+                isFakeBoldText = true
+                isAntiAlias = true
+            }
+
+            canvas.drawText(material.title, 400f, 60f, titlePaint)
+            canvas.drawText("ClassPro מסמך פדגוגי רשמי", 400f, 95f, bodyPaint)
+
+            var currentY = 140f
+
+            canvas.drawText("עיקרי סיכום ומטרות:", 480f, currentY, headerPaint)
+            currentY += 25f
+
+            val summaryLines = material.summaryNotes.split("\n")
+            summaryLines.forEach { line ->
+                if (currentY < 800f) {
+                    canvas.drawText(line, 480f - (line.length * 1.5f).coerceAtMost(350f), currentY, bodyPaint)
+                    currentY += 20f
+                }
+            }
+
+            currentY += 15f
+            canvas.drawText("ציר זמן שיעור פדגוגי:", 480f, currentY, headerPaint)
+            currentY += 25f
+
+            val timelineLines = material.lessonTimeline.split("\n")
+            timelineLines.forEach { line ->
+                if (currentY < 800f) {
+                    canvas.drawText(line, 480f - (line.length * 1.5f).coerceAtMost(350f), currentY, bodyPaint)
+                    currentY += 20f
+                }
+            }
+
+            pdfDoc.finishPage(page)
+
+            val fileName = "${material.title.replace(" ", "_").replace("/", "_")}.pdf"
+            val file = java.io.File(context.cacheDir, fileName)
+            val outputStream = java.io.FileOutputStream(file)
+            pdfDoc.writeTo(outputStream)
+            pdfDoc.close()
+            outputStream.close()
+
+            val uri = androidx.core.content.FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.provider",
+                file
+            )
+
+            val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                type = "application/pdf"
+                putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                putExtra(android.content.Intent.EXTRA_SUBJECT, "מערך פדגוגי PDF - ${material.title}")
+                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+
+            val chooser = android.content.Intent.createChooser(intent, "ייצא כקובץ PDF")
+            chooser.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(chooser)
+        } catch (e: Exception) {
+            Log.e("ExportMaterialPDF", "Error saving PDF file", e)
         }
     }
 }

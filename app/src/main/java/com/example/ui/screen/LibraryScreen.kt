@@ -36,6 +36,7 @@ fun LibraryScreen(viewModel: ClassViewModel) {
     val materials by viewModel.materials.collectAsState()
     val isParsingFile by viewModel.isParsingFile.collectAsState()
     
+    val context = androidx.compose.ui.platform.LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
     var showDocAddDialog by remember { mutableStateOf(false) }
@@ -43,6 +44,29 @@ fun LibraryScreen(viewModel: ClassViewModel) {
     var docContent by remember { mutableStateOf("") }
 
     var selectedMaterialForDetail by remember { mutableStateOf<AcademicMaterialEntity?>(null) }
+    var userFeedbackMessage by remember { mutableStateOf("") }
+
+    // File Import launcher contract for Hebrew raw file uploading
+    val fileImportLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            try {
+                val inputStream = context.contentResolver.openInputStream(uri)
+                val text = inputStream?.bufferedReader()?.use { it.readText() } ?: ""
+                if (text.isNotEmpty()) {
+                    val success = viewModel.importMaterialsFromFileContent(text)
+                    if (success) {
+                        userFeedbackMessage = "הקובץ הועלה ונשלח לניתוח פדגוגי בהצלחה!"
+                    } else {
+                        userFeedbackMessage = "שגיאה בפענוח תוכן הקובץ."
+                    }
+                }
+            } catch (e: Exception) {
+                userFeedbackMessage = "שגיאה בגישה לקובץ שנבחר."
+            }
+        }
+    }
 
     val primaryColor = if (viewModel.selectedTheme.collectAsState().value == "MODERN") {
         Color(0xFFA5B4FC)
@@ -77,25 +101,48 @@ fun LibraryScreen(viewModel: ClassViewModel) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Button(
-                    onClick = {
-                        docTitle = ""
-                        docContent = ""
-                        showDocAddDialog = true
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.testTag("add_document_button")
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("קלוט מקור דידקטי", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Manual Intake didactics (ניתוח)
+                    Button(
+                        onClick = {
+                            docTitle = ""
+                            docContent = ""
+                            showDocAddDialog = true
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.testTag("add_document_button")
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("ניתוח חומר ידני", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
                 }
 
                 Text(
-                    "ספריית חומרי לימוד ו-AI",
+                    "ספרייה פדגוגית",
                     style = MaterialTheme.typography.titleMedium.copy(color = Color.White, fontWeight = FontWeight.Bold)
                 )
+            }
+
+            if (userFeedbackMessage.isNotEmpty()) {
+                Surface(
+                    color = primaryColor.copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, primaryColor)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TextButton(onClick = { userFeedbackMessage = "" }) {
+                            Text("סגור", color = primaryColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Text(userFeedbackMessage, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                    }
+                }
             }
 
             // Central content splitter
@@ -111,7 +158,7 @@ fun LibraryScreen(viewModel: ClassViewModel) {
                 ) {
                     Column(modifier = Modifier.fillMaxSize().padding(10.dp)) {
                         Text(
-                            "מערכי שיעור קיימים",
+                            "ניהול קבצים ומערכים",
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp,
@@ -119,13 +166,68 @@ fun LibraryScreen(viewModel: ClassViewModel) {
                             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
                         )
 
+                        // Top control panel representing clearly: העלאה, יבוא
+                        Card(
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.06f))
+                        ) {
+                            Column(modifier = Modifier.padding(8.dp), horizontalAlignment = Alignment.End) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("מאגר ידע משולב (Knowledge Hub)", fontSize = 11.sp, color = primaryColor, fontWeight = FontWeight.Bold)
+                                    // Add tag
+                                    Box(modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(Color.White.copy(alpha = 0.2f)).padding(horizontal = 4.dp, vertical = 2.dp)) {
+                                        Text("תגיות נושא: תלמוד", color = Color.White, fontSize = 9.sp)
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    // 1. העלאה (Upload)
+                                    Button(
+                                        onClick = { fileImportLauncher.launch("*/*") },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.1f)),
+                                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                                        modifier = Modifier.weight(1f).height(34.dp),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Icon(Icons.Default.ArrowBack, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
+                                        Spacer(modifier = Modifier.width(2.dp))
+                                        Text("העלאה", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    }
+
+                                    // 2. מנוע תכנון שיעורים מבוסס טקסט (Lesson Engine)
+                                    Button(
+                                        onClick = {
+                                            docTitle = ""
+                                            docContent = ""
+                                            showDocAddDialog = true
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
+                                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                                        modifier = Modifier.weight(1f).height(34.dp),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Icon(Icons.Default.AddCircle, contentDescription = null, tint = Color.Black, modifier = Modifier.size(12.dp))
+                                        Spacer(modifier = Modifier.width(2.dp))
+                                        Text("חולל שיעור", color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        }
+
                         if (materials.isEmpty()) {
                             Box(
                                 modifier = Modifier.weight(1f).fillMaxWidth(),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    "ספריית המערכים ריקה.\nקלוט מסמך ראשון פה מעל!",
+                                    "ספריית המערכים ריקה.\nקלוט או העלה מסמך ראשון!",
                                     color = Color.LightGray.copy(alpha = 0.6f),
                                     fontSize = 11.sp,
                                     textAlign = TextAlign.Center
@@ -177,7 +279,7 @@ fun LibraryScreen(viewModel: ClassViewModel) {
                                             }
                                             Spacer(modifier = Modifier.height(4.dp))
                                             Text(
-                                                "כיסוי: ${mat.coveragePercentage}%",
+                                                "פרקים: ונותח בהצלחה",
                                                 color = if (isSelected) Color.DarkGray else Color.LightGray,
                                                 fontSize = 10.sp
                                             )
@@ -200,7 +302,7 @@ fun LibraryScreen(viewModel: ClassViewModel) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 CircularProgressIndicator(color = primaryColor)
                                 Spacer(modifier = Modifier.height(12.dp))
-                                Text("מנוע ה-AI של Gemini מעבד ומסכם את מסמך הלימוד הנוכחי כעת...", color = Color.White, fontSize = 12.sp, textAlign = TextAlign.Center)
+                                Text("מנוע החישוב מעבד ומסכם את מסמך הלימוד הנוכחי כעת פדגוגית...", color = Color.White, fontSize = 12.sp, textAlign = TextAlign.Center)
                             }
                         }
                     } else if (selectedMaterialForDetail != null) {
@@ -236,6 +338,48 @@ fun LibraryScreen(viewModel: ClassViewModel) {
                                     textAlign = TextAlign.End,
                                     modifier = Modifier.fillMaxWidth()
                                 )
+                            }
+
+                            // 4. ייצוא (Export section: Word & PDF both)
+                            item {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.08f)),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, primaryColor.copy(alpha = 0.3f))
+                                ) {
+                                    Column(modifier = Modifier.padding(10.dp), horizontalAlignment = Alignment.End) {
+                                        Text("אפשרויות ייצוא מסמך פדגוגי", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = primaryColor)
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            // Word Export (וורד)
+                                            Button(
+                                                onClick = { viewModel.exportMaterialToWord(context, mat) },
+                                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2B579A)),
+                                                modifier = Modifier.weight(1f),
+                                                shape = RoundedCornerShape(8.dp)
+                                            ) {
+                                                Icon(Icons.Default.Menu, contentDescription = "Word", tint = Color.White, modifier = Modifier.size(14.dp))
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text("ייצוא לוורד", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                            }
+
+                                            // PDF Export (pdf)
+                                            Button(
+                                                onClick = { viewModel.exportMaterialToPDF(context, mat) },
+                                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB30B00)),
+                                                modifier = Modifier.weight(1f),
+                                                shape = RoundedCornerShape(8.dp)
+                                            ) {
+                                                Icon(Icons.Default.Check, contentDescription = "PDF", tint = Color.White, modifier = Modifier.size(14.dp))
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text("ייצוא ל-PDF", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+                                    }
+                                }
                             }
 
                             item {
@@ -301,7 +445,7 @@ fun LibraryScreen(viewModel: ClassViewModel) {
                     } else {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text(
-                                "אנא בחר מערך לימודי מהרשימה\nכדי להציג את סיכום ה-AI של Gemini",
+                                "אנא בחר מערך לימודי מהרשימה\nכדי להציג את הניתוח והסיכום הפדגוגי",
                                 color = Color.LightGray.copy(alpha = 0.7f),
                                 fontSize = 13.sp,
                                 textAlign = TextAlign.Center
@@ -312,14 +456,15 @@ fun LibraryScreen(viewModel: ClassViewModel) {
             }
         }
 
-        // Intake Document dialog
+        // Intake Document dialog (ניתוח)
+        var selectedDifficulty by remember { mutableStateOf("בינוני") }
         if (showDocAddDialog) {
             AlertDialog(
                 onDismissRequest = { showDocAddDialog = false },
                 confirmButton = {
                     Button(
                         onClick = {
-                            viewModel.parseLibraryDocument(docTitle, docContent)
+                            viewModel.parseLibraryDocument("$docTitle ($selectedDifficulty)", docContent)
                             showDocAddDialog = false
                             coroutineScope.launch {
                                 delay(1200)
@@ -328,7 +473,7 @@ fun LibraryScreen(viewModel: ClassViewModel) {
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
                     ) {
-                        Text("נתח וקלוט עם Gemini JSON", color = Color.Black)
+                        Text("חולל מערך מותאם אישית", color = Color.Black)
                     }
                 },
                 dismissButton = {
@@ -336,7 +481,7 @@ fun LibraryScreen(viewModel: ClassViewModel) {
                 },
                 title = {
                     Text(
-                        "קליטת חומרי לימוד (מערכי שיעור ומקורות)",
+                        "תכנון שיעור תלמודי / קליטת תמלול אודיו",
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
                         modifier = Modifier.fillMaxWidth(),
@@ -348,16 +493,31 @@ fun LibraryScreen(viewModel: ClassViewModel) {
                         OutlinedTextField(
                             value = docTitle,
                             onValueChange = { docTitle = it },
-                            label = { Text("כותרת מערך השיעור / נושא הלימוד") },
+                            label = { Text("כותרת / סילבוס שבועי (לדוגמה: מסכת בבא קמא)") },
                             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                             textStyle = TextStyle(textAlign = TextAlign.End),
                             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = primaryColor, focusedLabelColor = primaryColor)
                         )
 
+                        // Difficulty Dropdown simulation (Row with toggle buttons for simplicity)
+                        Text("רמת קושי הלימוד:", color = Color.LightGray, fontSize = 12.sp, modifier = Modifier.padding(bottom = 4.dp))
+                        Row(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf("קל", "בינוני", "מתקדם").forEach { level ->
+                                Button(
+                                    onClick = { selectedDifficulty = level },
+                                    colors = ButtonDefaults.buttonColors(containerColor = if (selectedDifficulty == level) primaryColor else Color.White.copy(alpha = 0.1f)),
+                                    modifier = Modifier.weight(1f).height(32.dp),
+                                    contentPadding = PaddingValues(0.dp)
+                                ) {
+                                    Text(level, color = if (selectedDifficulty == level) Color.Black else Color.White, fontSize = 11.sp)
+                                }
+                            }
+                        }
+
                         OutlinedTextField(
                             value = docContent,
                             onValueChange = { docContent = it },
-                            label = { Text("טקסט מקור המידע פדגוגי") },
+                            label = { Text("טקסט מקור או הדבק תמלול אודיו (Audio Transcript)") },
                             modifier = Modifier.fillMaxWidth().height(150.dp),
                             textStyle = TextStyle(textAlign = TextAlign.End),
                             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = primaryColor, focusedLabelColor = primaryColor)

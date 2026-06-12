@@ -33,6 +33,7 @@ fun StudentsScreen(viewModel: ClassViewModel) {
     val attendanceLogs by viewModel.attendanceLogs.collectAsState()
     val todayDate = remember { java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date()) }
     var selectedStudentForEdit by remember { mutableStateOf<StudentEntity?>(null) }
+    var showProgressReportFor by remember { mutableStateOf<StudentEntity?>(null) }
     var studentToDelete by remember { mutableStateOf<StudentEntity?>(null) }
     var showIntakeDialog by remember { mutableStateOf(false) }
     var bulkInputText by remember { mutableStateOf("") }
@@ -47,16 +48,56 @@ fun StudentsScreen(viewModel: ClassViewModel) {
     var separateField by remember { mutableStateOf<List<String>>(emptyList()) }
     var notesField by remember { mutableStateOf("") }
 
-    val primaryColor = if (viewModel.selectedTheme.collectAsState().value == "MODERN") {
+    var searchQuery by remember { mutableStateOf("") }
+    var sortFilter by remember { mutableStateOf("ALPHABETICAL") }
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var importStatusMsg by remember { mutableStateOf("") }
+
+    val studentFileLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            try {
+                val inputStream = context.contentResolver.openInputStream(uri)
+                val text = inputStream?.bufferedReader()?.use { it.readText() } ?: ""
+                if (text.isNotEmpty()) {
+                    val ok = viewModel.importStudentsFromFileContent(text)
+                    importStatusMsg = if (ok) {
+                        "ייבוא הושלם! כל התלמידים החדשים נקלטו בהצלחה!"
+                    } else {
+                        "מבנה הקובץ אינו מזוהה, אנא השתמש בפורמט פשוט של שורות טקסט."
+                    }
+                }
+            } catch (e: Exception) {
+                importStatusMsg = "שגיאה בטעינת הקובץ."
+            }
+        }
+    }
+
+    val isLightMode = viewModel.selectedTheme.collectAsState().value == "MODERN"
+    
+    val primaryColor = if (isLightMode) {
         Color(0xFFA5B4FC)
     } else {
         Color(0xFFFCD34D)
     }
 
-    val darkBg = if (viewModel.selectedTheme.collectAsState().value == "MODERN") {
-        Color(0xFF1E1B4B)
+    val darkBg = if (isLightMode) {
+        Color(0xFFF8FAFC) // Slate-50 soft background
     } else {
-        Color(0xFF2D2319)
+        Color(0xFF2D2319) // Warm dark background
+    }
+    
+    val baseTextColor = if (isLightMode) Color(0xFF1E293B) else Color.White
+
+    // Prepare processed student list
+    val processedStudents = remember(studentsList, searchQuery, sortFilter) {
+        val filtered = studentsList.filter { it.name.contains(searchQuery, ignoreCase = true) }
+        when (sortFilter) {
+            "POINTS" -> filtered.sortedByDescending { viewModel.getStudentPoints(it) }
+            else -> filtered.sortedBy { it.name }
+        }
     }
 
     Box(
@@ -81,7 +122,22 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Add and Import actions
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Raw physical file uploader
+                    Button(
+                        onClick = { studentFileLauncher.launch("*/*") },
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = primaryColor),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.testTag("bulk_file_upload_btn")
+                    ) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("העלאת קובץ", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+
                     Button(
                         onClick = {
                             bulkInputText = ""
@@ -91,9 +147,9 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.testTag("bulk_import_button")
                     ) {
-                        Icon(Icons.Default.List, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.List, contentDescription = null, modifier = Modifier.size(14.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("ייבוא קובץ/מנה", fontSize = 12.sp)
+                        Text("קלוט מנה", fontSize = 11.sp)
                     }
 
                     Button(
@@ -111,9 +167,9 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.testTag("add_student_button")
                     ) {
-                        Icon(Icons.Default.Add, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Add, contentDescription = null, tint = Color.Black, modifier = Modifier.size(14.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("תלמיד חדש", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text("תלמיד חדש", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                     }
                 }
 
@@ -123,12 +179,75 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                 )
             }
 
+            // Search and Filter Bar
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Sorting toggle
+                Button(
+                    onClick = { sortFilter = if (sortFilter == "ALPHABETICAL") "POINTS" else "ALPHABETICAL" },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.1f)),
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Icon(
+                        imageVector = if (sortFilter == "ALPHABETICAL") Icons.Default.MoreVert else Icons.Default.Star,
+                        contentDescription = "מיון",
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        if (sortFilter == "ALPHABETICAL") "מיון: א'-ת'" else "מיון: נקודות",
+                        color = Color.White,
+                        fontSize = 11.sp
+                    )
+                }
+
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("חיפוש תלמיד...", fontSize = 12.sp, textAlign = TextAlign.End, modifier = Modifier.fillMaxWidth()) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search", tint = primaryColor, modifier = Modifier.size(16.dp)) },
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    textStyle = TextStyle(textAlign = TextAlign.End, fontSize = 12.sp, color = Color.White),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = primaryColor,
+                        unfocusedBorderColor = primaryColor.copy(alpha = 0.5f)
+                    )
+                )
+            }
+
+            if (importStatusMsg.isNotEmpty()) {
+                Surface(
+                    color = primaryColor.copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, primaryColor)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TextButton(onClick = { importStatusMsg = "" }) {
+                            Text("הבנתי", color = primaryColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Text(importStatusMsg, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Medium, textAlign = TextAlign.End)
+                    }
+                }
+            }
+
             // Scrollable roster lists
             LazyColumn(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                items(studentsList) { student ->
+                items(processedStudents) { student ->
                     val pts = viewModel.getStudentPoints(student)
                     val todayLog = attendanceLogs.find { it.studentId == student.id && it.date == todayDate }
                     val isPresent = todayLog?.status == "PRESENT"
@@ -146,20 +265,20 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // Gamified scoring controls (+1 / -1) and direct remove action
+                                // Gamified scoring controls (+1 / -1) and profile action
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
                                     IconButton(
-                                        onClick = { studentToDelete = student },
-                                        modifier = Modifier.size(31.dp).clip(RoundedCornerShape(6.dp)).background(Color.Red.copy(alpha = 0.1f))
+                                        onClick = { showProgressReportFor = student },
+                                        modifier = Modifier.size(31.dp).clip(RoundedCornerShape(6.dp)).background(Color(0xFF2B579A).copy(alpha = 0.2f))
                                     ) {
                                         Icon(
-                                            imageVector = Icons.Default.Delete,
-                                            contentDescription = "מחק תלמיד מהכיתה",
-                                            tint = Color.Red,
-                                            modifier = Modifier.size(14.dp)
+                                            imageVector = Icons.Default.AccountCircle,
+                                            contentDescription = "פרופיל אישי דוח התקדמות",
+                                            tint = Color(0xFFA5B4FC),
+                                            modifier = Modifier.size(16.dp)
                                         )
                                     }
 
@@ -558,6 +677,118 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                         textAlign = TextAlign.End,
                         modifier = Modifier.fillMaxWidth()
                     )
+                },
+                containerColor = darkBg
+            )
+        }
+
+        // 4. PROGRESS REPORT DIALOG
+        if (showProgressReportFor != null) {
+            val st = showProgressReportFor!!
+            val pts = viewModel.getStudentPoints(st)
+            
+            AlertDialog(
+                onDismissRequest = { showProgressReportFor = null },
+                confirmButton = {
+                    Button(
+                        onClick = { viewModel.exportToPDF(context) },
+                        colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
+                    ) {
+                        Icon(Icons.Default.Share, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("יצא פרופיל (PDF)", color = Color.Black)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showProgressReportFor = null }) { Text("סגור", color = Color.White) }
+                },
+                title = {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "פרופיל אישי ודוח התקדמות",
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            textAlign = TextAlign.End
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(Icons.Default.AccountCircle, contentDescription = null, tint = primaryColor)
+                    }
+                },
+                text = {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.End
+                    ) {
+                        Text(st.name, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = primaryColor)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        // Gamification summary
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp).fillMaxWidth(), horizontalAlignment = Alignment.End) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text("$pts", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color(0xFF10B981))
+                                    Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFCD34D))
+                                    Text("נקודות התנהגות או הישגים", color = Color.LightGray, fontSize = 12.sp)
+                                }
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Text("סטטוס משימות ושיעורי בית", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        // Mocked Homework List
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp).fillMaxWidth(), horizontalAlignment = Alignment.End) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF10B981), modifier = Modifier.size(16.dp))
+                                    Text("דף עבודה בספר בראשית - הוגש", color = Color.White, fontSize = 12.sp)
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFEF4444), modifier = Modifier.size(16.dp))
+                                    Text("מטלת סיכום משנה - חסר", color = Color.LightGray, fontSize = 12.sp)
+                                }
+                                Spacer(modifier = Modifier.height(12.dp))
+                                
+                                Button(
+                                    onClick = { /* Simulated WhatsApp Trigger */ },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF128C7E)), // WhatsApp Green
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                    modifier = Modifier.align(Alignment.Start).height(32.dp),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Icon(Icons.Default.Email, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("שלח תזכורת להורה (WhatsApp)", color = Color.White, fontSize = 10.sp)
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("הערות פדגוגיות אחרונות", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = if (st.notes.isNotBlank()) st.notes else "אין הערות מיוחדות לפרופיל זה.",
+                            color = Color.LightGray,
+                            fontSize = 12.sp,
+                            textAlign = TextAlign.Right
+                        )
+                    }
                 },
                 containerColor = darkBg
             )

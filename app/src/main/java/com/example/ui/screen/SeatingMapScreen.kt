@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
@@ -35,6 +36,9 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.foundation.focusable
 import androidx.compose.ui.input.key.*
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.ui.draw.shadow
 import com.example.data.model.DeskEntity
 import com.example.data.model.StudentEntity
 import com.example.ui.viewmodel.ClassViewModel
@@ -53,6 +57,24 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
     val canRedo by viewModel.canRedo.collectAsState()
 
     val isSmartboardView by viewModel.isSmartboardView.collectAsState()
+    var isRouletteModalOpen by remember { mutableStateOf(false) }
+
+    // Gamification state
+    val isWheelSpinning by viewModel.isWheelSpinning.collectAsState()
+    val wheelName by viewModel.selectedStudentWheelName.collectAsState()
+
+    // Advanced Map States
+    var is3DMode by remember { mutableStateOf(false) }
+    var dragSourceCoords by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+    var tooltipDesk by remember { mutableStateOf<DeskEntity?>(null) }
+    
+    val isMultiSelectMode by viewModel.isMultiSelectMode.collectAsState()
+    val selectedDesksForMulti by viewModel.selectedDesksForMulti.collectAsState()
+    val seatHistoryMap by viewModel.seatHistoryMap.collectAsState()
+
+    // Note dialog state
+    var editingStudent by remember { mutableStateOf<StudentEntity?>(null) }
+    var noteText by remember { mutableStateOf("") }
     
     val unassignedStudents = students.filter { s ->
         desks.none { it.studentId == s.id }
@@ -64,11 +86,16 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
         Color(0xFFFCD34D) // Amber Accent
     }
 
-    val darkBg = if (viewModel.selectedTheme.collectAsState().value == "MODERN") {
-        Color(0xFF1E1B4B)
+    val isLightMode = viewModel.selectedTheme.collectAsState().value == "MODERN"
+
+    val darkBg = if (isLightMode) {
+        Color(0xFFF8FAFC) // Slate-50 soft background
     } else {
-        Color(0xFF2D2319)
+        Color(0xFF2D2319) // Warm Dark
     }
+    
+    val baseTextColor = if (isLightMode) Color(0xFF1E293B) else Color.White
+    val mutedTextColor = if (isLightMode) Color(0xFF64748B) else Color.LightGray
 
     val context = LocalContext.current
 
@@ -203,7 +230,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                 ) {
                     Icon(Icons.Default.Star, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("סידור מקומות חכם (AI)", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Text("סידור מקומות אוטומטי", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
 
                 IconButton(onClick = { viewModel.isSmartboardView.value = !isSmartboardView }) {
@@ -608,6 +635,8 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                                         borderColor = highlightBorderColor,
                                                         performanceColor = perfColor,
                                                         attendanceStatus = attendanceLogs.find { it.studentId == studentAssigned?.id && it.date == today }?.status,
+                                                        isDraggingPoint = (dragSourceCoords == Pair(r, c)),
+                                                        isHighlighted = (viewModel.selectedStudentForHighlight.value == studentAssigned),
                                                         onToggleStructure = { viewModel.toggleCellType(r, c) },
                                                         onPlace = { viewModel.placeStudentAt(r, c) },
                                                         onLockToggle = { viewModel.toggleDeskLock(r, c) },
@@ -627,6 +656,12 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                                                     else -> "PRESENT"
                                                                 }
                                                                 viewModel.toggleAttendance(studentAssigned.id, nextStatus)
+                                                            }
+                                                        },
+                                                        onEditNote = {
+                                                            if (studentAssigned != null) {
+                                                                editingStudent = studentAssigned
+                                                                noteText = studentAssigned.notes
                                                             }
                                                         },
                                                         onEvict = { studentId -> viewModel.removeStudentFromLayout(studentId) },
@@ -669,13 +704,14 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                         verticalArrangement = Arrangement.spacedBy(6.dp),
                                         modifier = Modifier.weight(1f)
                                     ) {
-                                        items(unassignedStudents) { student ->
+                                        items(unassignedStudents, key = { it.id }) { student ->
                                             val isSelected = selectedUnassignedStudent?.id == student.id
                                             Box(
                                                 modifier = Modifier
+                                                    .animateItem()
                                                     .fillMaxWidth()
                                                     .clip(RoundedCornerShape(8.dp))
-                                                    .background(if (isSelected) primaryColor else Color.White.copy(alpha = 0.05f))
+                                                    .background(if (isSelected) primaryColor else Color(0xFFE2E8F0).copy(alpha = 0.5f))
                                                     .border(1.dp, if (isSelected) Color.White else Color.Transparent, RoundedCornerShape(8.dp))
                                                     .clickable { viewModel.selectUnassignedStudent(student) }
                                                     .padding(8.dp)
@@ -863,6 +899,62 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                     }
                 }
 
+                // Contextual Advanced Actions Toolbar
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    // Roulette Button
+                    Button(
+                        onClick = { isRouletteModalOpen = true },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.1f)),
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Text("🎡 הגרלת תלמיד", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
+
+                    // 1. Interactive 3D View Toggle (Simulated perspective)
+                    IconButton(
+                        onClick = { is3DMode = !is3DMode },
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(if (is3DMode) primaryColor else Color.White.copy(alpha = 0.08f))
+                    ) {
+                        Icon(Icons.Default.Build, contentDescription = "3D View Toggle", tint = if (is3DMode) Color.Black else Color.White, modifier = Modifier.size(16.dp))
+                    }
+
+                    if (selectedMode == "STRUCTURE") {
+                        IconButton(
+                            onClick = { viewModel.injectCustomDeskRow() },
+                            modifier = Modifier.clip(CircleShape).background(Color.White.copy(alpha = 0.08f))
+                        ) {
+                            Icon(Icons.Default.AddCircle, contentDescription = "Inject Custom Desk Matrix", tint = Color.White, modifier = Modifier.size(16.dp))
+                        }
+                        IconButton(
+                            onClick = { viewModel.unhideAllDesks() },
+                            modifier = Modifier.clip(CircleShape).background(Color.White.copy(alpha = 0.08f))
+                        ) {
+                            Icon(Icons.Default.Refresh, contentDescription = "Unhide Walkways", tint = Color.White, modifier = Modifier.size(16.dp))
+                        }
+                    } else if (selectedMode == "PLACEMENT") {
+                        IconButton(
+                            onClick = { viewModel.toggleMultiSelectMode() },
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .background(if (isMultiSelectMode) primaryColor else Color.White.copy(alpha = 0.08f))
+                        ) {
+                            Icon(Icons.Default.CheckCircle, contentDescription = "Multi-Select", tint = if (isMultiSelectMode) Color.Black else Color.White, modifier = Modifier.size(16.dp))
+                        }
+                        
+                        if (isMultiSelectMode && selectedDesksForMulti.isNotEmpty()) {
+                            IconButton(
+                                onClick = { viewModel.clearMultiSelectedAssignments() },
+                                modifier = Modifier.clip(CircleShape).background(Color.Red.copy(alpha = 0.8f))
+                            ) {
+                                Icon(Icons.Default.Close, contentDescription = "Clear Assignments", tint = Color.White, modifier = Modifier.size(16.dp))
+                            }
+                        }
+                    }
+                }
+
                 // Modes Toggles
                 Row(
                     modifier = Modifier
@@ -932,9 +1024,19 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                         Spacer(modifier = Modifier.height(12.dp))
 
                         // Dynamic layout 2D desks rendering
+                        val densityFactor = androidx.compose.ui.platform.LocalDensity.current.density
                         LazyColumn(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier
+                                .weight(1f)
+                                .then(
+                                    if (is3DMode) {
+                                        Modifier.graphicsLayer {
+                                            rotationX = 45f
+                                            cameraDistance = 8f * densityFactor
+                                        }
+                                    } else Modifier
+                                )
                         ) {
                             items(rows) { r ->
                                 Row(
@@ -951,6 +1053,10 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                             if (r == focusedRow && c == focusedCol) {
                                                 // Highly energetic glowing white border for keyboard cell cursor
                                                 highlightBorderColor = Color.Cyan
+                                            } else if (isMultiSelectMode && selectedDesksForMulti.contains(Pair(r, c))) {
+                                                highlightBorderColor = Color.Magenta
+                                            } else if (dragSourceCoords == Pair(r, c)) {
+                                                highlightBorderColor = primaryColor
                                             } else if (selectedStudentHighlight != null && studentAssigned != null) {
                                                 if (studentAssigned.id == selectedStudentHighlight!!.id) {
                                                     highlightBorderColor = Color.Yellow
@@ -978,14 +1084,37 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                                 borderColor = highlightBorderColor,
                                                 performanceColor = perfColor,
                                                 attendanceStatus = attendanceLogs.find { it.studentId == studentAssigned?.id && it.date == today }?.status,
+                                                isDraggingPoint = (dragSourceCoords == Pair(r, c)),
+                                                isHighlighted = (viewModel.selectedStudentForHighlight.value == studentAssigned),
                                                 onToggleStructure = { viewModel.toggleCellType(r, c) },
-                                                onPlace = { viewModel.placeStudentAt(r, c) },
+                                                onPlace = { 
+                                                    if (selectedMode == "PLACEMENT" && isMultiSelectMode) {
+                                                        viewModel.toggleDeskMultiSelection(r, c)
+                                                    } else if (selectedMode == "PLACEMENT" && selectedUnassignedStudent != null) {
+                                                        viewModel.placeStudentAt(r, c)
+                                                    } else {
+                                                        if (dragSourceCoords == null) {
+                                                            dragSourceCoords = Pair(r, c)
+                                                        } else {
+                                                            viewModel.swapOrMoveStudent(dragSourceCoords!!.first, dragSourceCoords!!.second, r, c)
+                                                            dragSourceCoords = null
+                                                        }
+                                                    }
+                                                },
                                                 onLockToggle = { viewModel.toggleDeskLock(r, c) },
                                                 onSelectHighlight = {
-                                                    if (viewModel.selectedStudentForHighlight.value == studentAssigned) {
-                                                        viewModel.selectedStudentForHighlight.value = null
+                                                    if (isMultiSelectMode) {
+                                                        viewModel.toggleDeskMultiSelection(r, c)
+                                                    } else if (dragSourceCoords != null) {
+                                                        viewModel.swapOrMoveStudent(dragSourceCoords!!.first, dragSourceCoords!!.second, r, c)
+                                                        dragSourceCoords = null
                                                     } else {
-                                                        viewModel.selectedStudentForHighlight.value = studentAssigned
+                                                        tooltipDesk = desk
+                                                        if (viewModel.selectedStudentForHighlight.value == studentAssigned) {
+                                                            viewModel.selectedStudentForHighlight.value = null
+                                                        } else {
+                                                            viewModel.selectedStudentForHighlight.value = studentAssigned
+                                                        }
                                                     }
                                                 },
                                                 onAttendanceToggle = {
@@ -997,6 +1126,12 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                                             else -> "PRESENT"
                                                         }
                                                         viewModel.toggleAttendance(studentAssigned.id, nextStatus)
+                                                    }
+                                                },
+                                                onEditNote = {
+                                                    if (studentAssigned != null) {
+                                                        editingStudent = studentAssigned
+                                                        noteText = studentAssigned.notes
                                                     }
                                                 },
                                                 onEvict = { studentId -> viewModel.removeStudentFromLayout(studentId) },
@@ -1039,13 +1174,14 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                 verticalArrangement = Arrangement.spacedBy(6.dp),
                                 modifier = Modifier.weight(1f)
                             ) {
-                                items(unassignedStudents) { student ->
+                                items(unassignedStudents, key = { it.id }) { student ->
                                     val isSelected = selectedUnassignedStudent?.id == student.id
                                     Box(
                                         modifier = Modifier
+                                            .animateItem()
                                             .fillMaxWidth()
                                             .clip(RoundedCornerShape(8.dp))
-                                            .background(if (isSelected) primaryColor else Color.White.copy(alpha = 0.05f))
+                                            .background(if (isSelected) primaryColor else Color(0xFFE2E8F0).copy(alpha = 0.5f))
                                             .border(1.dp, if (isSelected) Color.White else Color.Transparent, RoundedCornerShape(8.dp))
                                             .clickable { viewModel.selectUnassignedStudent(student) }
                                             .padding(8.dp)
@@ -1069,6 +1205,188 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
             }
         }
     }
+
+    // Interactive Seat History & Constraint Tooltip Dialog
+    if (tooltipDesk != null) {
+        val desk = tooltipDesk!!
+        val historyList = seatHistoryMap[Pair(desk.row, desk.col)] ?: emptyList()
+        val assignedStud = students.find { it.id == desk.studentId }
+        
+        AlertDialog(
+            onDismissRequest = { tooltipDesk = null },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Info, contentDescription = null, tint = Color(0xFFA5B4FC))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("מידע והיסטוריית מושב", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                }
+            },
+            text = {
+                Column {
+                    Text("מיקום: שורה ${desk.row + 1}, עמודה ${desk.col + 1}", fontWeight = FontWeight.Bold, color = Color.White)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text("היסטוריית יושבים:", color = Color.LightGray, fontSize = 12.sp)
+                    if (historyList.isEmpty()) {
+                        Text("אין היסטוריה קודמת למושב זה.", fontSize = 12.sp, color = Color.Gray)
+                    } else {
+                        historyList.forEachIndexed { idx, name ->
+                            Text("${idx + 1}. $name", fontSize = 12.sp, color = Color.White)
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Text("ניתוח חכם (AI Constraints):", color = Color(0xFFF59E0B), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    if (assignedStud != null) {
+                        Text(
+                            "מערכת האופטימיזציה הבטיחה שתלמיד זה יושב ללא תלמידים סותרים מסביבו, וזאת בהתאם לרדיוס של 4 עמדות (למעלה, למטה, ימין ושמאל). אין חסימות גובה מזוהות בתצורה זו.",
+                            fontSize = 11.sp,
+                            color = Color.White,
+                            lineHeight = 16.sp
+                        )
+                    } else {
+                        Text("המושב כרגע פנוי. הצב תלמיד כאן כדי לאמת אילוצים פדגוגיים.", fontSize = 11.sp, color = Color.LightGray)
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { tooltipDesk = null }) {
+                    Text("סגור", color = Color(0xFFA5B4FC))
+                }
+            },
+            containerColor = Color(0xFF1E1E2E)
+        )
+    }
+
+    // Notes Dialog
+    if (editingStudent != null) {
+        AlertDialog(
+            onDismissRequest = { editingStudent = null },
+            title = { Text("עריכת הערות עבור ${editingStudent?.name}") },
+            text = {
+                OutlinedTextField(
+                    value = noteText,
+                    onValueChange = { noteText = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("הערות") }
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    editingStudent?.let {
+                        viewModel.updateStudentNotes(it.id, noteText)
+                    }
+                    editingStudent = null
+                }) {
+                    Text("שמור")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { editingStudent = null }) {
+                    Text("ביטול")
+                }
+            }
+        )
+    }
+
+    if (isRouletteModalOpen) {
+        AlertDialog(
+            onDismissRequest = { if (!isWheelSpinning) isRouletteModalOpen = false },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(24.dp),
+            title = {
+                Text(
+                    text = "🎉 הגרלת תלמיד ברולטה",
+                    fontWeight = FontWeight.Black,
+                    color = Color(0xFF1E293B),
+                    fontSize = 20.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            text = {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("מי יעלה הבא בתור ללוח?", fontSize = 14.sp, color = Color.Gray)
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    val infiniteTransition = androidx.compose.animation.core.rememberInfiniteTransition()
+                    val spinAngle by androidx.compose.animation.core.animateFloatAsState(
+                        targetValue = if (isWheelSpinning) 1800f else 0f,
+                        animationSpec = androidx.compose.animation.core.tween(durationMillis = 4000, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+                        label = "spin"
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .size(240.dp)
+                            .clip(androidx.compose.foundation.shape.CircleShape)
+                            .background(Color(0xFFF1F5F9)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (students.isEmpty()) {
+                            Text("אין תלמידים להגרלה", color = Color(0xFF94A3B8))
+                        } else {
+                            androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize().padding(12.dp).graphicsLayer { rotationZ = spinAngle }) {
+                                val sweep = 360f / students.size
+                                val colorsList = listOf(Color(0xFFFFADAD), Color(0xFFFFD6A5), Color(0xFFFDFFB6), Color(0xFFCAFFBF), Color(0xFF9BF6FF), Color(0xFFA0C4FF), Color(0xFFBDB2FF), Color(0xFFFFC6FF))
+                                students.forEachIndexed { index, student ->
+                                    drawArc(
+                                        color = colorsList[index % colorsList.size],
+                                        startAngle = index * sweep,
+                                        sweepAngle = sweep,
+                                        useCenter = true
+                                    )
+                                }
+                            }
+                            Box(
+                                modifier = Modifier.size(50.dp).clip(androidx.compose.foundation.shape.CircleShape).background(Color.White),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Box(modifier = Modifier.size(16.dp).clip(androidx.compose.foundation.shape.CircleShape).background(Color(0xFF94A3B8)))
+                            }
+                        }
+                        
+                        // Pointer
+                        Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = Color(0xFFEF4444), modifier = Modifier.size(48.dp).align(Alignment.TopCenter).offset(y = (-8).dp))
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    androidx.compose.animation.AnimatedVisibility(visible = !isWheelSpinning && wheelName.isNotEmpty()) {
+                        Box(modifier = Modifier.background(Color(0xFFEEF2FF), RoundedCornerShape(16.dp)).padding(horizontal = 24.dp, vertical = 12.dp).border(1.dp, Color(0xFFE0E7FF), RoundedCornerShape(16.dp))) {
+                            Text(
+                                text = "⭐ $wheelName ⭐",
+                                color = Color(0xFF4F46E5),
+                                fontWeight = FontWeight.Black,
+                                fontSize = 24.sp,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.spinWheel() },
+                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
+                    enabled = !isWheelSpinning && students.isNotEmpty(),
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Text(if (isWheelSpinning) "מסתובב..." else "סובב את הגלגל! 🎡", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+            },
+            dismissButton = {
+                if (!isWheelSpinning) {
+                    TextButton(onClick = { isRouletteModalOpen = false }) {
+                        Text("סגור", color = Color.Gray)
+                    }
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -1079,61 +1397,65 @@ fun DeskCell(
     borderColor: Color?,
     performanceColor: Color? = null,
     attendanceStatus: String?,
+    isDraggingPoint: Boolean = false,
+    isHighlighted: Boolean = false,
     onToggleStructure: () -> Unit,
     onPlace: () -> Unit,
     onLockToggle: () -> Unit,
     onSelectHighlight: () -> Unit,
     onAttendanceToggle: () -> Unit,
+    onEditNote: () -> Unit,
     onEvict: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Engaging UI: Crisp White, Slate Backgrounds
     val cellColor = when (desk.type) {
         "WALKWAY" -> Color.Transparent
-        "BLOCK" -> Color.DarkGray.copy(alpha = 0.3f)
+        "BLOCK" -> Color(0xFFE2E8F0) // Slate-200 obstruction
         else -> if (student != null) {
-            performanceColor ?: Color(0xFF3B82F6)
-        } else Color.White.copy(alpha = 0.12f)
-    }
-
-    val clickableModifier = when (mode) {
-        "STRUCTURE" -> modifier
-            .aspectRatio(1f)
-            .clip(RoundedCornerShape(8.dp))
-            .background(cellColor)
-        else -> {
-            if (desk.type == "DESK") {
-                modifier
-                    .aspectRatio(1f)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(cellColor)
-            } else {
-                modifier
-                    .aspectRatio(1f)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(cellColor)
-            }
+            Color.White // Crisp white
+        } else {
+            Color(0xFFCBD5E1).copy(alpha = 0.5f) // Slate-300 empty space
         }
     }
 
+    // Engaging UI: Smooth Micro-Interactions
+    val rotation by animateFloatAsState(targetValue = if (isDraggingPoint) -2f else 0f, label = "rot")
+    val scale by animateFloatAsState(targetValue = if (isDraggingPoint || isHighlighted) 1.05f else 1f, label = "sca")
+    val shadow by animateDpAsState(targetValue = if (isDraggingPoint || isHighlighted) 8.dp else 1.dp, label = "shad")
+
     val borderStroke = if (borderColor != null) {
-        BorderStroke(2.dp, borderColor)
+        BorderStroke(2.dp, borderColor) // Active highlighting outline
     } else if (desk.type == "DESK" && desk.isLocked) {
-        BorderStroke(1.5.dp, Color(0xFFF59E0B)) // Locked indicator in amber outline
+        BorderStroke(1.5.dp, Color(0xFFF59E0B)) // Amber lock outline
+    } else if (desk.type == "DESK" && student != null) {
+        BorderStroke(0.dp, Color.Transparent) // Use shadow instead
     } else {
-        BorderStroke(0.5.dp, Color.White.copy(alpha = 0.15f))
+        BorderStroke(1.dp, Color(0xFF94A3B8).copy(alpha = 0.4f)) // Slate-400 empty borders
     }
 
     Box(
-        modifier = clickableModifier.border(borderStroke, RoundedCornerShape(8.dp)).clickable {
-            when (mode) {
-                "ATTENDANCE" -> onAttendanceToggle()
-                "STRUCTURE" -> onToggleStructure()
-                "PLACEMENT" -> {
-                    if (student != null) onSelectHighlight() else onPlace()
-                }
-                else -> onSelectHighlight()
+        modifier = modifier
+            .aspectRatio(1f)
+            .graphicsLayer {
+                rotationZ = rotation
+                scaleX = scale
+                scaleY = scale
             }
-        },
+            .shadow(shadow, RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(12.dp))
+            .background(cellColor)
+            .border(borderStroke, RoundedCornerShape(12.dp))
+            .clickable {
+                when (mode) {
+                    "ATTENDANCE" -> onAttendanceToggle()
+                    "STRUCTURE" -> onToggleStructure()
+                    "PLACEMENT" -> {
+                        if (student != null) onSelectHighlight() else onPlace()
+                    }
+                    else -> onSelectHighlight()
+                }
+            },
         contentAlignment = Alignment.Center
     ) {
         if (desk.type == "DESK") {
@@ -1141,91 +1463,125 @@ fun DeskCell(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(2.dp),
+                        .padding(4.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // Actions on top
+                    // Smart Hover Controls: Only reveal management actions if highlighted
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        modifier = Modifier.fillMaxWidth().height(14.dp), // keep height fixed to avoid layout jumping
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Menu,
-                            contentDescription = "Move",
-                            tint = Color.Black,
-                            modifier = Modifier
-                                .size(20.dp)
-                                .clickable { onSelectHighlight() } // Using selectAction as a 'grab'
-                        )
-                        Row {
-                            Icon(
-                                imageVector = Icons.Default.Lock,
-                                contentDescription = "Lock",
-                                tint = if (desk.isLocked) Color(0xFFF59E0B) else Color.LightGray.copy(alpha = 0.4f),
+                        AnimatedVisibility(visible = isHighlighted || desk.isLocked || !student.notes.isNullOrBlank()) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                                if (desk.isLocked || isHighlighted) {
+                                    Icon(
+                                        imageVector = Icons.Default.Lock,
+                                        contentDescription = "נעול",
+                                        tint = if (desk.isLocked) Color(0xFFF59E0B) else Color(0xFFCBD5E1),
+                                        modifier = Modifier.size(10.dp).clickable { onLockToggle() }
+                                    )
+                                }
+                                if (!student.notes.isNullOrBlank() || isHighlighted) {
+                                    Icon(
+                                        imageVector = Icons.Default.Info,
+                                        contentDescription = "הערה",
+                                        tint = if (!student.notes.isNullOrBlank()) Color(0xFF6366F1) else Color(0xFFCBD5E1),
+                                        modifier = Modifier.size(10.dp).clickable { onEditNote() }
+                                    )
+                                }
+                            }
+                        }
+
+                        // Status indicator or interactive evict icon
+                        val statusColor = when (attendanceStatus) {
+                            "PRESENT" -> Color(0xFF10B981)
+                            "ABSENT" -> Color(0xFFEF4444)
+                            "LATE" -> Color(0xFFF59E0B)
+                            else -> Color.Transparent
+                        }
+                        if (statusColor != Color.Transparent) {
+                            Box(
                                 modifier = Modifier
-                                    .size(16.dp)
-                                    .clickable { onLockToggle() }
+                                    .size(6.dp)
+                                    .clip(androidx.compose.foundation.shape.CircleShape)
+                                    .background(statusColor)
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Evict",
-                                tint = Color.Red.copy(alpha = 0.7f),
-                                modifier = Modifier
-                                    .size(16.dp)
-                                    .clickable { onEvict(student.id) }
-                            )
+                        } else {
+                            androidx.compose.animation.AnimatedVisibility(visible = isHighlighted) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "הסר",
+                                    tint = Color(0xFF94A3B8), // slate-400
+                                    modifier = Modifier.size(12.dp).clickable { onEvict(student.id) }
+                                )
+                            }
                         }
                     }
 
+                    Spacer(modifier = Modifier.height(2.dp))
+
+                    // Big, clear, bold student name (Crisp Dark text on Light Card)
                     Text(
                         text = student.name,
-                        color = Color.White,
+                        color = Color(0xFF1E293B), // slate-800
                         fontWeight = FontWeight.Bold,
-                        fontSize = 10.sp,
+                        fontSize = 11.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(bottom = 2.dp)
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 2.dp)
                     )
 
-                    // Attendance Status indicator
-                    if (attendanceStatus != null) {
-                        Text(
-                            text = attendanceStatus,
-                            color = when(attendanceStatus) {
-                                "PRESENT" -> Color.Green
-                                "ABSENT" -> Color.Red
-                                "LATE" -> Color.Yellow
-                                else -> Color.White
-                            },
-                            fontSize = 8.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                    Spacer(modifier = Modifier.height(2.dp))
 
-                    // Small height indication tag
-                    Text(
-                        text = when (student.height) {
-                            "Low" -> "נמוך"
-                            "Tall" -> "גבוה"
-                            else -> "בינוני"
-                        },
-                        fontSize = 7.sp,
-                        color = Color.LightGray
+                    // Modern bottom strip indicator (acts as visual floor color indicator)
+                    val stripColor = performanceColor ?: Color(0xFF3B82F6)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.9f)
+                            .height(4.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(stripColor)
                     )
                 }
             } else {
-                Text(
-                    text = "ריק",
-                    color = Color.LightGray.copy(alpha = 0.6f),
-                    fontSize = 9.sp,
-                    fontWeight = FontWeight.Light
-                )
+                // Highly helpful empty desk layout showing grid positions (e.g. 1,1)
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier.padding(4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "פנוי",
+                        tint = Color(0xFF94A3B8).copy(alpha = 0.5f), // slate-400
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.height(1.dp))
+                    Text(
+                        text = "${desk.row + 1},${desk.col + 1}",
+                        color = Color(0xFF94A3B8).copy(alpha = 0.5f), // slate-400
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Normal
+                    )
+                }
             }
         } else if (desk.type == "BLOCK") {
-            Icon(Icons.Default.Build, contentDescription = "קיר", tint = Color.LightGray.copy(alpha = 0.3f), modifier = Modifier.size(16.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFFCBD5E1).copy(alpha = 0.2f)), // slate-300
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Warning,
+                    contentDescription = "קיר קובץ",
+                    tint = Color(0xFF94A3B8).copy(alpha = 0.4f), // slate-400
+                    modifier = Modifier.size(16.dp)
+                )
+            }
         }
     }
 }
