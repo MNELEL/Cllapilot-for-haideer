@@ -20,6 +20,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.core.*
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.graphics.graphicsLayer
@@ -40,6 +41,7 @@ import androidx.compose.ui.unit.sp
 import com.example.ui.screen.*
 import com.example.ui.theme.MyApplicationTheme
 import com.example.ui.viewmodel.ClassViewModel
+import com.example.ui.SoundManager
 
 data class NavItem(
     val route: String,
@@ -53,6 +55,7 @@ class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        SoundManager.init(this)
         
         enableEdgeToEdge()
 
@@ -64,12 +67,27 @@ class MainActivity : ComponentActivity() {
                     var currentDestination by remember { mutableStateOf("DASHBOARD") }
 
                     val primaryColor = if (themeState == "MODERN") {
-                        Color(0xFFA5B4FC)
+                        com.example.ui.theme.GoldGingerStart
                     } else {
-                        Color(0xFFFCD34D)
+                        com.example.ui.theme.GoldGingerStart
                     }
 
-                    val mainBg = Color(0xFFF8FAFC) // bg-slate-50
+                    val infiniteTransition = rememberInfiniteTransition(label = "bg_anim")
+                    val offsetAnim by infiniteTransition.animateFloat(
+                        initialValue = 0f,
+                        targetValue = 2000f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(20000, easing = androidx.compose.animation.core.LinearEasing),
+                            repeatMode = RepeatMode.Reverse
+                        ),
+                        label = "bg_offset"
+                    )
+
+                    val mainBgBrush = Brush.linearGradient(
+                        colors = listOf(com.example.ui.theme.CreamBeige, Color(0xFFFFFFFF), Color(0xFFECFEFF)),
+                        start = androidx.compose.ui.geometry.Offset(0f, offsetAnim),
+                        end = androidx.compose.ui.geometry.Offset(2000f, offsetAnim + 1000f)
+                    )
 
                     val isUnlocked by viewModel.isAppUnlocked.collectAsState()
 
@@ -78,7 +96,7 @@ class MainActivity : ComponentActivity() {
                             Column(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .background(mainBg)
+                                    .background(brush = mainBgBrush)
                                     .padding(24.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center
@@ -86,20 +104,20 @@ class MainActivity : ComponentActivity() {
                                 Icon(
                                     imageVector = Icons.Default.Lock,
                                     contentDescription = "Secure Lock",
-                                    tint = primaryColor,
+                                    tint = com.example.ui.theme.GoldGingerEnd, // Soft Indigo
                                     modifier = Modifier.size(64.dp)
                                 )
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Text(
                                     text = "ClassPro - כניסה לפרופיל כיתה",
-                                    color = Color.White,
+                                    color = com.example.ui.theme.ChocolateBrown,
                                     fontSize = 22.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
                                     text = "הזן קוד מוסדי סודי כדי לפתוח את לוח הבקרה הכיתתי",
-                                    color = Color.LightGray,
+                                    color = com.example.ui.theme.MochaTaupe,
                                     fontSize = 13.sp,
                                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                                 )
@@ -118,7 +136,7 @@ class MainActivity : ComponentActivity() {
                                             modifier = Modifier
                                                 .size(18.dp)
                                                 .clip(androidx.compose.foundation.shape.CircleShape)
-                                                .background(if (active) primaryColor else Color.White.copy(alpha = 0.2f))
+                                                .background(if (active) com.example.ui.theme.GoldGingerEnd else Color(0xFF94A3B8).copy(alpha = 0.3f))
                                         )
                                     }
                                 }
@@ -142,7 +160,7 @@ class MainActivity : ComponentActivity() {
                                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                             row.forEach { btn ->
                                                 Button(
-                                                    onClick = {
+                                                    onClick = { com.example.ui.SoundManager.playClick(); 
                                                         when (btn) {
                                                             "CLR" -> {
                                                                 enteredCode = ""
@@ -173,9 +191,9 @@ class MainActivity : ComponentActivity() {
                                                     },
                                                     modifier = Modifier.size(64.dp),
                                                     shape = androidx.compose.foundation.shape.CircleShape,
-                                                    colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.08f))
+                                                    colors = ButtonDefaults.buttonColors(containerColor = Color.White)
                                                 ) {
-                                                    Text(btn, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                                    Text(btn, color = com.example.ui.theme.ChocolateBrown, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                                                 }
                                             }
                                         }
@@ -183,7 +201,7 @@ class MainActivity : ComponentActivity() {
                                 }
 
                                 Spacer(modifier = Modifier.height(24.dp))
-                                Text("קוד מוסדי ברירת מחדל: 1234", color = Color.LightGray.copy(alpha = 0.6f), fontSize = 11.sp)
+                                Text("קוד מוסדי ברירת מחדל: 1234", color = com.example.ui.theme.MochaTaupe, fontSize = 11.sp)
                             }
                         }
                     } else {
@@ -191,7 +209,7 @@ class MainActivity : ComponentActivity() {
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(mainBg)
+                                .background(brush = mainBgBrush)
                                 .windowInsetsPadding(WindowInsets.safeDrawing)
                         ) {
                             // Main content area
@@ -208,6 +226,7 @@ class MainActivity : ComponentActivity() {
                                     "LIBRARY" -> LibraryScreen(viewModel)
                                     "PORTAL" -> ParentPortalScreen(viewModel)
                                     "MORE" -> MoreScreen(viewModel)
+                                    "ATTENDANCE" -> AttendanceScreen(viewModel)
                                 }
                             }
                             
@@ -232,7 +251,7 @@ class MainActivity : ComponentActivity() {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         androidx.compose.foundation.Canvas(modifier = Modifier.size(32.dp)) {
                                             drawRoundRect(
-                                                color = Color(0xFF6366F1), // Soft Indigo
+                                                color = com.example.ui.theme.GoldGingerEnd, // Soft Indigo
                                                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(12f, 12f)
                                             )
                                             drawArc(
@@ -250,7 +269,7 @@ class MainActivity : ComponentActivity() {
                                             "ClassPro",
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 20.sp,
-                                            color = Color(0xFF1E293B),
+                                            color = com.example.ui.theme.ChocolateBrown,
                                             letterSpacing = (-0.5).sp,
                                             fontFamily = FontFamily.SansSerif
                                         )
@@ -258,14 +277,39 @@ class MainActivity : ComponentActivity() {
                                     
                                     // User Profile & Notifications
                                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                        IconButton(
-                                            onClick = { },
-                                            modifier = Modifier.clip(CircleShape).background(Color(0xFFEEF2FF)).size(40.dp)
+                                        val isSyncEngineActive by viewModel.isSyncing.collectAsState()
+                                        
+                                        // Offline Sync Indicator
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(if (isSyncEngineActive) com.example.ui.theme.GoldGingerStart.copy(alpha = 0.15f) else com.example.ui.theme.PositiveGreen.copy(alpha = 0.15f))
+                                                .padding(horizontal = 10.dp, vertical = 6.dp)
                                         ) {
-                                            Icon(Icons.Default.Notifications, contentDescription = "Notifications", tint = Color(0xFF6366F1), modifier = Modifier.size(20.dp))
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(8.dp)
+                                                    .clip(CircleShape)
+                                                    .background(if (isSyncEngineActive) com.example.ui.theme.GoldGingerStart else com.example.ui.theme.PositiveGreen)
+                                            )
+                                            Text(
+                                                text = if (isSyncEngineActive) "Pending" else "Synced",
+                                                fontSize = 12.sp,
+                                                color = if (isSyncEngineActive) com.example.ui.theme.GoldGingerStart else com.example.ui.theme.PositiveGreen,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                        }
+
+                                        IconButton(
+                                            onClick = { com.example.ui.SoundManager.playClick();  },
+                                            modifier = Modifier.clip(CircleShape).background(com.example.ui.theme.CreamBeige).size(40.dp)
+                                        ) {
+                                            Icon(Icons.Default.Notifications, contentDescription = "Notifications", tint = com.example.ui.theme.GoldGingerEnd, modifier = Modifier.size(20.dp))
                                         }
                                         Box(
-                                            modifier = Modifier.size(40.dp).clip(CircleShape).background(Color(0xFFC7D2FE)),
+                                            modifier = Modifier.size(40.dp).clip(CircleShape).background(com.example.ui.theme.MochaTaupe),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Icon(Icons.Default.Person, contentDescription = "Profile", tint = Color.White, modifier = Modifier.size(24.dp))
@@ -295,7 +339,7 @@ class MainActivity : ComponentActivity() {
                                         val isSelected = currentDestination == nav.route
                                         val scale by animateFloatAsState(targetValue = if (isSelected) 1.05f else 1f, label = "scaleAnim", animationSpec = tween(300))
                                         // soft pastel fill: indigo-50
-                                        val backgroundColor = if (isSelected) Color(0xFFEEF2FF) else Color.Transparent
+                                        val backgroundColor = if (isSelected) com.example.ui.theme.CreamBeige else Color.Transparent
                                         val contentColor = if (isSelected) Color(0xFF4F46E5) else Color(0xFF94A3B8)
                                         
                                         Row(
@@ -306,7 +350,7 @@ class MainActivity : ComponentActivity() {
                                                 .clickable(
                                                      interactionSource = remember { MutableInteractionSource() },
                                                      indication = LocalIndication.current
-                                                ) { currentDestination = nav.route }
+                                                ) { com.example.ui.SoundManager.playClick(); currentDestination = nav.route }
                                                 .padding(horizontal = 16.dp, vertical = 12.dp),
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -328,6 +372,7 @@ class MainActivity : ComponentActivity() {
 
     private val navigationItems = listOf(
         NavItem("SEATING", "מפת כיתה", Icons.Default.Place),
+        NavItem("ATTENDANCE", "נוכחות", Icons.Default.CheckCircle),
         NavItem("TIMER", "טיימר", Icons.Default.PlayArrow),
         NavItem("MORE", "כלים וקמפיינים", Icons.Default.Star),
         NavItem("STUDENTS", "רשימת תלמידים", Icons.Default.Person),

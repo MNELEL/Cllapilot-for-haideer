@@ -55,6 +55,8 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
     val selectedStudentHighlight by viewModel.selectedStudentForHighlight.collectAsState()
     val canUndo by viewModel.canUndo.collectAsState()
     val canRedo by viewModel.canRedo.collectAsState()
+    val isSyncing by viewModel.isSyncing.collectAsState()
+    val syncMessage by viewModel.syncMessage.collectAsState()
 
     val isSmartboardView by viewModel.isSmartboardView.collectAsState()
     var isRouletteModalOpen by remember { mutableStateOf(false) }
@@ -81,21 +83,21 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
     }
 
     val primaryColor = if (viewModel.selectedTheme.collectAsState().value == "MODERN") {
-        Color(0xFFA5B4FC) // Indigo Accent
+        com.example.ui.theme.GoldGingerStart // Indigo Accent
     } else {
-        Color(0xFFFCD34D) // Amber Accent
+        com.example.ui.theme.GoldGingerStart // Amber Accent
     }
 
     val isLightMode = viewModel.selectedTheme.collectAsState().value == "MODERN"
 
     val darkBg = if (isLightMode) {
-        Color(0xFFF8FAFC) // Slate-50 soft background
+        com.example.ui.theme.CreamBeige // Slate-50 soft background
     } else {
-        Color(0xFF2D2319) // Warm Dark
+        com.example.ui.theme.ChocolateBrown // Warm Dark
     }
     
-    val baseTextColor = if (isLightMode) Color(0xFF1E293B) else Color.White
-    val mutedTextColor = if (isLightMode) Color(0xFF64748B) else Color.LightGray
+    val baseTextColor = if (isLightMode) com.example.ui.theme.ChocolateBrown else Color.White
+    val mutedTextColor = if (isLightMode) com.example.ui.theme.MochaTaupe else Color.LightGray
 
     val context = LocalContext.current
 
@@ -122,9 +124,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
         modifier = Modifier
             .fillMaxSize()
             .background(
-                Brush.verticalGradient(
-                    listOf(darkBg, darkBg.copy(alpha = 0.9f))
-                )
+                Brush.verticalGradient(listOf(com.example.ui.theme.CreamBeige, com.example.ui.theme.WhiteWarm))
             )
             .windowInsetsPadding(WindowInsets.safeDrawing)
             .focusRequester(focusRequester)
@@ -223,7 +223,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
             ) {
                 // AI Optimizer launch bubble
                 Button(
-                    onClick = { viewModel.runIntelligentAIPlacement() },
+                    onClick = { com.example.ui.SoundManager.playClick();  viewModel.runIntelligentAIPlacement() },
                     colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.testTag("ai_optimize_button")
@@ -233,13 +233,13 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                     Text("סידור מקומות אוטומטי", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
 
-                IconButton(onClick = { viewModel.isSmartboardView.value = !isSmartboardView }) {
-                    Icon(if (isSmartboardView) Icons.Default.Close else Icons.Default.Menu, contentDescription = "Smartboard", tint = Color.White)
+                IconButton(onClick = { com.example.ui.SoundManager.playClick();  viewModel.isSmartboardView.value = !isSmartboardView }) {
+                    Icon(if (isSmartboardView) Icons.Default.Close else Icons.Default.Menu, contentDescription = "Smartboard", tint = com.example.ui.theme.ChocolateBrown)
                 }
 
                 Text(
                     "עיצוב ויצירת מפת ישיבה כיתתית",
-                    style = MaterialTheme.typography.titleMedium.copy(color = Color.White, fontWeight = FontWeight.Bold)
+                    style = MaterialTheme.typography.titleMedium.copy(color = com.example.ui.theme.ChocolateBrown, fontWeight = FontWeight.Bold)
                 )
             }
 
@@ -273,7 +273,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                                         Text(studentAssigned.name, color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 24.sp)
                                                     }
                                                 } else {
-                                                    Icon(Icons.Default.Add, contentDescription = "Place Student", tint = Color.White.copy(alpha=0.5f), modifier = Modifier.size(48.dp))
+                                                    Icon(Icons.Default.Add, contentDescription = "Place Student", tint = com.example.ui.theme.ChocolateBrown.copy(alpha=0.5f), modifier = Modifier.size(48.dp))
                                                 }
                                             }
                                         } else {
@@ -294,7 +294,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                             .fillMaxWidth()
                             .padding(bottom = 8.dp),
                         shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f))
+                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f))
                     ) {
                         Row(
                             modifier = Modifier
@@ -305,7 +305,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Button(
-                                    onClick = {
+                                    onClick = { com.example.ui.SoundManager.playClick(); 
                                         val rVal = rowInput.toIntOrNull() ?: rows
                                         val cVal = colInput.toIntOrNull() ?: cols
                                         viewModel.gridResize(rVal, cVal)
@@ -323,7 +323,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                     modifier = Modifier
                                         .width(65.dp)
                                         .height(50.dp),
-                                    textStyle = TextStyle(color = Color.White, fontSize = 12.sp, fontFamily = FontFamily.Monospace),
+                                    textStyle = TextStyle(color = com.example.ui.theme.ChocolateBrown, fontSize = 12.sp, fontFamily = FontFamily.Monospace),
                                     singleLine = true,
                                     colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = primaryColor, unfocusedBorderColor = Color.Gray)
                                 )
@@ -335,12 +335,12 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                     modifier = Modifier
                                         .width(65.dp)
                                         .height(50.dp),
-                                    textStyle = TextStyle(color = Color.White, fontSize = 12.sp, fontFamily = FontFamily.Monospace),
+                                    textStyle = TextStyle(color = com.example.ui.theme.ChocolateBrown, fontSize = 12.sp, fontFamily = FontFamily.Monospace),
                                     singleLine = true,
                                     colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = primaryColor, unfocusedBorderColor = Color.Gray)
                                 )
                             }
-                            Text("מימדי הכיתה (1x1 עד 20x20):", color = Color.LightGray, fontSize = 12.sp)
+                            Text("מימדי הכיתה (1x1 עד 20x20):", color = com.example.ui.theme.MochaTaupe, fontSize = 12.sp)
                         }
                     }
 
@@ -350,7 +350,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                             .fillMaxWidth()
                             .padding(bottom = 8.dp),
                         shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.06f))
+                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f))
                     ) {
                         Column(modifier = Modifier.padding(10.dp)) {
                             Row(
@@ -363,7 +363,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
-                                    Text("הצג הישגים פדגוגיים:", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                    Text("הצג הישגים פדגוגיים:", color = com.example.ui.theme.ChocolateBrown, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                                     Switch(
                                         checked = showPerformanceColors,
                                         onCheckedChange = { showPerformanceColors = it },
@@ -377,10 +377,10 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                 // Export Trigger Buttons
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     OutlinedButton(
-                                        onClick = { viewModel.exportToPDF(context) },
+                                        onClick = { com.example.ui.SoundManager.playClick();  viewModel.exportToPDF(context) },
                                         shape = RoundedCornerShape(8.dp),
                                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFCA5A5)),
-                                        border = BorderStroke(1.dp, Color(0xFFEF4444).copy(alpha = 0.5f)),
+                                        border = BorderStroke(1.dp, Color(0xFFC0392B).copy(alpha = 0.5f)),
                                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                                         modifier = Modifier.height(34.dp)
                                     ) {
@@ -390,7 +390,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                     }
 
                                     OutlinedButton(
-                                        onClick = { viewModel.exportToCSV(context) },
+                                        onClick = { com.example.ui.SoundManager.playClick();  viewModel.exportToCSV(context) },
                                         shape = RoundedCornerShape(8.dp),
                                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF86EFAC)),
                                         border = BorderStroke(1.dp, Color(0xFF22C55E).copy(alpha = 0.5f)),
@@ -410,23 +410,23 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clip(RoundedCornerShape(8.dp))
-                                        .background(Color.White.copy(alpha = 0.05f))
+                                        .background(Color.White.copy(alpha = 0.8f))
                                         .padding(6.dp),
                                     horizontalArrangement = Arrangement.SpaceAround,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text("מקרא הישגים פדגוגיים:", color = Color.LightGray, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                    Text("מקרא הישגים פדגוגיים:", color = com.example.ui.theme.MochaTaupe, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFF10B981)))
-                                        Text("גבוה (4+ נק')", color = Color.White, fontSize = 8.sp)
+                                        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(com.example.ui.theme.PositiveGreen))
+                                        Text("גבוה (4+ נק')", color = com.example.ui.theme.ChocolateBrown, fontSize = 8.sp)
                                     }
                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFFF59E0B)))
-                                        Text("בינוני (1-3 נק')", color = Color.White, fontSize = 8.sp)
+                                        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(com.example.ui.theme.GoldGingerStart))
+                                        Text("בינוני (1-3 נק')", color = com.example.ui.theme.ChocolateBrown, fontSize = 8.sp)
                                     }
                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFFEF4444)))
-                                        Text("נדרש תמיכה (0 נק')", color = Color.White, fontSize = 8.sp)
+                                        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFFC0392B)))
+                                        Text("נדרש תמיכה (0 נק')", color = com.example.ui.theme.ChocolateBrown, fontSize = 8.sp)
                                     }
                                 }
                             }
@@ -439,7 +439,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                             .fillMaxWidth()
                             .padding(bottom = 8.dp),
                         shape = RoundedCornerShape(8.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.03f))
+                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f))
                     ) {
                         Row(
                             modifier = Modifier
@@ -450,7 +450,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                         ) {
                             Text(
                                 "⌨️ שליטה במקלדת: חיצים / WASD לניווט | רווח לסימון | L לנעילה | Delete לפינוי",
-                                color = Color.LightGray,
+                                color = com.example.ui.theme.MochaTaupe,
                                 fontSize = 9.5.sp,
                                 textAlign = TextAlign.End,
                                 modifier = Modifier.weight(1f)
@@ -478,11 +478,11 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                         // Undo / Redo buttons with reactive enable state
                         Row {
                             IconButton(
-                                onClick = { viewModel.undoPlacement() },
+                                onClick = { com.example.ui.SoundManager.playClick();  viewModel.undoPlacement() },
                                 enabled = canUndo,
                                 modifier = Modifier
                                     .clip(CircleShape)
-                                    .background(if (canUndo) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.03f))
+                                    .background(if (canUndo) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.8f))
                             ) {
                                 Icon(
                                     Icons.Default.ArrowBack,
@@ -492,11 +492,11 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                             }
                             Spacer(modifier = Modifier.width(8.dp))
                             IconButton(
-                                onClick = { viewModel.redoPlacement() },
+                                onClick = { com.example.ui.SoundManager.playClick();  viewModel.redoPlacement() },
                                 enabled = canRedo,
                                 modifier = Modifier
                                     .clip(CircleShape)
-                                    .background(if (canRedo) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.03f))
+                                    .background(if (canRedo) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.8f))
                             ) {
                                 Icon(
                                     Icons.Default.ArrowForward,
@@ -510,14 +510,14 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                         Row(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(Color.White.copy(alpha = 0.08f))
+                                .background(Color.White.copy(alpha = 0.8f))
                                 .padding(2.dp)
                         ) {
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(10.dp))
                                     .background(if (selectedMode == "PLACEMENT") primaryColor else Color.Transparent)
-                                    .clickable { viewModel.selectedMode.value = "PLACEMENT" }
+                                    .clickable { com.example.ui.SoundManager.playClick();  viewModel.selectedMode.value = "PLACEMENT" }
                                     .padding(horizontal = 12.dp, vertical = 6.dp)
                             ) {
                                 Text(
@@ -531,7 +531,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(10.dp))
                                     .background(if (selectedMode == "STRUCTURE") primaryColor else Color.Transparent)
-                                    .clickable { viewModel.selectedMode.value = "STRUCTURE" }
+                                    .clickable { com.example.ui.SoundManager.playClick();  viewModel.selectedMode.value = "STRUCTURE" }
                                     .padding(horizontal = 12.dp, vertical = 6.dp)
                             ) {
                                 Text(
@@ -545,7 +545,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(10.dp))
                                     .background(if (selectedMode == "ATTENDANCE") primaryColor else Color.Transparent)
-                                    .clickable { viewModel.selectedMode.value = "ATTENDANCE" }
+                                    .clickable { com.example.ui.SoundManager.playClick();  viewModel.selectedMode.value = "ATTENDANCE" }
                                     .padding(horizontal = 12.dp, vertical = 6.dp)
                             ) {
                                 Text(
@@ -567,7 +567,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                         Card(
                             modifier = Modifier.weight(if (selectedMode == "PLACEMENT" && unassignedStudents.isNotEmpty()) 0.72f else 1f),
                             shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.03f))
+                            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f))
                         ) {
                             Column(
                                 modifier = Modifier
@@ -579,11 +579,11 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clip(RoundedCornerShape(8.dp))
-                                        .background(Color.White.copy(alpha = 0.06f))
+                                        .background(Color.White.copy(alpha = 0.8f))
                                         .padding(4.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text("חזית הכיתה / הלוח החכם", color = Color.LightGray, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    Text("חזית הכיתה / הלוח החכם", color = com.example.ui.theme.MochaTaupe, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                 }
 
                                 Spacer(modifier = Modifier.height(12.dp))
@@ -612,9 +612,9 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                                         if (studentAssigned.id == selectedStudentHighlight!!.id) {
                                                             highlightBorderColor = Color.Yellow
                                                         } else if (selectedStudentHighlight!!.loves.contains(studentAssigned.id)) {
-                                                            highlightBorderColor = Color(0xFF10B981) // Lovess count in green
+                                                            highlightBorderColor = com.example.ui.theme.PositiveGreen // Lovess count in green
                                                         } else if (selectedStudentHighlight!!.forbids.contains(studentAssigned.id) || selectedStudentHighlight!!.separate.contains(studentAssigned.id)) {
-                                                            highlightBorderColor = Color(0xFFEF4444) // conflicted in red
+                                                            highlightBorderColor = Color(0xFFC0392B) // conflicted in red
                                                         }
                                                     }
 
@@ -622,9 +622,9 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                                     val perfColor = if (studentAssigned != null && showPerformanceColors) {
                                                         val pts = viewModel.getStudentPoints(studentAssigned)
                                                         when {
-                                                            pts >= 4 -> Color(0xFF10B981) // High Green
-                                                            pts in 1..3 -> Color(0xFFF59E0B) // Medium Yellow
-                                                            else -> Color(0xFFEF4444) // Support Needed Red
+                                                            pts >= 4 -> com.example.ui.theme.PositiveGreen // High Green
+                                                            pts in 1..3 -> com.example.ui.theme.GoldGingerStart // Medium Yellow
+                                                            else -> Color(0xFFC0392B) // Support Needed Red
                                                         }
                                                     } else null
 
@@ -682,7 +682,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                             Card(
                                 modifier = Modifier.weight(0.28f),
                                 shape = RoundedCornerShape(16.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f))
+                                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f))
                             ) {
                                 Column(
                                     modifier = Modifier
@@ -693,7 +693,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                         "תלמידים ללא מושב (${unassignedStudents.size})",
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color.White,
+                                        color = com.example.ui.theme.ChocolateBrown,
                                         textAlign = TextAlign.Center,
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -713,7 +713,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                                     .clip(RoundedCornerShape(8.dp))
                                                     .background(if (isSelected) primaryColor else Color(0xFFE2E8F0).copy(alpha = 0.5f))
                                                     .border(1.dp, if (isSelected) Color.White else Color.Transparent, RoundedCornerShape(8.dp))
-                                                    .clickable { viewModel.selectUnassignedStudent(student) }
+                                                    .clickable { com.example.ui.SoundManager.playClick();  viewModel.selectUnassignedStudent(student) }
                                                     .padding(8.dp)
                                             ) {
                                                 Text(
@@ -742,7 +742,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                     .fillMaxWidth()
                     .padding(bottom = 8.dp),
                 shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.06f))
+                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f))
             ) {
                 Column(modifier = Modifier.padding(10.dp)) {
                     Row(
@@ -755,7 +755,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Text("הצג הישגים פדגוגיים:", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                            Text("הצג הישגים פדגוגיים:", color = com.example.ui.theme.ChocolateBrown, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                             Switch(
                                 checked = showPerformanceColors,
                                 onCheckedChange = { showPerformanceColors = it },
@@ -769,10 +769,10 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                         // Export Trigger Buttons
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             OutlinedButton(
-                                onClick = { viewModel.exportToPDF(context) },
+                                onClick = { com.example.ui.SoundManager.playClick();  viewModel.exportToPDF(context) },
                                 shape = RoundedCornerShape(8.dp),
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFCA5A5)),
-                                border = BorderStroke(1.dp, Color(0xFFEF4444).copy(alpha = 0.5f)),
+                                border = BorderStroke(1.dp, Color(0xFFC0392B).copy(alpha = 0.5f)),
                                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                                 modifier = Modifier.height(34.dp)
                             ) {
@@ -782,7 +782,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                             }
 
                             OutlinedButton(
-                                onClick = { viewModel.exportToCSV(context) },
+                                onClick = { com.example.ui.SoundManager.playClick();  viewModel.exportToCSV(context) },
                                 shape = RoundedCornerShape(8.dp),
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF86EFAC)),
                                 border = BorderStroke(1.dp, Color(0xFF22C55E).copy(alpha = 0.5f)),
@@ -803,23 +803,23 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(Color.White.copy(alpha = 0.05f))
+                                .background(Color.White.copy(alpha = 0.8f))
                                 .padding(6.dp),
                             horizontalArrangement = Arrangement.SpaceAround,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("מקרא הישגים פדגוגיים:", color = Color.LightGray, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                            Text("מקרא הישגים פדגוגיים:", color = com.example.ui.theme.MochaTaupe, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFF10B981)))
-                                Text("גבוה (4+ נק')", color = Color.White, fontSize = 8.sp)
+                                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(com.example.ui.theme.PositiveGreen))
+                                Text("גבוה (4+ נק')", color = com.example.ui.theme.ChocolateBrown, fontSize = 8.sp)
                             }
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFFF59E0B)))
-                                Text("בינוני (1-3 נק')", color = Color.White, fontSize = 8.sp)
+                                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(com.example.ui.theme.GoldGingerStart))
+                                Text("בינוני (1-3 נק')", color = com.example.ui.theme.ChocolateBrown, fontSize = 8.sp)
                             }
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFFEF4444)))
-                                Text("נדרש תמיכה (0 נק')", color = Color.White, fontSize = 8.sp)
+                                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFFC0392B)))
+                                Text("נדרש תמיכה (0 נק')", color = com.example.ui.theme.ChocolateBrown, fontSize = 8.sp)
                             }
                         }
                     }
@@ -832,7 +832,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                     .fillMaxWidth()
                     .padding(bottom = 8.dp),
                 shape = RoundedCornerShape(8.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.03f))
+                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f))
             ) {
                 Row(
                     modifier = Modifier
@@ -843,7 +843,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                 ) {
                     Text(
                         "⌨️ שליטה במקלדת: חיצים / WASD לניווט | רווח לסימון | L לנעילה | Delete לפינוי",
-                        color = Color.LightGray,
+                        color = com.example.ui.theme.MochaTaupe,
                         fontSize = 9.5.sp,
                         textAlign = TextAlign.End,
                         modifier = Modifier.weight(1f)
@@ -871,11 +871,11 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                 // Undo / Redo buttons with reactive enable state
                 Row {
                     IconButton(
-                        onClick = { viewModel.undoPlacement() },
+                        onClick = { com.example.ui.SoundManager.playClick();  viewModel.undoPlacement() },
                         enabled = canUndo,
                         modifier = Modifier
                             .clip(CircleShape)
-                            .background(if (canUndo) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.03f))
+                            .background(if (canUndo) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.8f))
                     ) {
                         Icon(
                             Icons.Default.ArrowBack,
@@ -885,11 +885,11 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     IconButton(
-                        onClick = { viewModel.redoPlacement() },
+                        onClick = { com.example.ui.SoundManager.playClick();  viewModel.redoPlacement() },
                         enabled = canRedo,
                         modifier = Modifier
                             .clip(CircleShape)
-                            .background(if (canRedo) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.03f))
+                            .background(if (canRedo) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.8f))
                     ) {
                         Icon(
                             Icons.Default.ArrowForward,
@@ -903,53 +903,53 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                     // Roulette Button
                     Button(
-                        onClick = { isRouletteModalOpen = true },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.1f)),
+                        onClick = { com.example.ui.SoundManager.playClick();  isRouletteModalOpen = true },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.8f)),
                         shape = RoundedCornerShape(12.dp),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                     ) {
-                        Text("🎡 הגרלת תלמיד", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text("🎡 הגרלת תלמיד", color = com.example.ui.theme.ChocolateBrown, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
 
                     // 1. Interactive 3D View Toggle (Simulated perspective)
                     IconButton(
-                        onClick = { is3DMode = !is3DMode },
+                        onClick = { com.example.ui.SoundManager.playClick();  is3DMode = !is3DMode },
                         modifier = Modifier
                             .clip(CircleShape)
-                            .background(if (is3DMode) primaryColor else Color.White.copy(alpha = 0.08f))
+                            .background(if (is3DMode) primaryColor else Color.White.copy(alpha = 0.8f))
                     ) {
                         Icon(Icons.Default.Build, contentDescription = "3D View Toggle", tint = if (is3DMode) Color.Black else Color.White, modifier = Modifier.size(16.dp))
                     }
 
                     if (selectedMode == "STRUCTURE") {
                         IconButton(
-                            onClick = { viewModel.injectCustomDeskRow() },
-                            modifier = Modifier.clip(CircleShape).background(Color.White.copy(alpha = 0.08f))
+                            onClick = { com.example.ui.SoundManager.playClick();  viewModel.injectCustomDeskRow() },
+                            modifier = Modifier.clip(CircleShape).background(Color.White.copy(alpha = 0.8f))
                         ) {
-                            Icon(Icons.Default.AddCircle, contentDescription = "Inject Custom Desk Matrix", tint = Color.White, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.AddCircle, contentDescription = "Inject Custom Desk Matrix", tint = com.example.ui.theme.ChocolateBrown, modifier = Modifier.size(16.dp))
                         }
                         IconButton(
-                            onClick = { viewModel.unhideAllDesks() },
-                            modifier = Modifier.clip(CircleShape).background(Color.White.copy(alpha = 0.08f))
+                            onClick = { com.example.ui.SoundManager.playClick();  viewModel.unhideAllDesks() },
+                            modifier = Modifier.clip(CircleShape).background(Color.White.copy(alpha = 0.8f))
                         ) {
-                            Icon(Icons.Default.Refresh, contentDescription = "Unhide Walkways", tint = Color.White, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Refresh, contentDescription = "Unhide Walkways", tint = com.example.ui.theme.ChocolateBrown, modifier = Modifier.size(16.dp))
                         }
                     } else if (selectedMode == "PLACEMENT") {
                         IconButton(
-                            onClick = { viewModel.toggleMultiSelectMode() },
+                            onClick = { com.example.ui.SoundManager.playClick();  viewModel.toggleMultiSelectMode() },
                             modifier = Modifier
                                 .clip(CircleShape)
-                                .background(if (isMultiSelectMode) primaryColor else Color.White.copy(alpha = 0.08f))
+                                .background(if (isMultiSelectMode) primaryColor else Color.White.copy(alpha = 0.8f))
                         ) {
                             Icon(Icons.Default.CheckCircle, contentDescription = "Multi-Select", tint = if (isMultiSelectMode) Color.Black else Color.White, modifier = Modifier.size(16.dp))
                         }
                         
                         if (isMultiSelectMode && selectedDesksForMulti.isNotEmpty()) {
                             IconButton(
-                                onClick = { viewModel.clearMultiSelectedAssignments() },
+                                onClick = { com.example.ui.SoundManager.playClick();  viewModel.clearMultiSelectedAssignments() },
                                 modifier = Modifier.clip(CircleShape).background(Color.Red.copy(alpha = 0.8f))
                             ) {
-                                Icon(Icons.Default.Close, contentDescription = "Clear Assignments", tint = Color.White, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Default.Close, contentDescription = "Clear Assignments", tint = com.example.ui.theme.ChocolateBrown, modifier = Modifier.size(16.dp))
                             }
                         }
                     }
@@ -959,14 +959,14 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                 Row(
                     modifier = Modifier
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color.White.copy(alpha = 0.08f))
+                        .background(Color.White.copy(alpha = 0.8f))
                         .padding(2.dp)
                 ) {
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(10.dp))
                             .background(if (selectedMode == "PLACEMENT") primaryColor else Color.Transparent)
-                            .clickable { viewModel.selectedMode.value = "PLACEMENT" }
+                            .clickable { com.example.ui.SoundManager.playClick();  viewModel.selectedMode.value = "PLACEMENT" }
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
                         Text(
@@ -980,7 +980,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                         modifier = Modifier
                             .clip(RoundedCornerShape(10.dp))
                             .background(if (selectedMode == "STRUCTURE") primaryColor else Color.Transparent)
-                            .clickable { viewModel.selectedMode.value = "STRUCTURE" }
+                            .clickable { com.example.ui.SoundManager.playClick();  viewModel.selectedMode.value = "STRUCTURE" }
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
                         Text(
@@ -1002,7 +1002,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                 Card(
                     modifier = Modifier.weight(if (selectedMode == "PLACEMENT" && unassignedStudents.isNotEmpty()) 0.72f else 1f),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.03f))
+                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f))
                 ) {
                     Column(
                         modifier = Modifier
@@ -1014,11 +1014,11 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(Color.White.copy(alpha = 0.06f))
+                                .background(Color.White.copy(alpha = 0.8f))
                                 .padding(4.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("חזית הכיתה / הלוח החכם", color = Color.LightGray, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text("חזית הכיתה / הלוח החכם", color = com.example.ui.theme.MochaTaupe, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
 
                         Spacer(modifier = Modifier.height(12.dp))
@@ -1061,9 +1061,9 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                                 if (studentAssigned.id == selectedStudentHighlight!!.id) {
                                                     highlightBorderColor = Color.Yellow
                                                 } else if (selectedStudentHighlight!!.loves.contains(studentAssigned.id)) {
-                                                    highlightBorderColor = Color(0xFF10B981) // Lovess count in green
+                                                    highlightBorderColor = com.example.ui.theme.PositiveGreen // Lovess count in green
                                                 } else if (selectedStudentHighlight!!.forbids.contains(studentAssigned.id) || selectedStudentHighlight!!.separate.contains(studentAssigned.id)) {
-                                                    highlightBorderColor = Color(0xFFEF4444) // conflicted in red
+                                                    highlightBorderColor = Color(0xFFC0392B) // conflicted in red
                                                 }
                                             }
 
@@ -1071,9 +1071,9 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                             val perfColor = if (studentAssigned != null && showPerformanceColors) {
                                                 val pts = viewModel.getStudentPoints(studentAssigned)
                                                 when {
-                                                    pts >= 4 -> Color(0xFF10B981) // High Green
-                                                    pts in 1..3 -> Color(0xFFF59E0B) // Medium Yellow
-                                                    else -> Color(0xFFEF4444) // Support Needed Red
+                                                    pts >= 4 -> com.example.ui.theme.PositiveGreen // High Green
+                                                    pts in 1..3 -> com.example.ui.theme.GoldGingerStart // Medium Yellow
+                                                    else -> Color(0xFFC0392B) // Support Needed Red
                                                 }
                                             } else null
 
@@ -1152,7 +1152,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                     Card(
                         modifier = Modifier.weight(0.28f),
                         shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f))
+                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f))
                     ) {
                         Column(
                             modifier = Modifier
@@ -1163,7 +1163,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                 "תלמידים ללא מושב (${unassignedStudents.size})",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White,
+                                color = com.example.ui.theme.ChocolateBrown,
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -1183,7 +1183,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                             .clip(RoundedCornerShape(8.dp))
                                             .background(if (isSelected) primaryColor else Color(0xFFE2E8F0).copy(alpha = 0.5f))
                                             .border(1.dp, if (isSelected) Color.White else Color.Transparent, RoundedCornerShape(8.dp))
-                                            .clickable { viewModel.selectUnassignedStudent(student) }
+                                            .clickable { com.example.ui.SoundManager.playClick();  viewModel.selectUnassignedStudent(student) }
                                             .padding(8.dp)
                                     ) {
                                         Text(
@@ -1216,41 +1216,41 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
             onDismissRequest = { tooltipDesk = null },
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Info, contentDescription = null, tint = Color(0xFFA5B4FC))
+                    Icon(Icons.Default.Info, contentDescription = null, tint = com.example.ui.theme.GoldGingerStart)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("מידע והיסטוריית מושב", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
             },
             text = {
                 Column {
-                    Text("מיקום: שורה ${desk.row + 1}, עמודה ${desk.col + 1}", fontWeight = FontWeight.Bold, color = Color.White)
+                    Text("מיקום: שורה ${desk.row + 1}, עמודה ${desk.col + 1}", fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown)
                     Spacer(modifier = Modifier.height(12.dp))
-                    Text("היסטוריית יושבים:", color = Color.LightGray, fontSize = 12.sp)
+                    Text("היסטוריית יושבים:", color = com.example.ui.theme.MochaTaupe, fontSize = 12.sp)
                     if (historyList.isEmpty()) {
                         Text("אין היסטוריה קודמת למושב זה.", fontSize = 12.sp, color = Color.Gray)
                     } else {
                         historyList.forEachIndexed { idx, name ->
-                            Text("${idx + 1}. $name", fontSize = 12.sp, color = Color.White)
+                            Text("${idx + 1}. $name", fontSize = 12.sp, color = com.example.ui.theme.ChocolateBrown)
                         }
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                     
-                    Text("ניתוח חכם (AI Constraints):", color = Color(0xFFF59E0B), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("ניתוח חכם (AI Constraints):", color = com.example.ui.theme.GoldGingerStart, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     if (assignedStud != null) {
                         Text(
                             "מערכת האופטימיזציה הבטיחה שתלמיד זה יושב ללא תלמידים סותרים מסביבו, וזאת בהתאם לרדיוס של 4 עמדות (למעלה, למטה, ימין ושמאל). אין חסימות גובה מזוהות בתצורה זו.",
                             fontSize = 11.sp,
-                            color = Color.White,
+                            color = com.example.ui.theme.ChocolateBrown,
                             lineHeight = 16.sp
                         )
                     } else {
-                        Text("המושב כרגע פנוי. הצב תלמיד כאן כדי לאמת אילוצים פדגוגיים.", fontSize = 11.sp, color = Color.LightGray)
+                        Text("המושב כרגע פנוי. הצב תלמיד כאן כדי לאמת אילוצים פדגוגיים.", fontSize = 11.sp, color = com.example.ui.theme.MochaTaupe)
                     }
                 }
             },
             confirmButton = {
-                TextButton(onClick = { tooltipDesk = null }) {
-                    Text("סגור", color = Color(0xFFA5B4FC))
+                TextButton(onClick = { com.example.ui.SoundManager.playClick();  tooltipDesk = null }) {
+                    Text("סגור", color = com.example.ui.theme.GoldGingerStart)
                 }
             },
             containerColor = Color(0xFF1E1E2E)
@@ -1271,7 +1271,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                 )
             },
             confirmButton = {
-                TextButton(onClick = {
+                TextButton(onClick = { com.example.ui.SoundManager.playClick(); 
                     editingStudent?.let {
                         viewModel.updateStudentNotes(it.id, noteText)
                     }
@@ -1281,7 +1281,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                 }
             },
             dismissButton = {
-                TextButton(onClick = { editingStudent = null }) {
+                TextButton(onClick = { com.example.ui.SoundManager.playClick();  editingStudent = null }) {
                     Text("ביטול")
                 }
             }
@@ -1297,7 +1297,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                 Text(
                     text = "🎉 הגרלת תלמיד ברולטה",
                     fontWeight = FontWeight.Black,
-                    color = Color(0xFF1E293B),
+                    color = com.example.ui.theme.ChocolateBrown,
                     fontSize = 20.sp,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
@@ -1349,13 +1349,13 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                         }
                         
                         // Pointer
-                        Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = Color(0xFFEF4444), modifier = Modifier.size(48.dp).align(Alignment.TopCenter).offset(y = (-8).dp))
+                        Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = Color(0xFFC0392B), modifier = Modifier.size(48.dp).align(Alignment.TopCenter).offset(y = (-8).dp))
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
 
                     androidx.compose.animation.AnimatedVisibility(visible = !isWheelSpinning && wheelName.isNotEmpty()) {
-                        Box(modifier = Modifier.background(Color(0xFFEEF2FF), RoundedCornerShape(16.dp)).padding(horizontal = 24.dp, vertical = 12.dp).border(1.dp, Color(0xFFE0E7FF), RoundedCornerShape(16.dp))) {
+                        Box(modifier = Modifier.background(com.example.ui.theme.CreamBeige, RoundedCornerShape(16.dp)).padding(horizontal = 24.dp, vertical = 12.dp).border(1.dp, Color(0xFFE0E7FF), RoundedCornerShape(16.dp))) {
                             Text(
                                 text = "⭐ $wheelName ⭐",
                                 color = Color(0xFF4F46E5),
@@ -1369,7 +1369,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
             },
             confirmButton = {
                 Button(
-                    onClick = { viewModel.spinWheel() },
+                    onClick = { com.example.ui.SoundManager.playClick();  viewModel.spinWheel() },
                     colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
                     enabled = !isWheelSpinning && students.isNotEmpty(),
                     modifier = Modifier.fillMaxWidth().height(52.dp),
@@ -1380,12 +1380,43 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
             },
             dismissButton = {
                 if (!isWheelSpinning) {
-                    TextButton(onClick = { isRouletteModalOpen = false }) {
+                    TextButton(onClick = { com.example.ui.SoundManager.playClick();  isRouletteModalOpen = false }) {
                         Text("סגור", color = Color.Gray)
                     }
                 }
             }
         )
+    }
+
+    if (isSyncing) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.5f))
+                .clickable(enabled = false) {}, // Intercept clicks
+            contentAlignment = Alignment.Center
+        ) {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                modifier = Modifier.padding(24.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    CircularProgressIndicator(color = primaryColor)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = syncMessage,
+                        color = com.example.ui.theme.ChocolateBrown,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -1427,7 +1458,7 @@ fun DeskCell(
     val borderStroke = if (borderColor != null) {
         BorderStroke(2.dp, borderColor) // Active highlighting outline
     } else if (desk.type == "DESK" && desk.isLocked) {
-        BorderStroke(1.5.dp, Color(0xFFF59E0B)) // Amber lock outline
+        BorderStroke(1.5.dp, com.example.ui.theme.GoldGingerStart) // Amber lock outline
     } else if (desk.type == "DESK" && student != null) {
         BorderStroke(0.dp, Color.Transparent) // Use shadow instead
     } else {
@@ -1446,7 +1477,7 @@ fun DeskCell(
             .clip(RoundedCornerShape(12.dp))
             .background(cellColor)
             .border(borderStroke, RoundedCornerShape(12.dp))
-            .clickable {
+            .clickable { com.example.ui.SoundManager.playClick(); 
                 when (mode) {
                     "ATTENDANCE" -> onAttendanceToggle()
                     "STRUCTURE" -> onToggleStructure()
@@ -1479,16 +1510,16 @@ fun DeskCell(
                                     Icon(
                                         imageVector = Icons.Default.Lock,
                                         contentDescription = "נעול",
-                                        tint = if (desk.isLocked) Color(0xFFF59E0B) else Color(0xFFCBD5E1),
-                                        modifier = Modifier.size(10.dp).clickable { onLockToggle() }
+                                        tint = if (desk.isLocked) com.example.ui.theme.GoldGingerStart else Color(0xFFCBD5E1),
+                                        modifier = Modifier.size(10.dp).clickable { com.example.ui.SoundManager.playClick();  onLockToggle() }
                                     )
                                 }
                                 if (!student.notes.isNullOrBlank() || isHighlighted) {
                                     Icon(
                                         imageVector = Icons.Default.Info,
                                         contentDescription = "הערה",
-                                        tint = if (!student.notes.isNullOrBlank()) Color(0xFF6366F1) else Color(0xFFCBD5E1),
-                                        modifier = Modifier.size(10.dp).clickable { onEditNote() }
+                                        tint = if (!student.notes.isNullOrBlank()) com.example.ui.theme.GoldGingerEnd else Color(0xFFCBD5E1),
+                                        modifier = Modifier.size(10.dp).clickable { com.example.ui.SoundManager.playClick();  onEditNote() }
                                     )
                                 }
                             }
@@ -1496,9 +1527,9 @@ fun DeskCell(
 
                         // Status indicator or interactive evict icon
                         val statusColor = when (attendanceStatus) {
-                            "PRESENT" -> Color(0xFF10B981)
-                            "ABSENT" -> Color(0xFFEF4444)
-                            "LATE" -> Color(0xFFF59E0B)
+                            "PRESENT" -> com.example.ui.theme.PositiveGreen
+                            "ABSENT" -> Color(0xFFC0392B)
+                            "LATE" -> com.example.ui.theme.GoldGingerStart
                             else -> Color.Transparent
                         }
                         if (statusColor != Color.Transparent) {
@@ -1514,7 +1545,7 @@ fun DeskCell(
                                     imageVector = Icons.Default.Close,
                                     contentDescription = "הסר",
                                     tint = Color(0xFF94A3B8), // slate-400
-                                    modifier = Modifier.size(12.dp).clickable { onEvict(student.id) }
+                                    modifier = Modifier.size(12.dp).clickable { com.example.ui.SoundManager.playClick();  onEvict(student.id) }
                                 )
                             }
                         }
@@ -1525,7 +1556,7 @@ fun DeskCell(
                     // Big, clear, bold student name (Crisp Dark text on Light Card)
                     Text(
                         text = student.name,
-                        color = Color(0xFF1E293B), // slate-800
+                        color = com.example.ui.theme.ChocolateBrown, // slate-800
                         fontWeight = FontWeight.Bold,
                         fontSize = 11.sp,
                         maxLines = 1,

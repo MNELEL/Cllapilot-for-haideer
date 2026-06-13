@@ -96,7 +96,7 @@ fun KioskImmersiveGrid(desks: List<DeskEntity>, students: List<StudentEntity>, o
                     color = Color.LightGray.copy(alpha = 0.5f),
                     fontSize = 11.sp,
                     modifier = Modifier.clip(RoundedCornerShape(6.dp))
-                        .clickable { onBack() }
+                        .clickable { com.example.ui.SoundManager.playClick();  onBack() }
                         .background(Color.White.copy(alpha = 0.05f))
                         .padding(horizontal = 10.dp, vertical = 6.dp)
                 )

@@ -30,8 +30,8 @@ fun ParentPortalScreen(viewModel: ClassViewModel) {
     val themeState by viewModel.selectedTheme.collectAsState()
     val students by viewModel.students.collectAsState()
     
-    val primaryColor = if (themeState == "MODERN") Color(0xFFA5B4FC) else Color(0xFFFCD34D)
-    val darkBg = if (themeState == "MODERN") Color(0xFF1E1B4B) else Color(0xFF2D2319)
+    val primaryColor = if (themeState == "MODERN") com.example.ui.theme.GoldGingerStart else com.example.ui.theme.GoldGingerStart
+    val darkBg = if (themeState == "MODERN") com.example.ui.theme.ChocolateBrown.copy(alpha=0.9f) else com.example.ui.theme.ChocolateBrown
     val context = LocalContext.current
 
     var selectedTab by remember { mutableStateOf("HOMEWORK") }
@@ -39,7 +39,7 @@ fun ParentPortalScreen(viewModel: ClassViewModel) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(darkBg)
+            .background(Color.Transparent)
             .padding(16.dp)
     ) {
         // Top Navbar
@@ -53,7 +53,7 @@ fun ParentPortalScreen(viewModel: ClassViewModel) {
                 "מעקב הורים ומשימות",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = com.example.ui.theme.ChocolateBrown
             )
         }
 
@@ -63,15 +63,15 @@ fun ParentPortalScreen(viewModel: ClassViewModel) {
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Button(
-                onClick = { selectedTab = "HOMEWORK" },
-                colors = ButtonDefaults.buttonColors(containerColor = if (selectedTab == "HOMEWORK") primaryColor else Color.White.copy(alpha = 0.1f)),
+                onClick = { com.example.ui.SoundManager.playClick();  selectedTab = "HOMEWORK" },
+                colors = ButtonDefaults.buttonColors(containerColor = if (selectedTab == "HOMEWORK") primaryColor else Color.White.copy(alpha = 0.8f)),
                 modifier = Modifier.weight(1f)
             ) {
                 Text("מטלות ושיעורי בית", color = if (selectedTab == "HOMEWORK") Color.Black else Color.White, fontSize = 12.sp)
             }
             Button(
-                onClick = { selectedTab = "CALENDAR" },
-                colors = ButtonDefaults.buttonColors(containerColor = if (selectedTab == "CALENDAR") primaryColor else Color.White.copy(alpha = 0.1f)),
+                onClick = { com.example.ui.SoundManager.playClick();  selectedTab = "CALENDAR" },
+                colors = ButtonDefaults.buttonColors(containerColor = if (selectedTab == "CALENDAR") primaryColor else Color.White.copy(alpha = 0.8f)),
                 modifier = Modifier.weight(1f)
             ) {
                 Text("יומן פדגוגי עומסים", color = if (selectedTab == "CALENDAR") Color.Black else Color.White, fontSize = 12.sp)
@@ -85,7 +85,7 @@ fun ParentPortalScreen(viewModel: ClassViewModel) {
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 item {
-                    Text("סטטוס משימות דינאמי - 'דף עבודה שבועי במקרא'", color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.End)
+                    Text("סטטוס משימות דינאמי - 'דף עבודה שבועי במקרא'", color = com.example.ui.theme.ChocolateBrown, fontWeight = FontWeight.Bold, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.End)
                     Spacer(modifier = Modifier.height(8.dp))
                 }
                 items(students) { student ->
@@ -93,7 +93,7 @@ fun ParentPortalScreen(viewModel: ClassViewModel) {
                     val isSubmitted = (student.id.hashCode() % 3) != 0
 
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
+                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f)),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -104,9 +104,9 @@ fun ParentPortalScreen(viewModel: ClassViewModel) {
                         ) {
                             if (isSubmitted) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF10B981), modifier = Modifier.size(16.dp))
+                                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = com.example.ui.theme.PositiveGreen, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("הוגש ונבדק", color = Color(0xFF10B981), fontSize = 12.sp)
+                                    Text("הוגש ונבדק", color = com.example.ui.theme.PositiveGreen, fontSize = 12.sp)
                                     // Simulated Parent Read Receipt
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Icon(Icons.Default.Done, contentDescription = null, tint = Color(0xFF3B82F6), modifier = Modifier.size(14.dp))
@@ -114,7 +114,7 @@ fun ParentPortalScreen(viewModel: ClassViewModel) {
                             } else {
                                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                     IconButton(
-                                        onClick = {
+                                        onClick = { com.example.ui.SoundManager.playClick(); 
                                             // Trigger WhatsApp implicit deep link
                                             val number = "972500000000" // mocked
                                             val url = "https://wa.me/$number?text=הורה יקר, תזכורת: ${student.name} לא פרסם את מטלת השבוע. נשמח לשיתוף פעולה."
@@ -124,22 +124,22 @@ fun ParentPortalScreen(viewModel: ClassViewModel) {
                                         },
                                         modifier = Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFF128C7E))
                                     ) {
-                                        Icon(Icons.Default.Email, contentDescription = "WhatsApp Remind", tint = Color.White, modifier = Modifier.size(14.dp))
+                                        Icon(Icons.Default.Email, contentDescription = "WhatsApp Remind", tint = com.example.ui.theme.ChocolateBrown, modifier = Modifier.size(14.dp))
                                     }
                                     
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFEF4444), modifier = Modifier.size(16.dp))
+                                        Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFC0392B), modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(4.dp))
-                                        Text("חסר (ממתין)", color = Color.White, fontSize = 12.sp)
+                                        Text("חסר (ממתין)", color = com.example.ui.theme.ChocolateBrown, fontSize = 12.sp)
                                     }
                                 }
                             }
 
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(student.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                Text(student.name, color = com.example.ui.theme.ChocolateBrown, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Box(
-                                    modifier = Modifier.size(32.dp).clip(RoundedCornerShape(16.dp)).background(Color.White.copy(alpha = 0.1f)),
+                                    modifier = Modifier.size(32.dp).clip(RoundedCornerShape(16.dp)).background(Color.White.copy(alpha = 0.8f)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(student.name.take(1), color = primaryColor, fontWeight = FontWeight.Bold)
@@ -159,7 +159,7 @@ fun ParentPortalScreen(viewModel: ClassViewModel) {
                 val weekDays = listOf("א", "ב", "ג", "ד", "ה", "ו")
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     weekDays.reversed().forEach { day ->
-                        Text(day, color = Color.LightGray, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                        Text(day, color = com.example.ui.theme.MochaTaupe, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
                     }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
@@ -179,17 +179,17 @@ fun ParentPortalScreen(viewModel: ClassViewModel) {
                                         when {
                                             isExam -> Color.Red.copy(alpha = 0.4f)
                                             isAssignment -> primaryColor.copy(alpha = 0.4f)
-                                            else -> Color.White.copy(alpha = 0.05f)
+                                            else -> Color.White.copy(alpha = 0.8f)
                                         }
                                     ),
                                 contentAlignment = Alignment.Center
                             ) {
                                 val d = row * 6 + col + 1
                                 if (d <= 30) {
-                                    Text(d.toString(), color = Color.White, fontSize = 10.sp)
+                                    Text(d.toString(), color = com.example.ui.theme.ChocolateBrown, fontSize = 10.sp)
                                 }
                                 if (isExam) {
-                                    Icon(Icons.Default.Warning, contentDescription = null, tint = Color.White, modifier = Modifier.size(10.dp).align(Alignment.BottomEnd).padding(2.dp))
+                                    Icon(Icons.Default.Warning, contentDescription = null, tint = com.example.ui.theme.ChocolateBrown, modifier = Modifier.size(10.dp).align(Alignment.BottomEnd).padding(2.dp))
                                 }
                             }
                         }
@@ -197,16 +197,16 @@ fun ParentPortalScreen(viewModel: ClassViewModel) {
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
-                Text("מקרא אינדיקציות (עומס לימודי):", color = Color.LightGray, fontSize = 12.sp)
+                Text("מקרא אינדיקציות (עומס לימודי):", color = com.example.ui.theme.MochaTaupe, fontSize = 12.sp)
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
-                    Text("מבחן מוסדי - שיא עומס", color = Color.White, fontSize = 12.sp)
+                    Text("מבחן מוסדי - שיא עומס", color = com.example.ui.theme.ChocolateBrown, fontSize = 12.sp)
                     Spacer(modifier = Modifier.width(8.dp))
                     Box(modifier = Modifier.size(12.dp).background(Color.Red.copy(alpha = 0.4f)))
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
-                    Text("הגשת מטלה - עומס רגיל", color = Color.White, fontSize = 12.sp)
+                    Text("הגשת מטלה - עומס רגיל", color = com.example.ui.theme.ChocolateBrown, fontSize = 12.sp)
                     Spacer(modifier = Modifier.width(8.dp))
                     Box(modifier = Modifier.size(12.dp).background(primaryColor.copy(alpha = 0.4f)))
                 }

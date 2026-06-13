@@ -46,9 +46,9 @@ fun MoreScreen(viewModel: ClassViewModel) {
     var reportOutputText by remember { mutableStateOf("") }
 
     val isLightMode = viewModel.selectedTheme.collectAsState().value == "MODERN"
-    val primaryColor = if (isLightMode) Color(0xFF6366F1) else Color(0xFFFCD34D)
-    val appBg = if (isLightMode) Color(0xFFF8FAFC) else Color(0xFF2D2319)
-    val baseTextColor = if (isLightMode) Color(0xFF1E293B) else Color.White
+    val primaryColor = if (isLightMode) com.example.ui.theme.GoldGingerEnd else com.example.ui.theme.GoldGingerStart
+    val appBg = if (isLightMode) com.example.ui.theme.CreamBeige else com.example.ui.theme.ChocolateBrown
+    val baseTextColor = if (isLightMode) com.example.ui.theme.ChocolateBrown else Color.White
 
     // Top points leaderlist
     val leaderList = remember(studentsList) {
@@ -83,7 +83,7 @@ fun MoreScreen(viewModel: ClassViewModel) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f))
+                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f))
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -112,8 +112,8 @@ fun MoreScreen(viewModel: ClassViewModel) {
                                 colors = SwitchDefaults.colors(checkedThumbColor = primaryColor, checkedTrackColor = primaryColor.copy(alpha = 0.5f))
                             )
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Text("מצב 'Modern' (ניגודיות גבוהה)", color = Color.White, fontSize = 12.sp)
-                                Icon(Icons.Default.Settings, contentDescription = null, tint = Color.LightGray)
+                                Text("מצב 'Modern' (ניגודיות גבוהה)", color = com.example.ui.theme.ChocolateBrown, fontSize = 12.sp)
+                                Icon(Icons.Default.Settings, contentDescription = null, tint = com.example.ui.theme.MochaTaupe)
                             }
                         }
                     }
@@ -135,7 +135,7 @@ fun MoreScreen(viewModel: ClassViewModel) {
                         Text(
                             "גלגל המזל (Wheel of Names)",
                             fontWeight = FontWeight.Black,
-                            color = Color(0xFF1E293B),
+                            color = com.example.ui.theme.ChocolateBrown,
                             style = MaterialTheme.typography.titleLarge,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.fillMaxWidth()
@@ -175,11 +175,11 @@ fun MoreScreen(viewModel: ClassViewModel) {
                                     modifier = Modifier.size(70.dp).clip(androidx.compose.foundation.shape.CircleShape).background(Color.White).shadow(4.dp, androidx.compose.foundation.shape.CircleShape),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(Icons.Default.PlayArrow, contentDescription = null, tint = Color(0xFF1E293B), modifier = Modifier.size(32.dp))
+                                    Icon(Icons.Default.PlayArrow, contentDescription = null, tint = com.example.ui.theme.ChocolateBrown, modifier = Modifier.size(32.dp))
                                 }
                             }
                             // Pointer
-                            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = Color(0xFFEF4444), modifier = Modifier.size(48.dp).align(Alignment.TopCenter).offset(y = (-8).dp))
+                            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = Color(0xFFC0392B), modifier = Modifier.size(48.dp).align(Alignment.TopCenter).offset(y = (-8).dp))
                         }
 
                         Spacer(modifier = Modifier.height(20.dp))
@@ -187,7 +187,7 @@ fun MoreScreen(viewModel: ClassViewModel) {
                         androidx.compose.animation.AnimatedVisibility(visible = !isWheelSpinning && wheelName.isNotEmpty()) {
                             Text(
                                 text = "הזוכה: $wheelName 🎉",
-                                color = Color(0xFF10B981),
+                                color = com.example.ui.theme.PositiveGreen,
                                 fontWeight = FontWeight.Black,
                                 fontSize = 28.sp,
                                 textAlign = TextAlign.Center,
@@ -197,15 +197,15 @@ fun MoreScreen(viewModel: ClassViewModel) {
 
                         Spacer(modifier = Modifier.height(16.dp))
                         Button(
-                            onClick = { viewModel.spinWheel() },
+                            onClick = { com.example.ui.SoundManager.playClick();  viewModel.spinWheel() },
                             colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
                             enabled = !isWheelSpinning && studentsList.isNotEmpty(),
                             modifier = Modifier.fillMaxWidth().height(52.dp),
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Icon(Icons.Default.Refresh, contentDescription = null, tint = Color.White)
+                            Icon(Icons.Default.Refresh, contentDescription = null, tint = com.example.ui.theme.ChocolateBrown)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("סובב את הגלגל", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Text("סובב את הגלגל", color = com.example.ui.theme.ChocolateBrown, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         }
                     }
                 }
@@ -226,7 +226,7 @@ fun MoreScreen(viewModel: ClassViewModel) {
                         Text(
                             "מדד זמן משימה",
                             fontWeight = FontWeight.Black,
-                            color = Color(0xFF1E293B),
+                            color = com.example.ui.theme.ChocolateBrown,
                             style = MaterialTheme.typography.titleLarge,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.fillMaxWidth()
@@ -240,9 +240,9 @@ fun MoreScreen(viewModel: ClassViewModel) {
                         val rawProgress = if (maxTimerSec > 0) countdownSec.toFloat() / maxTimerSec.toFloat() else 0f
                         val progress by animateFloatAsState(targetValue = rawProgress, animationSpec = tween(durationMillis = 1000, easing = LinearEasing), label = "prog")
                         val timerColor = when {
-                            progress > 0.7f -> Color(0xFF10B981) // Safe Green
-                            progress > 0.2f -> Color(0xFFF59E0B) // Warm Yellow
-                            else -> Color(0xFFEF4444) // Soft Red
+                            progress > 0.7f -> com.example.ui.theme.PositiveGreen // Safe Green
+                            progress > 0.2f -> com.example.ui.theme.GoldGingerStart // Warm Yellow
+                            else -> Color(0xFFC0392B) // Soft Red
                         }
 
                         Box(contentAlignment = Alignment.Center, modifier = Modifier.size(200.dp)) {
@@ -275,13 +275,13 @@ fun MoreScreen(viewModel: ClassViewModel) {
                         Spacer(modifier = Modifier.height(24.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             // Quick inputs
-                            Button(onClick = { viewModel.startTimerCount(1) }, shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF64748B)), border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))) { Text("1 דק'") }
-                            Button(onClick = { viewModel.startTimerCount(5) }, shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF64748B)), border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))) { Text("5 דק'") }
-                            Button(onClick = { viewModel.startTimerCount(10) }, shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF64748B)), border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))) { Text("10 דק'") }
+                            Button(onClick = { com.example.ui.SoundManager.playClick();  viewModel.startTimerCount(1) }, shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = com.example.ui.theme.MochaTaupe), border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))) { Text("1 דק'") }
+                            Button(onClick = { com.example.ui.SoundManager.playClick();  viewModel.startTimerCount(5) }, shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = com.example.ui.theme.MochaTaupe), border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))) { Text("5 דק'") }
+                            Button(onClick = { com.example.ui.SoundManager.playClick();  viewModel.startTimerCount(10) }, shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = com.example.ui.theme.MochaTaupe), border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))) { Text("10 דק'") }
                             
                             if (isTimerActive) {
-                                Button(onClick = { viewModel.stopTimerCount() }, shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444))) {
-                                    Text("עצור", color = Color.White)
+                                Button(onClick = { com.example.ui.SoundManager.playClick();  viewModel.stopTimerCount() }, shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC0392B))) {
+                                    Text("עצור", color = com.example.ui.theme.ChocolateBrown)
                                 }
                             }
                         }
@@ -304,35 +304,37 @@ fun MoreScreen(viewModel: ClassViewModel) {
                         Text(
                             "מנוע שמע וצלילים (Audio Engine)",
                             fontWeight = FontWeight.Black,
-                            color = Color(0xFF1E293B),
+                            color = com.example.ui.theme.ChocolateBrown,
                             style = MaterialTheme.typography.titleLarge,
                             textAlign = TextAlign.End,
                             modifier = Modifier.fillMaxWidth()
                         )
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // Audio Settings list
-                        val audioOptions = listOf("הצלחה / ניצחון 🏆", "שגיאה קלה / נסה שוב", "סיום משימה ⏱️")
-                        audioOptions.forEach { label ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Button(onClick = { /* play mock sound */ }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF1F5F9)), shape = RoundedCornerShape(8.dp), modifier = Modifier.height(36.dp)) {
-                                        Icon(Icons.Default.PlayArrow, contentDescription = "Play", tint = Color(0xFF64748B), modifier = Modifier.size(16.dp))
-                                    }
-                                    Button(onClick = { /* mock upload sound */ }, colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF64748B)), border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0)), shape = RoundedCornerShape(8.dp), modifier = Modifier.height(36.dp)) {
-                                        Icon(Icons.Default.Add, contentDescription = "Upload", modifier = Modifier.size(16.dp))
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text("העלה MP3", fontSize = 12.sp)
-                                    }
-                                }
-                                Text(label, color = Color(0xFF334155), fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                            }
-                            if (label != audioOptions.last()) {
-                                Divider(color = Color(0xFFE2E8F0), thickness = 1.dp)
+                        // Audio Theme Selection
+                        Text("ערכת צלילים מובנית", color = com.example.ui.theme.MochaTaupe, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        @OptIn(ExperimentalLayoutApi::class)
+                        androidx.compose.foundation.layout.FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            com.example.ui.SoundTheme.values().forEach { theme ->
+                                val isSelected = com.example.ui.SoundManager.currentTheme.value == theme
+                                androidx.compose.material3.FilterChip(
+                                    selected = isSelected,
+                                    onClick = {
+                                        com.example.ui.SoundManager.currentTheme.value = theme
+                                        com.example.ui.SoundManager.playTaskComplete()
+                                    },
+                                    label = { Text(theme.displayName, fontSize = 13.sp) },
+                                    colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = com.example.ui.theme.CreamBeige,
+                                        selectedLabelColor = com.example.ui.theme.ChocolateBrown
+                                    )
+                                )
                             }
                         }
                     }
@@ -354,7 +356,7 @@ fun MoreScreen(viewModel: ClassViewModel) {
                         Text(
                             "קמפיינים ותמריצים כיתתיים",
                             fontWeight = FontWeight.Black,
-                            color = Color(0xFF1E293B),
+                            color = com.example.ui.theme.ChocolateBrown,
                             style = MaterialTheme.typography.titleLarge,
                             textAlign = TextAlign.End,
                             modifier = Modifier.fillMaxWidth()
@@ -380,11 +382,11 @@ fun MoreScreen(viewModel: ClassViewModel) {
                             currentPoints = 3,
                             targetPoints = 10,
                             rewardIcon = "🧹",
-                            gradientColors = listOf(Color(0xFFF59E0B), Color(0xFFEF4444)) // Amber to Red
+                            gradientColors = listOf(com.example.ui.theme.GoldGingerStart, Color(0xFFC0392B)) // Amber to Red
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { /* Add modern campaign */ }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF64748B)), border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFCBD5E1))) {
+                        Button(onClick = { com.example.ui.SoundManager.playClick();  /* Add modern campaign */ }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = com.example.ui.theme.MochaTaupe), border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFCBD5E1))) {
                             Text("הוסף קמפיין חדש +", fontWeight = FontWeight.Bold)
                         }
                     }
@@ -394,7 +396,7 @@ fun MoreScreen(viewModel: ClassViewModel) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f))
+                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f))
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -416,12 +418,12 @@ fun MoreScreen(viewModel: ClassViewModel) {
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Button(onClick = { viewModel.generateGroupsOfSize(2) }, colors = ButtonDefaults.outlinedButtonColors(contentColor = primaryColor)) { Text("זוגות (2)") }
-                                Button(onClick = { viewModel.generateGroupsOfSize(3) }, colors = ButtonDefaults.outlinedButtonColors(contentColor = primaryColor)) { Text("שלשות (3)") }
-                                Button(onClick = { viewModel.generateGroupsOfSize(4) }, colors = ButtonDefaults.outlinedButtonColors(contentColor = primaryColor)) { Text("קבוצות של 4") }
+                                Button(onClick = { com.example.ui.SoundManager.playClick();  viewModel.generateGroupsOfSize(2) }, colors = ButtonDefaults.outlinedButtonColors(contentColor = primaryColor)) { Text("זוגות (2)") }
+                                Button(onClick = { com.example.ui.SoundManager.playClick();  viewModel.generateGroupsOfSize(3) }, colors = ButtonDefaults.outlinedButtonColors(contentColor = primaryColor)) { Text("שלשות (3)") }
+                                Button(onClick = { com.example.ui.SoundManager.playClick();  viewModel.generateGroupsOfSize(4) }, colors = ButtonDefaults.outlinedButtonColors(contentColor = primaryColor)) { Text("קבוצות של 4") }
                             }
 
-                            Text("מספר חברים:", color = Color.LightGray, fontSize = 12.sp)
+                            Text("מספר חברים:", color = com.example.ui.theme.MochaTaupe, fontSize = 12.sp)
                         }
 
                         if (generatedGroups.isNotEmpty()) {
@@ -429,13 +431,13 @@ fun MoreScreen(viewModel: ClassViewModel) {
                             generatedGroups.forEachIndexed { idx, group ->
                                 Card(
                                     modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.04f))
+                                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f))
                                 ) {
                                     Column(modifier = Modifier.padding(8.dp), horizontalAlignment = Alignment.End) {
                                         Text("קבוצה ${idx + 1}", fontWeight = FontWeight.Bold, color = primaryColor, fontSize = 11.sp)
                                         Text(
                                             group.joinToString(", ") { it.name },
-                                            color = Color.White,
+                                            color = com.example.ui.theme.ChocolateBrown,
                                             fontSize = 11.sp,
                                             textAlign = TextAlign.Right,
                                             modifier = Modifier.fillMaxWidth()
@@ -453,7 +455,7 @@ fun MoreScreen(viewModel: ClassViewModel) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f))
+                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f))
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -478,7 +480,7 @@ fun MoreScreen(viewModel: ClassViewModel) {
                                 Text("$points נקודות", color = primaryColor, fontWeight = FontWeight.Bold, fontSize = 12.sp)
 
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(st.name, color = Color.White, fontSize = 12.sp)
+                                    Text(st.name, color = com.example.ui.theme.ChocolateBrown, fontSize = 12.sp)
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
                                         text = when(idx) {
@@ -500,7 +502,7 @@ fun MoreScreen(viewModel: ClassViewModel) {
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
+                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f)),
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Column(
@@ -518,14 +520,14 @@ fun MoreScreen(viewModel: ClassViewModel) {
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             "בונה הודעה שבועית מותאמת להורים המפרטת את מצטייני הלמידה והישגי המשמעת השבועיים של הכיתה.",
-                            color = Color.LightGray,
+                            color = com.example.ui.theme.MochaTaupe,
                             fontSize = 11.sp,
                             textAlign = TextAlign.Right,
                             modifier = Modifier.padding(bottom = 10.dp)
                         )
 
                         Button(
-                            onClick = {
+                            onClick = { com.example.ui.SoundManager.playClick(); 
                                 val topSts = leaderList.take(3).map { it.first.name }
                                 val transcript = """
                                     שלום רב להורי כיתת ClassPro היקרים,
@@ -562,7 +564,7 @@ fun MoreScreen(viewModel: ClassViewModel) {
 
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
+                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f)),
                     shape = RoundedCornerShape(16.dp),
                     border = androidx.compose.foundation.BorderStroke(1.dp, Color.Red.copy(alpha = 0.2f))
                 ) {
@@ -581,7 +583,7 @@ fun MoreScreen(viewModel: ClassViewModel) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             "בחר אילו רכיבים ברצונך למחוק או לאפס. ניתן לבצע את האיפוס בנפרד לכל קטגוריה או ביחד לכולן.",
-                            color = Color.LightGray,
+                            color = com.example.ui.theme.MochaTaupe,
                             fontSize = 11.sp,
                             textAlign = TextAlign.Right,
                             modifier = Modifier.padding(bottom = 12.dp)
@@ -595,7 +597,7 @@ fun MoreScreen(viewModel: ClassViewModel) {
                                 horizontalArrangement = Arrangement.End,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("מחק תלמידים לצמיתות", color = Color.White, fontSize = 12.sp, modifier = Modifier.padding(end = 8.dp))
+                                Text("מחק תלמידים לצמיתות", color = com.example.ui.theme.ChocolateBrown, fontSize = 12.sp, modifier = Modifier.padding(end = 8.dp))
                                 Checkbox(
                                     checked = delStudents,
                                     onCheckedChange = { delStudents = it },
@@ -609,7 +611,7 @@ fun MoreScreen(viewModel: ClassViewModel) {
                                 horizontalArrangement = Arrangement.End,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("איפוס והסרת מיקומי ישיבה (פינוי שולחנות)", color = Color.White, fontSize = 12.sp, modifier = Modifier.padding(end = 8.dp))
+                                Text("איפוס והסרת מיקומי ישיבה (פינוי שולחנות)", color = com.example.ui.theme.ChocolateBrown, fontSize = 12.sp, modifier = Modifier.padding(end = 8.dp))
                                 Checkbox(
                                     checked = delDesks,
                                     onCheckedChange = { delDesks = it },
@@ -623,7 +625,7 @@ fun MoreScreen(viewModel: ClassViewModel) {
                                 horizontalArrangement = Arrangement.End,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("מחק את יומן הנוכחות בלבד", color = Color.White, fontSize = 12.sp, modifier = Modifier.padding(end = 8.dp))
+                                Text("מחק את יומן הנוכחות בלבד", color = com.example.ui.theme.ChocolateBrown, fontSize = 12.sp, modifier = Modifier.padding(end = 8.dp))
                                 Checkbox(
                                     checked = delAttendance,
                                     onCheckedChange = { delAttendance = it },
@@ -634,13 +636,13 @@ fun MoreScreen(viewModel: ClassViewModel) {
 
                         if (resetSuccessMsg.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text(resetSuccessMsg, color = Color(0xFF10B981), fontSize = 11.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.End, modifier = Modifier.fillMaxWidth())
+                            Text(resetSuccessMsg, color = com.example.ui.theme.PositiveGreen, fontSize = 11.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.End, modifier = Modifier.fillMaxWidth())
                         }
 
                         Spacer(modifier = Modifier.height(12.dp))
 
                         Button(
-                            onClick = {
+                            onClick = { com.example.ui.SoundManager.playClick(); 
                                 if (delStudents || delDesks || delAttendance) {
                                     viewModel.resetData(
                                         deleteStudents = delStudents,
@@ -659,9 +661,9 @@ fun MoreScreen(viewModel: ClassViewModel) {
                             enabled = delStudents || delDesks || delAttendance,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Icon(Icons.Default.Delete, contentDescription = null, tint = Color.White)
+                            Icon(Icons.Default.Delete, contentDescription = null, tint = com.example.ui.theme.ChocolateBrown)
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("מחק ואפס את הרכיבים שנבחרו", color = Color.White, fontWeight = FontWeight.Bold)
+                            Text("מחק ואפס את הרכיבים שנבחרו", color = com.example.ui.theme.ChocolateBrown, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -673,7 +675,7 @@ fun MoreScreen(viewModel: ClassViewModel) {
                 onDismissRequest = { showReportDialog = false },
                 confirmButton = {
                     Button(
-                        onClick = { showReportDialog = false },
+                        onClick = { com.example.ui.SoundManager.playClick();  showReportDialog = false },
                         colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
                     ) {
                         Text("הבנתי, סגור", color = Color.Black)
@@ -683,7 +685,7 @@ fun MoreScreen(viewModel: ClassViewModel) {
                     Text(
                         "הודעת דיווח שבועית מוכנה",
                         fontWeight = FontWeight.Bold,
-                        color = Color.White,
+                        color = com.example.ui.theme.ChocolateBrown,
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.End
                     )
@@ -693,12 +695,12 @@ fun MoreScreen(viewModel: ClassViewModel) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(8.dp))
-                            .background(Color.White.copy(alpha = 0.05f))
+                            .background(Color.White.copy(alpha = 0.8f))
                             .padding(12.dp)
                     ) {
                         Text(
                             reportOutputText,
-                            color = Color.White,
+                            color = com.example.ui.theme.ChocolateBrown,
                             fontSize = 12.sp,
                             lineHeight = 18.sp,
                             textAlign = TextAlign.Right,
@@ -754,9 +756,9 @@ fun GamifiedCampaignCard(
             horizontalAlignment = Alignment.End
         ) {
             // Title and Description
-            Text(title, fontWeight = FontWeight.Black, color = Color(0xFF1E293B), fontSize = 16.sp)
+            Text(title, fontWeight = FontWeight.Black, color = com.example.ui.theme.ChocolateBrown, fontSize = 16.sp)
             Spacer(modifier = Modifier.height(4.dp))
-            Text(description, color = Color(0xFF64748B), fontSize = 12.sp)
+            Text(description, color = com.example.ui.theme.MochaTaupe, fontSize = 12.sp)
 
             Spacer(modifier = Modifier.height(16.dp))
 

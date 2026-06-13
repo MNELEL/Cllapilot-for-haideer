@@ -69,24 +69,22 @@ fun LibraryScreen(viewModel: ClassViewModel) {
     }
 
     val primaryColor = if (viewModel.selectedTheme.collectAsState().value == "MODERN") {
-        Color(0xFFA5B4FC)
+        com.example.ui.theme.GoldGingerStart
     } else {
-        Color(0xFFFCD34D)
+        com.example.ui.theme.GoldGingerStart
     }
 
     val darkBg = if (viewModel.selectedTheme.collectAsState().value == "MODERN") {
-        Color(0xFF1E1B4B)
+        com.example.ui.theme.ChocolateBrown.copy(alpha=0.9f)
     } else {
-        Color(0xFF2D2319)
+        com.example.ui.theme.ChocolateBrown
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                Brush.verticalGradient(
-                    listOf(darkBg, darkBg.copy(alpha = 0.9f))
-                )
+                Brush.verticalGradient(listOf(com.example.ui.theme.CreamBeige, com.example.ui.theme.WhiteWarm))
             )
             .windowInsetsPadding(WindowInsets.safeDrawing)
     ) {
@@ -104,7 +102,7 @@ fun LibraryScreen(viewModel: ClassViewModel) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     // Manual Intake didactics (ניתוח)
                     Button(
-                        onClick = {
+                        onClick = { com.example.ui.SoundManager.playClick(); 
                             docTitle = ""
                             docContent = ""
                             showDocAddDialog = true
@@ -121,7 +119,7 @@ fun LibraryScreen(viewModel: ClassViewModel) {
 
                 Text(
                     "ספרייה פדגוגית",
-                    style = MaterialTheme.typography.titleMedium.copy(color = Color.White, fontWeight = FontWeight.Bold)
+                    style = MaterialTheme.typography.titleMedium.copy(color = com.example.ui.theme.ChocolateBrown, fontWeight = FontWeight.Bold)
                 )
             }
 
@@ -137,10 +135,10 @@ fun LibraryScreen(viewModel: ClassViewModel) {
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        TextButton(onClick = { userFeedbackMessage = "" }) {
+                        TextButton(onClick = { com.example.ui.SoundManager.playClick();  userFeedbackMessage = "" }) {
                             Text("סגור", color = primaryColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
-                        Text(userFeedbackMessage, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        Text(userFeedbackMessage, color = com.example.ui.theme.ChocolateBrown, fontSize = 12.sp, fontWeight = FontWeight.Medium)
                     }
                 }
             }
@@ -153,13 +151,13 @@ fun LibraryScreen(viewModel: ClassViewModel) {
                 // Documents roster list
                 Card(
                     modifier = Modifier.weight(0.42f),
-                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.04f)),
+                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f)),
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Column(modifier = Modifier.fillMaxSize().padding(10.dp)) {
                         Text(
                             "ניהול קבצים ומערכים",
-                            color = Color.White,
+                            color = com.example.ui.theme.ChocolateBrown,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp,
                             textAlign = TextAlign.End,
@@ -169,7 +167,7 @@ fun LibraryScreen(viewModel: ClassViewModel) {
                         // Top control panel representing clearly: העלאה, יבוא
                         Card(
                             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.06f))
+                            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f))
                         ) {
                             Column(modifier = Modifier.padding(8.dp), horizontalAlignment = Alignment.End) {
                                 Row(
@@ -179,8 +177,8 @@ fun LibraryScreen(viewModel: ClassViewModel) {
                                 ) {
                                     Text("מאגר ידע משולב (Knowledge Hub)", fontSize = 11.sp, color = primaryColor, fontWeight = FontWeight.Bold)
                                     // Add tag
-                                    Box(modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(Color.White.copy(alpha = 0.2f)).padding(horizontal = 4.dp, vertical = 2.dp)) {
-                                        Text("תגיות נושא: תלמוד", color = Color.White, fontSize = 9.sp)
+                                    Box(modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(Color.White.copy(alpha = 0.85f)).padding(horizontal = 4.dp, vertical = 2.dp)) {
+                                        Text("תגיות נושא: תלמוד", color = com.example.ui.theme.ChocolateBrown, fontSize = 9.sp)
                                     }
                                 }
                                 Spacer(modifier = Modifier.height(6.dp))
@@ -190,20 +188,20 @@ fun LibraryScreen(viewModel: ClassViewModel) {
                                 ) {
                                     // 1. העלאה (Upload)
                                     Button(
-                                        onClick = { fileImportLauncher.launch("*/*") },
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.1f)),
+                                        onClick = { com.example.ui.SoundManager.playClick();  fileImportLauncher.launch("*/*") },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.8f)),
                                         contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
                                         modifier = Modifier.weight(1f).height(34.dp),
                                         shape = RoundedCornerShape(8.dp)
                                     ) {
-                                        Icon(Icons.Default.ArrowBack, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
+                                        Icon(Icons.Default.ArrowBack, contentDescription = null, tint = com.example.ui.theme.ChocolateBrown, modifier = Modifier.size(12.dp))
                                         Spacer(modifier = Modifier.width(2.dp))
-                                        Text("העלאה", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                        Text("העלאה", color = com.example.ui.theme.ChocolateBrown, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                     }
 
                                     // 2. מנוע תכנון שיעורים מבוסס טקסט (Lesson Engine)
                                     Button(
-                                        onClick = {
+                                        onClick = { com.example.ui.SoundManager.playClick(); 
                                             docTitle = ""
                                             docContent = ""
                                             showDocAddDialog = true
@@ -228,7 +226,7 @@ fun LibraryScreen(viewModel: ClassViewModel) {
                             ) {
                                 Text(
                                     "ספריית המערכים ריקה.\nקלוט או העלה מסמך ראשון!",
-                                    color = Color.LightGray.copy(alpha = 0.6f),
+                                    color = com.example.ui.theme.MochaTaupe.copy(alpha = 0.6f),
                                     fontSize = 11.sp,
                                     textAlign = TextAlign.Center
                                 )
@@ -244,8 +242,8 @@ fun LibraryScreen(viewModel: ClassViewModel) {
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .clip(RoundedCornerShape(10.dp))
-                                            .background(if (isSelected) primaryColor else Color.White.copy(alpha = 0.05f))
-                                            .clickable { selectedMaterialForDetail = mat }
+                                            .background(if (isSelected) primaryColor else Color.White.copy(alpha = 0.8f))
+                                            .clickable { com.example.ui.SoundManager.playClick();  selectedMaterialForDetail = mat }
                                             .padding(10.dp)
                                     ) {
                                         Column(horizontalAlignment = Alignment.End) {
@@ -260,7 +258,7 @@ fun LibraryScreen(viewModel: ClassViewModel) {
                                                     tint = if (isSelected) Color.Black else Color.Red,
                                                     modifier = Modifier
                                                         .size(16.dp)
-                                                        .clickable {
+                                                        .clickable { com.example.ui.SoundManager.playClick(); 
                                                             viewModel.deleteMaterial(mat.id)
                                                             if (selectedMaterialForDetail?.id == mat.id) {
                                                                 selectedMaterialForDetail = null
@@ -294,7 +292,7 @@ fun LibraryScreen(viewModel: ClassViewModel) {
                 // Interactive Detail parsing panel
                 Card(
                     modifier = Modifier.weight(0.58f),
-                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
+                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f)),
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     if (isParsingFile) {
@@ -302,7 +300,7 @@ fun LibraryScreen(viewModel: ClassViewModel) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 CircularProgressIndicator(color = primaryColor)
                                 Spacer(modifier = Modifier.height(12.dp))
-                                Text("מנוע החישוב מעבד ומסכם את מסמך הלימוד הנוכחי כעת פדגוגית...", color = Color.White, fontSize = 12.sp, textAlign = TextAlign.Center)
+                                Text("מנוע החישוב מעבד ומסכם את מסמך הלימוד הנוכחי כעת פדגוגית...", color = com.example.ui.theme.ChocolateBrown, fontSize = 12.sp, textAlign = TextAlign.Center)
                             }
                         }
                     } else if (selectedMaterialForDetail != null) {
@@ -344,7 +342,7 @@ fun LibraryScreen(viewModel: ClassViewModel) {
                             item {
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
-                                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.08f)),
+                                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f)),
                                     border = androidx.compose.foundation.BorderStroke(1.dp, primaryColor.copy(alpha = 0.3f))
                                 ) {
                                     Column(modifier = Modifier.padding(10.dp), horizontalAlignment = Alignment.End) {
@@ -356,26 +354,26 @@ fun LibraryScreen(viewModel: ClassViewModel) {
                                         ) {
                                             // Word Export (וורד)
                                             Button(
-                                                onClick = { viewModel.exportMaterialToWord(context, mat) },
+                                                onClick = { com.example.ui.SoundManager.playClick();  viewModel.exportMaterialToWord(context, mat) },
                                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2B579A)),
                                                 modifier = Modifier.weight(1f),
                                                 shape = RoundedCornerShape(8.dp)
                                             ) {
-                                                Icon(Icons.Default.Menu, contentDescription = "Word", tint = Color.White, modifier = Modifier.size(14.dp))
+                                                Icon(Icons.Default.Menu, contentDescription = "Word", tint = com.example.ui.theme.ChocolateBrown, modifier = Modifier.size(14.dp))
                                                 Spacer(modifier = Modifier.width(4.dp))
-                                                Text("ייצוא לוורד", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                                Text("ייצוא לוורד", color = com.example.ui.theme.ChocolateBrown, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                             }
 
                                             // PDF Export (pdf)
                                             Button(
-                                                onClick = { viewModel.exportMaterialToPDF(context, mat) },
+                                                onClick = { com.example.ui.SoundManager.playClick();  viewModel.exportMaterialToPDF(context, mat) },
                                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB30B00)),
                                                 modifier = Modifier.weight(1f),
                                                 shape = RoundedCornerShape(8.dp)
                                             ) {
-                                                Icon(Icons.Default.Check, contentDescription = "PDF", tint = Color.White, modifier = Modifier.size(14.dp))
+                                                Icon(Icons.Default.Check, contentDescription = "PDF", tint = com.example.ui.theme.ChocolateBrown, modifier = Modifier.size(14.dp))
                                                 Spacer(modifier = Modifier.width(4.dp))
-                                                Text("ייצוא ל-PDF", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                                Text("ייצוא ל-PDF", color = com.example.ui.theme.ChocolateBrown, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                             }
                                         }
                                     }
@@ -383,7 +381,7 @@ fun LibraryScreen(viewModel: ClassViewModel) {
                             }
 
                             item {
-                                HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+                                HorizontalDivider(color = com.example.ui.theme.ChocolateBrown.copy(alpha = 0.1f))
                             }
 
                             // Summary
@@ -402,15 +400,15 @@ fun LibraryScreen(viewModel: ClassViewModel) {
                                     Text("שאלון הערכה דיגיטלי (Multiple Choice):", color = primaryColor, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                     Spacer(modifier = Modifier.height(6.dp))
                                     if (quizQuestions.isEmpty()) {
-                                        Text("אין שאלון דיגיטלי זמין עבור מערך שיעור זה.", color = Color.LightGray, fontSize = 11.sp)
+                                        Text("אין שאלון דיגיטלי זמין עבור מערך שיעור זה.", color = com.example.ui.theme.MochaTaupe, fontSize = 11.sp)
                                     } else {
                                         quizQuestions.forEachIndexed { i, q ->
                                             Card(
                                                 modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.04f))
+                                                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f))
                                             ) {
                                                 Column(modifier = Modifier.padding(10.dp), horizontalAlignment = Alignment.End) {
-                                                    Text("${i + 1}. ${q.question}", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, textAlign = TextAlign.End, modifier = Modifier.fillMaxWidth())
+                                                    Text("${i + 1}. ${q.question}", color = com.example.ui.theme.ChocolateBrown, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, textAlign = TextAlign.End, modifier = Modifier.fillMaxWidth())
                                                     Spacer(modifier = Modifier.height(6.dp))
                                                     q.options.forEachIndexed { o, optText ->
                                                         val isCorrect = o == q.correctAnswerIndex
@@ -421,7 +419,7 @@ fun LibraryScreen(viewModel: ClassViewModel) {
                                                         ) {
                                                             Text(
                                                                 optText,
-                                                                color = if (isCorrect) Color(0xFF10B981) else Color.LightGray,
+                                                                color = if (isCorrect) com.example.ui.theme.PositiveGreen else Color.LightGray,
                                                                 fontSize = 11.sp,
                                                                 fontWeight = if (isCorrect) FontWeight.Bold else FontWeight.Normal,
                                                                 textAlign = TextAlign.End,
@@ -430,7 +428,7 @@ fun LibraryScreen(viewModel: ClassViewModel) {
                                                             Icon(
                                                                 imageVector = if (isCorrect) Icons.Default.Check else Icons.Default.Star,
                                                                 contentDescription = null,
-                                                                tint = if (isCorrect) Color(0xFF10B981) else Color.Gray,
+                                                                tint = if (isCorrect) com.example.ui.theme.PositiveGreen else Color.Gray,
                                                                 modifier = Modifier.size(12.dp)
                                                             )
                                                         }
@@ -446,7 +444,7 @@ fun LibraryScreen(viewModel: ClassViewModel) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text(
                                 "אנא בחר מערך לימודי מהרשימה\nכדי להציג את הניתוח והסיכום הפדגוגי",
-                                color = Color.LightGray.copy(alpha = 0.7f),
+                                color = com.example.ui.theme.MochaTaupe.copy(alpha = 0.7f),
                                 fontSize = 13.sp,
                                 textAlign = TextAlign.Center
                             )
@@ -463,7 +461,7 @@ fun LibraryScreen(viewModel: ClassViewModel) {
                 onDismissRequest = { showDocAddDialog = false },
                 confirmButton = {
                     Button(
-                        onClick = {
+                        onClick = { com.example.ui.SoundManager.playClick(); 
                             viewModel.parseLibraryDocument("$docTitle ($selectedDifficulty)", docContent)
                             showDocAddDialog = false
                             coroutineScope.launch {
@@ -477,13 +475,13 @@ fun LibraryScreen(viewModel: ClassViewModel) {
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showDocAddDialog = false }) { Text("ביטול", color = Color.White) }
+                    TextButton(onClick = { com.example.ui.SoundManager.playClick();  showDocAddDialog = false }) { Text("ביטול", color = com.example.ui.theme.ChocolateBrown) }
                 },
                 title = {
                     Text(
                         "תכנון שיעור תלמודי / קליטת תמלול אודיו",
                         fontWeight = FontWeight.Bold,
-                        color = Color.White,
+                        color = com.example.ui.theme.ChocolateBrown,
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.End
                     )
@@ -500,12 +498,12 @@ fun LibraryScreen(viewModel: ClassViewModel) {
                         )
 
                         // Difficulty Dropdown simulation (Row with toggle buttons for simplicity)
-                        Text("רמת קושי הלימוד:", color = Color.LightGray, fontSize = 12.sp, modifier = Modifier.padding(bottom = 4.dp))
+                        Text("רמת קושי הלימוד:", color = com.example.ui.theme.MochaTaupe, fontSize = 12.sp, modifier = Modifier.padding(bottom = 4.dp))
                         Row(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             listOf("קל", "בינוני", "מתקדם").forEach { level ->
                                 Button(
-                                    onClick = { selectedDifficulty = level },
-                                    colors = ButtonDefaults.buttonColors(containerColor = if (selectedDifficulty == level) primaryColor else Color.White.copy(alpha = 0.1f)),
+                                    onClick = { com.example.ui.SoundManager.playClick();  selectedDifficulty = level },
+                                    colors = ButtonDefaults.buttonColors(containerColor = if (selectedDifficulty == level) primaryColor else Color.White.copy(alpha = 0.8f)),
                                     modifier = Modifier.weight(1f).height(32.dp),
                                     contentPadding = PaddingValues(0.dp)
                                 ) {
@@ -536,11 +534,11 @@ fun DetailSection(title: String, content: String) {
         modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
         horizontalAlignment = Alignment.End
     ) {
-        Text(title, color = Color(0xFFA5B4FC), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+        Text(title, color = com.example.ui.theme.GoldGingerStart, fontWeight = FontWeight.Bold, fontSize = 13.sp)
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             content,
-            color = Color.White,
+            color = com.example.ui.theme.ChocolateBrown,
             fontSize = 11.5.sp,
             lineHeight = 17.sp,
             textAlign = TextAlign.End,

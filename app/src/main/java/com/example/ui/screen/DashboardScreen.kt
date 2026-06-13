@@ -33,6 +33,7 @@ import com.example.ui.viewmodel.ClassViewModel
 @OptIn(ExperimentalAnimationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(viewModel: ClassViewModel) {
+    var showStudentModal by remember { mutableStateOf<StudentEntity?>(null) }
     val studentList by viewModel.students.collectAsState()
     val attendanceLogs by viewModel.attendanceLogs.collectAsState()
     val isSyncing by viewModel.isSyncing.collectAsState()
@@ -40,24 +41,26 @@ fun DashboardScreen(viewModel: ClassViewModel) {
 
     // Compute metrics
     val totalStudents = studentList.size
-    val presentCount = attendanceLogs.count { it.status == "PRESENT" }
-    val absentCount = attendanceLogs.count { it.status == "ABSENT" }
-    val lateCount = attendanceLogs.count { it.status == "LATE" }
+    val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
+    val todayLogs = attendanceLogs.filter { it.date == today }
+    val presentCount = todayLogs.count { it.status == "PRESENT" }
+    val absentCount = todayLogs.count { it.status == "ABSENT" }
+    val lateCount = todayLogs.count { it.status == "LATE" }
 
     val attendanceRate = if (totalStudents > 0) {
         ((presentCount + lateCount).toDouble() / totalStudents * 100).toInt().coerceAtMost(100)
     } else 0
 
     val primaryColor = if (viewModel.selectedTheme.collectAsState().value == "MODERN") {
-        Color(0xFFA5B4FC) // modern soft violet
+        com.example.ui.theme.GoldGingerStart // modern soft violet
     } else {
-        Color(0xFFFCD34D) // conservative soft amber
+        com.example.ui.theme.GoldGingerStart // conservative soft amber
     }
 
     val darkBg = if (viewModel.selectedTheme.collectAsState().value == "MODERN") {
-        Color(0xFF1E1B4B) // modern classic dark indigo background depth
+        com.example.ui.theme.ChocolateBrown.copy(alpha=0.9f) // modern classic dark indigo background depth
     } else {
-        Color(0xFF2D2319) // traditional Torah academy warm background
+        com.example.ui.theme.ChocolateBrown // traditional Torah academy warm background
     }
 
     Box(
@@ -77,7 +80,7 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                 Card(
                     modifier = Modifier.fillMaxWidth().shadow(12.dp, RoundedCornerShape(28.dp), spotColor = Color(0x2664748B)),
                     shape = RoundedCornerShape(28.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.85f)),
                     border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha=0.6f))
                 ) {
                     Row(
@@ -92,21 +95,21 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                             modifier = Modifier
                                 .size(72.dp)
                                 .clip(RoundedCornerShape(20.dp))
-                                .background(Color(0xFFEEF2FF)) // Indigo-50
+                                .background(com.example.ui.theme.CreamBeige) // Indigo-50
                                 .border(
                                     width = 1.dp,
-                                    color = Color(0xFFC7D2FE),
+                                    color = com.example.ui.theme.MochaTaupe,
                                     shape = RoundedCornerShape(20.dp)
                                 ),
                             contentAlignment = Alignment.Center
                         ) {
                             androidx.compose.foundation.Canvas(modifier = Modifier.size(36.dp)) {
                                 drawRoundRect(
-                                    color = Color(0xFF6366F1), // Soft Indigo
+                                    color = com.example.ui.theme.GoldGingerEnd, // Soft Indigo
                                     cornerRadius = androidx.compose.ui.geometry.CornerRadius(12f, 12f)
                                 )
                                 drawArc(
-                                    color = Color.White,
+                                    color = com.example.ui.theme.ChocolateBrown,
                                     startAngle = 0f,
                                     sweepAngle = -180f,
                                     useCenter = false,
@@ -130,12 +133,12 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(6.dp))
-                                        .background(Color(0xFFEEF2FF))
+                                        .background(com.example.ui.theme.CreamBeige)
                                         .padding(horizontal = 6.dp, vertical = 2.dp)
                                 ) {
                                     Text(
                                         text = "V2.0",
-                                        color = Color(0xFF6366F1),
+                                        color = com.example.ui.theme.GoldGingerEnd,
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -144,7 +147,7 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                                     text = "ClassPro",
                                     style = MaterialTheme.typography.titleLarge.copy(
                                         fontWeight = FontWeight.Black,
-                                        color = Color(0xFF1E293B), // Dark slate text
+                                        color = com.example.ui.theme.ChocolateBrown, // Dark slate text
                                         fontSize = 24.sp
                                     ),
                                     textAlign = TextAlign.End
@@ -153,7 +156,7 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = "לוח הבקרה והניווט הכיתתי החכם שלך",
-                                style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF64748B)),
+                                style = MaterialTheme.typography.bodyMedium.copy(color = com.example.ui.theme.MochaTaupe),
                                 textAlign = TextAlign.End
                             )
                         }
@@ -171,16 +174,16 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                     Card(
                         modifier = Modifier.weight(1f).shadow(8.dp, RoundedCornerShape(24.dp), spotColor = Color(0x1F64748B)),
                         shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White)
+                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.85f))
                     ) {
                         Column(
                             modifier = Modifier.padding(20.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF6366F1))
+                            Icon(Icons.Default.Person, contentDescription = null, tint = com.example.ui.theme.GoldGingerEnd)
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text("תלמידים רשומים", style = MaterialTheme.typography.bodySmall.copy(color = Color(0xFF64748B)))
-                            Text("$totalStudents", style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, color = Color(0xFF1E293B)))
+                            Text("תלמידים רשומים", style = MaterialTheme.typography.bodySmall.copy(color = com.example.ui.theme.MochaTaupe))
+                            Text("$totalStudents", style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown))
                         }
                     }
 
@@ -188,16 +191,16 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                     Card(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.08f))
+                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f))
                     ) {
                         Column(
                             modifier = Modifier.padding(16.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF10B981))
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = com.example.ui.theme.PositiveGreen)
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text("נוכחות היום", style = MaterialTheme.typography.bodySmall.copy(color = Color(0xFF64748B)))
-                            Text("$attendanceRate%", style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, color = Color(0xFF10B981)))
+                            Text("נוכחות היום", style = MaterialTheme.typography.bodySmall.copy(color = com.example.ui.theme.MochaTaupe))
+                            Text("$attendanceRate%", style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, color = com.example.ui.theme.PositiveGreen))
                         }
                     }
                 }
@@ -216,7 +219,7 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                     Card(
                         modifier = Modifier.weight(1f).shadow(8.dp, RoundedCornerShape(24.dp), spotColor = Color(0x1F64748B)),
                         shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.85f)),
                         border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.5f))
                     ) {
                         Column(
@@ -230,14 +233,14 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 modifier = Modifier.fillMaxWidth().wrapContentWidth(Alignment.End)
                             ) {
-                                Text("פרופיל הכיתה", fontWeight = FontWeight.Bold, color = Color(0xFF6366F1), fontSize = 13.sp)
-                                Icon(Icons.Default.Info, contentDescription = null, tint = Color(0xFF6366F1), modifier = Modifier.size(16.dp))
+                                Text("פרופיל הכיתה", fontWeight = FontWeight.Bold, color = com.example.ui.theme.GoldGingerEnd, fontSize = 13.sp)
+                                Icon(Icons.Default.Info, contentDescription = null, tint = com.example.ui.theme.GoldGingerEnd, modifier = Modifier.size(16.dp))
                             }
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text("ממוצע פעילות: ${classProfile.avgPoints} נק'", color = Color(0xFF1E293B), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                            Text("שיעור נוכחות: ${classProfile.attendanceRate}%", color = Color(0xFF1E293B), fontSize = 11.sp)
-                            Text("איזון גובה: ${classProfile.heightBalanceStr}", color = Color(0xFF64748B), fontSize = 10.sp)
-                            Text("העדפה: ${classProfile.prefBalanceStr}", color = Color(0xFF64748B), fontSize = 10.sp)
+                            Text("ממוצע פעילות: ${classProfile.avgPoints} נק'", color = com.example.ui.theme.ChocolateBrown, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                            Text("שיעור נוכחות: ${classProfile.attendanceRate}%", color = com.example.ui.theme.ChocolateBrown, fontSize = 11.sp)
+                            Text("איזון גובה: ${classProfile.heightBalanceStr}", color = com.example.ui.theme.MochaTaupe, fontSize = 10.sp)
+                            Text("העדפה: ${classProfile.prefBalanceStr}", color = com.example.ui.theme.MochaTaupe, fontSize = 10.sp)
                         }
                     }
 
@@ -245,7 +248,7 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                     Card(
                         modifier = Modifier.weight(1f).shadow(8.dp, RoundedCornerShape(24.dp), spotColor = Color(0x1F64748B)),
                         shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.85f)),
                         border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.5f))
                     ) {
                         Column(
@@ -259,14 +262,14 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 modifier = Modifier.fillMaxWidth().wrapContentWidth(Alignment.End)
                             ) {
-                                Text("פרופיל המורה", fontWeight = FontWeight.Bold, color = Color(0xFF10B981), fontSize = 13.sp)
-                                Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFF10B981), modifier = Modifier.size(16.dp))
+                                Text("פרופיל המורה", fontWeight = FontWeight.Bold, color = com.example.ui.theme.PositiveGreen, fontSize = 13.sp)
+                                Icon(Icons.Default.Star, contentDescription = null, tint = com.example.ui.theme.PositiveGreen, modifier = Modifier.size(16.dp))
                             }
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text("נושאים מוכנים: ${teacherProfile.materialsQuantity}", color = Color(0xFF1E293B), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                            Text("רישומי יומן כיתה: ${teacherProfile.totalAttendanceMarks}", color = Color(0xFF1E293B), fontSize = 11.sp)
-                            Text("שיעורים מתוכננים: ${teacherProfile.lessonsPrepped}", color = Color(0xFF64748B), fontSize = 10.sp)
-                            Text(teacherProfile.syncStateDesc, color = Color(0xFF10B981), fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                            Text("נושאים מוכנים: ${teacherProfile.materialsQuantity}", color = com.example.ui.theme.ChocolateBrown, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                            Text("רישומי יומן כיתה: ${teacherProfile.totalAttendanceMarks}", color = com.example.ui.theme.ChocolateBrown, fontSize = 11.sp)
+                            Text("שיעורים מתוכננים: ${teacherProfile.lessonsPrepped}", color = com.example.ui.theme.MochaTaupe, fontSize = 10.sp)
+                            Text(teacherProfile.syncStateDesc, color = com.example.ui.theme.PositiveGreen, fontSize = 8.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -277,7 +280,7 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                 Card(
                     modifier = Modifier.fillMaxWidth().shadow(8.dp, RoundedCornerShape(24.dp), spotColor = Color(0x1F64748B)),
                     shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.85f))
                 ) {
                     Column(
                         modifier = Modifier.padding(20.dp),
@@ -286,7 +289,7 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                         Text(
                             "מצב נוכחות עדכני",
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF1E293B),
+                            color = com.example.ui.theme.ChocolateBrown,
                             style = MaterialTheme.typography.bodyLarge
                         )
                         Spacer(modifier = Modifier.height(12.dp))
@@ -294,9 +297,9 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            StatPill("נוכחים", "$presentCount", Color(0xFF10B981))
-                            StatPill("מאחרים", "$lateCount", Color(0xFFF59E0B))
-                            StatPill("נעדרים", "$absentCount", Color(0xFFEF4444))
+                            StatPill("נוכחים", "$presentCount", com.example.ui.theme.PositiveGreen)
+                            StatPill("מאחרים", "$lateCount", com.example.ui.theme.GoldGingerStart)
+                            StatPill("נעדרים", "$absentCount", Color(0xFFC0392B))
                         }
                     }
                 }
@@ -307,7 +310,7 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                 Card(
                     modifier = Modifier.fillMaxWidth().shadow(8.dp, RoundedCornerShape(24.dp), spotColor = Color(0x1F64748B)),
                     shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.85f))
                 ) {
                     Column(
                         modifier = Modifier.padding(20.dp),
@@ -319,17 +322,17 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Button(
-                                onClick = { viewModel.forceSyncNow() },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6366F1)),
+                                onClick = { com.example.ui.SoundManager.playClick();  viewModel.forceSyncNow() },
+                                colors = ButtonDefaults.buttonColors(containerColor = com.example.ui.theme.GoldGingerEnd),
                                 shape = RoundedCornerShape(12.dp),
                                 modifier = Modifier.testTag("force_sync_button")
                             ) {
                                 if (isSyncing) {
-                                    CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Color.White, strokeWidth = 2.dp)
+                                    CircularProgressIndicator(modifier = Modifier.size(18.dp), color = com.example.ui.theme.ChocolateBrown, strokeWidth = 2.dp)
                                 } else {
-                                    Icon(Icons.Default.Refresh, contentDescription = null, tint = Color.White)
+                                    Icon(Icons.Default.Refresh, contentDescription = null, tint = com.example.ui.theme.ChocolateBrown)
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("סנכרן כעת", color = Color.White)
+                                    Text("סנכרן כעת", color = com.example.ui.theme.ChocolateBrown)
                                 }
                             }
 
@@ -337,12 +340,12 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                                 Text(
                                     "סנכרון ענן (Firestore Backup)",
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF1E293B),
+                                    color = com.example.ui.theme.ChocolateBrown,
                                     style = MaterialTheme.typography.bodyLarge
                                 )
                                 Text(
                                     "מנוע סנכרון היברידי ברקע",
-                                    color = Color(0xFF64748B),
+                                    color = com.example.ui.theme.MochaTaupe,
                                     style = MaterialTheme.typography.bodySmall
                                 )
                             }
@@ -352,7 +355,7 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 syncMsg,
-                                color = Color(0xFF64748B),
+                                color = com.example.ui.theme.MochaTaupe,
                                 fontSize = 13.sp,
                                 textAlign = TextAlign.End,
                                 modifier = Modifier.fillMaxWidth()
@@ -367,7 +370,7 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                 Text(
                     text = "רישומי נוכחות אחרונים",
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1E293B),
+                    color = com.example.ui.theme.ChocolateBrown,
                     style = MaterialTheme.typography.titleMedium,
                     textAlign = TextAlign.End,
                     modifier = Modifier
@@ -381,7 +384,7 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                 item {
                     Text(
                         "אין עדיין פעילויות רשומות.",
-                        color = Color(0xFF64748B),
+                        color = com.example.ui.theme.MochaTaupe,
                         textAlign = TextAlign.Center,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -398,16 +401,16 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                         else -> "טרם עודכן"
                     }
                     val statusColor = when (log?.status) {
-                        "PRESENT" -> Color(0xFF10B981)
-                        "ABSENT" -> Color(0xFFEF4444)
-                        "LATE" -> Color(0xFFF59E0B)
+                        "PRESENT" -> com.example.ui.theme.PositiveGreen
+                        "ABSENT" -> Color(0xFFC0392B)
+                        "LATE" -> com.example.ui.theme.GoldGingerStart
                         else -> Color.Gray
                     }
 
                     Card(
                         modifier = Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(16.dp), spotColor = Color(0x1A64748B)),
                         shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White)
+                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.85f))
                     ) {
                         Row(
                             modifier = Modifier
@@ -423,26 +426,145 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                                 style = MaterialTheme.typography.bodyMedium
                             )
 
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    student.name,
-                                    color = Color(0xFF1E293B),
-                                    fontWeight = FontWeight.SemiBold,
-                                    style = MaterialTheme.typography.bodyLarge
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Icon(
-                                    Icons.Default.Person,
-                                    contentDescription = null,
-                                    tint = Color(0xFF6366F1),
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        student.name,
+                                        color = com.example.ui.theme.ChocolateBrown,
+                                        fontWeight = FontWeight.SemiBold,
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    IconButton(onClick = { com.example.ui.SoundManager.playClick();  showStudentModal = student }, modifier = Modifier.size(24.dp)) {
+                                        Icon(
+                                            Icons.Default.Person,
+                                            contentDescription = "Profile",
+                                            tint = com.example.ui.theme.GoldGingerEnd,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
                         }
                     }
                 }
             }
         }
+    }
+    // 4. PROGRESS REPORT DIALOG FROM STUDENT MODAL
+    showStudentModal?.let { st ->
+        val pts = viewModel.getStudentPoints(st)
+        
+        AlertDialog(
+            onDismissRequest = { showStudentModal = null },
+            confirmButton = {
+                Button(
+                    onClick = { com.example.ui.SoundManager.playClick();  /* Export */ },
+                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
+                ) {
+                    Icon(Icons.Default.Share, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("יצא פרופיל (PDF)", color = Color.Black)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { com.example.ui.SoundManager.playClick();  showStudentModal = null }) { Text("סגור", color = com.example.ui.theme.ChocolateBrown) }
+            },
+            title = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "פרופיל אישי ודוח התקדמות",
+                        fontWeight = FontWeight.Bold,
+                        color = com.example.ui.theme.ChocolateBrown,
+                        textAlign = TextAlign.End
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(Icons.Default.AccountCircle, contentDescription = null, tint = primaryColor)
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.End
+                ) {
+                    Text(st.name, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = primaryColor)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // Gamification summary
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp).fillMaxWidth(), horizontalAlignment = Alignment.End) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text("$pts", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = com.example.ui.theme.PositiveGreen)
+                                Icon(Icons.Default.Star, contentDescription = null, tint = com.example.ui.theme.GoldGingerStart)
+                                Text("נקודות התנהגות או הישגים", color = com.example.ui.theme.MochaTaupe, fontSize = 12.sp)
+                            }
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text("סטטוס משימות ושיעורי בית", fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, fontSize = 14.sp)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    // Mocked Homework List
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp).fillMaxWidth(), horizontalAlignment = Alignment.End) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = com.example.ui.theme.PositiveGreen, modifier = Modifier.size(16.dp))
+                                Text("דף עבודה בספר בראשית - הוגש", color = com.example.ui.theme.ChocolateBrown, fontSize = 12.sp)
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFC0392B), modifier = Modifier.size(16.dp))
+                                Text("מטלת סיכום משנה - חסר", color = com.example.ui.theme.MochaTaupe, fontSize = 12.sp)
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                            
+                            Button(
+                                onClick = { com.example.ui.SoundManager.playClick();  /* Simulated WhatsApp Trigger */ },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF128C7E)), // WhatsApp Green
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                modifier = Modifier.align(Alignment.Start).height(32.dp),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Icon(Icons.Default.Email, contentDescription = null, tint = com.example.ui.theme.ChocolateBrown, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("שלח תזכורת להורה (WhatsApp)", color = com.example.ui.theme.ChocolateBrown, fontSize = 10.sp)
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("הערות ומשוב מורה", fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, fontSize = 14.sp)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    var teacherNotes by remember(st.id) { mutableStateOf(st.notes) }
+                    
+                    OutlinedTextField(
+                        value = teacherNotes,
+                        onValueChange = { newValue ->
+                            teacherNotes = newValue 
+                            viewModel.updateStudentNotes(st.id, newValue)
+                        },
+                        modifier = Modifier.fillMaxWidth().height(100.dp),
+                        textStyle = androidx.compose.ui.text.TextStyle(textAlign = TextAlign.End),
+                        placeholder = { Text("הזן הערות יומיומיות...", textAlign = TextAlign.End, modifier = Modifier.fillMaxWidth()) }
+                    )
+                }
+            },
+            containerColor = Color.White.copy(alpha = 0.95f)
+        )
     }
 }
 
@@ -451,11 +573,11 @@ fun StatPill(label: String, valStr: String, color: Color) {
     Column(
         modifier = Modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(Color(0xFFF8FAFC)) // bg-slate-50
+            .background(Color.Transparent) // bg-slate-50
             .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(valStr, style = MaterialTheme.typography.titleLarge.copy(color = color, fontWeight = FontWeight.Bold))
-        Text(label, style = MaterialTheme.typography.bodySmall.copy(color = Color(0xFF64748B)))
+        Text(label, style = MaterialTheme.typography.bodySmall.copy(color = com.example.ui.theme.MochaTaupe))
     }
 }

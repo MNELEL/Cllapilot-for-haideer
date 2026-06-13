@@ -78,18 +78,18 @@ fun StudentsScreen(viewModel: ClassViewModel) {
     val isLightMode = viewModel.selectedTheme.collectAsState().value == "MODERN"
     
     val primaryColor = if (isLightMode) {
-        Color(0xFFA5B4FC)
+        com.example.ui.theme.GoldGingerStart
     } else {
-        Color(0xFFFCD34D)
+        com.example.ui.theme.GoldGingerStart
     }
 
     val darkBg = if (isLightMode) {
-        Color(0xFFF8FAFC) // Slate-50 soft background
+        com.example.ui.theme.CreamBeige // Slate-50 soft background
     } else {
-        Color(0xFF2D2319) // Warm dark background
+        com.example.ui.theme.ChocolateBrown // Warm dark background
     }
     
-    val baseTextColor = if (isLightMode) Color(0xFF1E293B) else Color.White
+    val baseTextColor = if (isLightMode) com.example.ui.theme.ChocolateBrown else Color.White
 
     // Prepare processed student list
     val processedStudents = remember(studentsList, searchQuery, sortFilter) {
@@ -104,9 +104,7 @@ fun StudentsScreen(viewModel: ClassViewModel) {
         modifier = Modifier
             .fillMaxSize()
             .background(
-                Brush.verticalGradient(
-                    listOf(darkBg, darkBg.copy(alpha = 0.9f))
-                )
+                Brush.verticalGradient(listOf(com.example.ui.theme.CreamBeige, com.example.ui.theme.WhiteWarm))
             )
             .windowInsetsPadding(WindowInsets.safeDrawing)
     ) {
@@ -128,7 +126,7 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                 ) {
                     // Raw physical file uploader
                     Button(
-                        onClick = { studentFileLauncher.launch("*/*") },
+                        onClick = { com.example.ui.SoundManager.playClick();  studentFileLauncher.launch("*/*") },
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = primaryColor),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.testTag("bulk_file_upload_btn")
@@ -139,7 +137,7 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                     }
 
                     Button(
-                        onClick = {
+                        onClick = { com.example.ui.SoundManager.playClick(); 
                             bulkInputText = ""
                             showIntakeDialog = true
                         },
@@ -153,7 +151,7 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                     }
 
                     Button(
-                        onClick = {
+                        onClick = { com.example.ui.SoundManager.playClick(); 
                             nameField = ""
                             heightField = "Medium"
                             rowPrefField = "Middle"
@@ -175,7 +173,7 @@ fun StudentsScreen(viewModel: ClassViewModel) {
 
                 Text(
                     "רשימת התלמידים בכיתה",
-                    style = MaterialTheme.typography.titleMedium.copy(color = Color.White, fontWeight = FontWeight.Bold)
+                    style = MaterialTheme.typography.titleMedium.copy(color = com.example.ui.theme.ChocolateBrown, fontWeight = FontWeight.Bold)
                 )
             }
 
@@ -187,21 +185,21 @@ fun StudentsScreen(viewModel: ClassViewModel) {
             ) {
                 // Sorting toggle
                 Button(
-                    onClick = { sortFilter = if (sortFilter == "ALPHABETICAL") "POINTS" else "ALPHABETICAL" },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.1f)),
+                    onClick = { com.example.ui.SoundManager.playClick();  sortFilter = if (sortFilter == "ALPHABETICAL") "POINTS" else "ALPHABETICAL" },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.8f)),
                     shape = RoundedCornerShape(12.dp),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                 ) {
                     Icon(
                         imageVector = if (sortFilter == "ALPHABETICAL") Icons.Default.MoreVert else Icons.Default.Star,
                         contentDescription = "מיון",
-                        tint = Color.White,
+                        tint = com.example.ui.theme.ChocolateBrown,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         if (sortFilter == "ALPHABETICAL") "מיון: א'-ת'" else "מיון: נקודות",
-                        color = Color.White,
+                        color = com.example.ui.theme.ChocolateBrown,
                         fontSize = 11.sp
                     )
                 }
@@ -213,7 +211,7 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search", tint = primaryColor, modifier = Modifier.size(16.dp)) },
                     modifier = Modifier.weight(1f).height(48.dp),
                     shape = RoundedCornerShape(12.dp),
-                    textStyle = TextStyle(textAlign = TextAlign.End, fontSize = 12.sp, color = Color.White),
+                    textStyle = TextStyle(textAlign = TextAlign.End, fontSize = 12.sp, color = com.example.ui.theme.ChocolateBrown),
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = primaryColor,
@@ -234,10 +232,10 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        TextButton(onClick = { importStatusMsg = "" }) {
+                        TextButton(onClick = { com.example.ui.SoundManager.playClick();  importStatusMsg = "" }) {
                             Text("הבנתי", color = primaryColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
-                        Text(importStatusMsg, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Medium, textAlign = TextAlign.End)
+                        Text(importStatusMsg, color = com.example.ui.theme.ChocolateBrown, fontSize = 11.sp, fontWeight = FontWeight.Medium, textAlign = TextAlign.End)
                     }
                 }
             }
@@ -256,7 +254,7 @@ fun StudentsScreen(viewModel: ClassViewModel) {
 
                     Card(
                         shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
+                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
@@ -271,13 +269,13 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
                                     IconButton(
-                                        onClick = { showProgressReportFor = student },
+                                        onClick = { com.example.ui.SoundManager.playClick();  showProgressReportFor = student },
                                         modifier = Modifier.size(31.dp).clip(RoundedCornerShape(6.dp)).background(Color(0xFF2B579A).copy(alpha = 0.2f))
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.AccountCircle,
                                             contentDescription = "פרופיל אישי דוח התקדמות",
-                                            tint = Color(0xFFA5B4FC),
+                                            tint = com.example.ui.theme.GoldGingerStart,
                                             modifier = Modifier.size(16.dp)
                                         )
                                     }
@@ -285,7 +283,7 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                                     Spacer(modifier = Modifier.width(4.dp))
 
                                     IconButton(
-                                        onClick = { viewModel.incrementScore(student.id, -1) },
+                                        onClick = { com.example.ui.SoundManager.playClick();  viewModel.incrementScore(student.id, -1) },
                                         modifier = Modifier.size(30.dp).clip(RoundedCornerShape(6.dp)).background(Color.Red.copy(alpha = 0.2f))
                                     ) {
                                         Text("-1", color = Color.Red, fontSize = 12.sp, fontWeight = FontWeight.Bold)
@@ -300,7 +298,7 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                                     )
 
                                     IconButton(
-                                        onClick = { viewModel.incrementScore(student.id, 1) },
+                                        onClick = { com.example.ui.SoundManager.playClick();  viewModel.incrementScore(student.id, 1) },
                                         modifier = Modifier.size(30.dp).clip(RoundedCornerShape(6.dp)).background(Color.Green.copy(alpha = 0.2f))
                                     ) {
                                         Text("+1", color = Color.Green, fontSize = 12.sp, fontWeight = FontWeight.Bold)
@@ -313,7 +311,7 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(8.dp))
-                                        .clickable {
+                                        .clickable { com.example.ui.SoundManager.playClick(); 
                                             selectedStudentForEdit = student
                                             nameField = student.name
                                             heightField = student.height
@@ -328,7 +326,7 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                                     Icon(
                                         imageVector = Icons.Default.Edit,
                                         contentDescription = "ערוך תלמיד",
-                                        tint = Color.LightGray.copy(alpha = 0.6f),
+                                        tint = com.example.ui.theme.MochaTaupe.copy(alpha = 0.6f),
                                         modifier = Modifier.size(16.dp)
                                     )
 
@@ -336,7 +334,7 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                                         Text(
                                             student.name,
                                             fontWeight = FontWeight.Bold,
-                                            color = Color.White,
+                                            color = com.example.ui.theme.ChocolateBrown,
                                             fontSize = 15.sp,
                                             textAlign = TextAlign.End
                                         )
@@ -351,7 +349,7 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                                                     "Tall" -> "גבוה"
                                                     else -> "בינוני"
                                                 }}",
-                                                color = Color.LightGray,
+                                                color = com.example.ui.theme.MochaTaupe,
                                                 fontSize = 12.sp
                                             )
                                             Text(
@@ -360,7 +358,7 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                                                     "Back" -> "אחורית"
                                                     else -> "אמצעית"
                                                 }}",
-                                                color = Color.LightGray,
+                                                color = com.example.ui.theme.MochaTaupe,
                                                 fontSize = 12.sp
                                             )
                                         }
@@ -374,7 +372,7 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(1.dp)
-                                    .background(Color.White.copy(alpha = 0.08f))
+                                    .background(Color.White.copy(alpha = 0.8f))
                             )
                             Spacer(modifier = Modifier.height(8.dp))
 
@@ -393,30 +391,30 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                                         label = "נוכח",
                                         icon = Icons.Default.Check,
                                         isSelected = isPresent,
-                                        selectedColor = Color(0xFF10B981), // emerald green
-                                        onClick = { viewModel.toggleAttendance(student.id, "PRESENT") }
+                                        selectedColor = com.example.ui.theme.PositiveGreen, // emerald green
+                                        onClick = { com.example.ui.SoundManager.playClick();  viewModel.toggleAttendance(student.id, "PRESENT") }
                                     )
 
                                     AttendanceIndicatorButton(
                                         label = "איחר",
                                         icon = Icons.Default.Refresh,
                                         isSelected = isLate,
-                                        selectedColor = Color(0xFFF59E0B), // amber
-                                        onClick = { viewModel.toggleAttendance(student.id, "LATE") }
+                                        selectedColor = com.example.ui.theme.GoldGingerStart, // amber
+                                        onClick = { com.example.ui.SoundManager.playClick();  viewModel.toggleAttendance(student.id, "LATE") }
                                     )
 
                                     AttendanceIndicatorButton(
                                         label = "חיסור",
                                         icon = Icons.Default.Close,
                                         isSelected = isAbsent,
-                                        selectedColor = Color(0xFFEF4444), // red
-                                        onClick = { viewModel.toggleAttendance(student.id, "ABSENT") }
+                                        selectedColor = Color(0xFFC0392B), // red
+                                        onClick = { com.example.ui.SoundManager.playClick();  viewModel.toggleAttendance(student.id, "ABSENT") }
                                     )
                                 }
 
                                 Text(
                                     text = "נוכחות להיום:",
-                                    color = Color.LightGray.copy(alpha = 0.8f),
+                                    color = com.example.ui.theme.MochaTaupe.copy(alpha = 0.8f),
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Medium
                                 )
@@ -437,7 +435,7 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                 },
                 confirmButton = {
                     Button(
-                        onClick = {
+                        onClick = { com.example.ui.SoundManager.playClick(); 
                             val idVal = if (isEditMode) selectedStudentForEdit!!.id else ""
                             viewModel.addOrUpdateStudent(
                                 id = idVal,
@@ -460,7 +458,7 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                 dismissButton = {
                     if (isEditMode) {
                         TextButton(
-                            onClick = {
+                            onClick = { com.example.ui.SoundManager.playClick(); 
                                 viewModel.deleteStudent(selectedStudentForEdit!!.id)
                                 selectedStudentForEdit = null
                             },
@@ -469,7 +467,7 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                             Text("מחק תלמיד")
                         }
                     } else {
-                        TextButton(onClick = { showAddDialog = false }) { Text("ביטול", color = Color.White) }
+                        TextButton(onClick = { com.example.ui.SoundManager.playClick();  showAddDialog = false }) { Text("ביטול", color = com.example.ui.theme.ChocolateBrown) }
                     }
                 },
                 title = {
@@ -477,7 +475,7 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                         if (isEditMode) "עריכת פרטי תלמיד" else "הוספת תלמיד חדש",
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp,
-                        color = Color.White,
+                        color = com.example.ui.theme.ChocolateBrown,
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.End
                     )
@@ -502,13 +500,13 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                         // Height tier selecting dropdown simulation (using chips)
                         item {
                             Column(horizontalAlignment = Alignment.End, modifier = Modifier.fillMaxWidth()) {
-                                Text("טווח גובה:", color = Color.LightGray, fontSize = 12.sp)
+                                Text("טווח גובה:", color = com.example.ui.theme.MochaTaupe, fontSize = 12.sp)
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
                                     listOf("Tall" to "גבוה", "Medium" to "בינוני", "Low" to "נמוך").forEach { (v, l) ->
                                         val isChecked = heightField == v
                                         FilterChip(
                                             selected = isChecked,
-                                            onClick = { heightField = v },
+                                            onClick = { com.example.ui.SoundManager.playClick();  heightField = v },
                                             label = { Text(l) },
                                             modifier = Modifier.weight(1f),
                                             colors = FilterChipDefaults.filterChipColors(
@@ -524,13 +522,13 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                         // Row Preference
                         item {
                             Column(horizontalAlignment = Alignment.End, modifier = Modifier.fillMaxWidth()) {
-                                Text("העדפת שורת ישיבה:", color = Color.LightGray, fontSize = 12.sp)
+                                Text("העדפת שורת ישיבה:", color = com.example.ui.theme.MochaTaupe, fontSize = 12.sp)
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
                                     listOf("Back" to "אחורית", "Middle" to "אמצעית", "Front" to "קדמית").forEach { (v, l) ->
                                         val isChecked = rowPrefField == v
                                         FilterChip(
                                             selected = isChecked,
-                                            onClick = { rowPrefField = v },
+                                            onClick = { com.example.ui.SoundManager.playClick();  rowPrefField = v },
                                             label = { Text(l) },
                                             modifier = Modifier.weight(1f),
                                             colors = FilterChipDefaults.filterChipColors(
@@ -596,7 +594,7 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                 onDismissRequest = { showIntakeDialog = false },
                 confirmButton = {
                     Button(
-                        onClick = {
+                        onClick = { com.example.ui.SoundManager.playClick(); 
                             viewModel.processBulkIntake(bulkInputText)
                             showIntakeDialog = false
                         },
@@ -606,13 +604,13 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showIntakeDialog = false }) { Text("ביטול", color = Color.White) }
+                    TextButton(onClick = { com.example.ui.SoundManager.playClick();  showIntakeDialog = false }) { Text("ביטול", color = com.example.ui.theme.ChocolateBrown) }
                 },
                 title = {
                     Text(
                         "ייבוא מהיר של מאגר תלמידים",
                         fontWeight = FontWeight.Bold,
-                        color = Color.White,
+                        color = com.example.ui.theme.ChocolateBrown,
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.End
                     )
@@ -621,7 +619,7 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                     Column(horizontalAlignment = Alignment.End) {
                         Text(
                             "הזן נתונים בפורמט JSON או רשימת שמות מופרדת בפסיקים לקליטה מהירה:",
-                            color = Color.LightGray,
+                            color = com.example.ui.theme.MochaTaupe,
                             fontSize = 12.sp,
                             textAlign = TextAlign.Right,
                             modifier = Modifier.padding(bottom = 8.dp)
@@ -631,7 +629,7 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                             onValueChange = { bulkInputText = it },
                             placeholder = { Text("דוגמה: אהרון כהן, Medium, Front\nישראל ישראלי, Tall, Back", fontSize = 11.sp, color = Color.Gray) },
                             modifier = Modifier.fillMaxWidth().height(180.dp),
-                            textStyle = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = Color.White, textAlign = TextAlign.End),
+                            textStyle = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = com.example.ui.theme.ChocolateBrown, textAlign = TextAlign.End),
                             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = primaryColor)
                         )
                     }
@@ -646,25 +644,25 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                 onDismissRequest = { studentToDelete = null },
                 confirmButton = {
                     Button(
-                        onClick = {
+                        onClick = { com.example.ui.SoundManager.playClick(); 
                             viewModel.deleteStudent(studentToDelete!!.id)
                             studentToDelete = null
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
                     ) {
-                        Text("מחק לצמיתות", color = Color.White)
+                        Text("מחק לצמיתות", color = com.example.ui.theme.ChocolateBrown)
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { studentToDelete = null }) {
-                        Text("ביטול", color = Color.White)
+                    TextButton(onClick = { com.example.ui.SoundManager.playClick();  studentToDelete = null }) {
+                        Text("ביטול", color = com.example.ui.theme.ChocolateBrown)
                     }
                 },
                 title = {
                     Text(
                         "מחיקת תלמיד מהרשימה",
                         fontWeight = FontWeight.Bold,
-                        color = Color.White,
+                        color = com.example.ui.theme.ChocolateBrown,
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.End
                     )
@@ -672,7 +670,7 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                 text = {
                     Text(
                         "האם אתה בטוח שברצונך למחוק את ${studentToDelete!!.name} ממאגר הכיתה באופן סופי?",
-                        color = Color.LightGray,
+                        color = com.example.ui.theme.MochaTaupe,
                         fontSize = 14.sp,
                         textAlign = TextAlign.End,
                         modifier = Modifier.fillMaxWidth()
@@ -691,7 +689,7 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                 onDismissRequest = { showProgressReportFor = null },
                 confirmButton = {
                     Button(
-                        onClick = { viewModel.exportToPDF(context) },
+                        onClick = { com.example.ui.SoundManager.playClick();  viewModel.exportToPDF(context) },
                         colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
                     ) {
                         Icon(Icons.Default.Share, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
@@ -700,7 +698,7 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showProgressReportFor = null }) { Text("סגור", color = Color.White) }
+                    TextButton(onClick = { com.example.ui.SoundManager.playClick();  showProgressReportFor = null }) { Text("סגור", color = com.example.ui.theme.ChocolateBrown) }
                 },
                 title = {
                     Row(
@@ -711,7 +709,7 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                         Text(
                             "פרופיל אישי ודוח התקדמות",
                             fontWeight = FontWeight.Bold,
-                            color = Color.White,
+                            color = com.example.ui.theme.ChocolateBrown,
                             textAlign = TextAlign.End
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -728,7 +726,7 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                         
                         // Gamification summary
                         Card(
-                            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
+                            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f)),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(modifier = Modifier.padding(12.dp).fillMaxWidth(), horizontalAlignment = Alignment.End) {
@@ -736,57 +734,64 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Text("$pts", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color(0xFF10B981))
-                                    Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFCD34D))
-                                    Text("נקודות התנהגות או הישגים", color = Color.LightGray, fontSize = 12.sp)
+                                    Text("$pts", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = com.example.ui.theme.PositiveGreen)
+                                    Icon(Icons.Default.Star, contentDescription = null, tint = com.example.ui.theme.GoldGingerStart)
+                                    Text("נקודות התנהגות או הישגים", color = com.example.ui.theme.MochaTaupe, fontSize = 12.sp)
                                 }
                             }
                         }
                         
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        Text("סטטוס משימות ושיעורי בית", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
+                        Text("סטטוס משימות ושיעורי בית", fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, fontSize = 14.sp)
                         Spacer(modifier = Modifier.height(8.dp))
                         
                         // Mocked Homework List
                         Card(
-                            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
+                            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f)),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(modifier = Modifier.padding(12.dp).fillMaxWidth(), horizontalAlignment = Alignment.End) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF10B981), modifier = Modifier.size(16.dp))
-                                    Text("דף עבודה בספר בראשית - הוגש", color = Color.White, fontSize = 12.sp)
+                                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = com.example.ui.theme.PositiveGreen, modifier = Modifier.size(16.dp))
+                                    Text("דף עבודה בספר בראשית - הוגש", color = com.example.ui.theme.ChocolateBrown, fontSize = 12.sp)
                                 }
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFEF4444), modifier = Modifier.size(16.dp))
-                                    Text("מטלת סיכום משנה - חסר", color = Color.LightGray, fontSize = 12.sp)
+                                    Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFC0392B), modifier = Modifier.size(16.dp))
+                                    Text("מטלת סיכום משנה - חסר", color = com.example.ui.theme.MochaTaupe, fontSize = 12.sp)
                                 }
                                 Spacer(modifier = Modifier.height(12.dp))
                                 
                                 Button(
-                                    onClick = { /* Simulated WhatsApp Trigger */ },
+                                    onClick = { com.example.ui.SoundManager.playClick();  /* Simulated WhatsApp Trigger */ },
                                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF128C7E)), // WhatsApp Green
                                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                                     modifier = Modifier.align(Alignment.Start).height(32.dp),
                                     shape = RoundedCornerShape(8.dp)
                                 ) {
-                                    Icon(Icons.Default.Email, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                                    Icon(Icons.Default.Email, contentDescription = null, tint = com.example.ui.theme.ChocolateBrown, modifier = Modifier.size(14.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("שלח תזכורת להורה (WhatsApp)", color = Color.White, fontSize = 10.sp)
+                                    Text("שלח תזכורת להורה (WhatsApp)", color = com.example.ui.theme.ChocolateBrown, fontSize = 10.sp)
                                 }
                             }
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text("הערות פדגוגיות אחרונות", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
+                        Text("הערות ומשוב מורה", fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, fontSize = 14.sp)
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = if (st.notes.isNotBlank()) st.notes else "אין הערות מיוחדות לפרופיל זה.",
-                            color = Color.LightGray,
-                            fontSize = 12.sp,
-                            textAlign = TextAlign.Right
+                        
+                        var teacherNotes by remember(st.id) { mutableStateOf(st.notes) }
+                        
+                        OutlinedTextField(
+                            value = teacherNotes,
+                            onValueChange = { 
+                                teacherNotes = it 
+                                viewModel.updateStudentNotes(st.id, it)
+                            },
+                            modifier = Modifier.fillMaxWidth().height(100.dp),
+                            textStyle = TextStyle(textAlign = TextAlign.End),
+                            placeholder = { Text("הזן הערות יומיומיות...", textAlign = TextAlign.End, modifier = Modifier.fillMaxWidth()) }
                         )
                     }
                 },
@@ -806,7 +811,7 @@ fun SocialListSelector(
     onSelectionChanged: (List<String>) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.End) {
-        Text(label, color = Color.LightGray, fontSize = 12.sp)
+        Text(label, color = com.example.ui.theme.MochaTaupe, fontSize = 12.sp)
         FlowRow(
             modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -817,8 +822,8 @@ fun SocialListSelector(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .background(if (isSelected) primaryColor else Color.White.copy(alpha = 0.08f))
-                        .clickable {
+                        .background(if (isSelected) primaryColor else Color.White.copy(alpha = 0.8f))
+                        .clickable { com.example.ui.SoundManager.playClick(); 
                             val newList = if (isSelected) {
                                 selectedIds.filter { it != st.id }
                             } else {
@@ -851,7 +856,7 @@ fun AttendanceIndicatorButton(
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(8.dp))
-            .background(if (isSelected) selectedColor.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.04f))
+            .background(if (isSelected) selectedColor.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.8f))
             .clickable(onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 6.dp)
             .testTag("attendance_${label}_btn")
@@ -863,12 +868,12 @@ fun AttendanceIndicatorButton(
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                tint = if (isSelected) selectedColor else Color.LightGray.copy(alpha = 0.4f),
+                tint = if (isSelected) selectedColor else com.example.ui.theme.MochaTaupe.copy(alpha = 0.4f),
                 modifier = Modifier.size(12.dp)
             )
             Text(
                 text = label,
-                color = if (isSelected) selectedColor else Color.LightGray.copy(alpha = 0.7f),
+                color = if (isSelected) selectedColor else com.example.ui.theme.MochaTaupe.copy(alpha = 0.7f),
                 fontSize = 11.sp,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
             )

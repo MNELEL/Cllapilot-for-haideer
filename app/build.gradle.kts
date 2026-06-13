@@ -58,6 +58,67 @@ android {
   testOptions { unitTests { isIncludeAndroidResources = true } }
 }
 
+tasks.register("replaceColors") {
+  doLast {
+    val dir = file("src/main/java/com/example/ui/screen")
+    val replacements = mapOf(
+      "Color(0xFF1E293B)" to "com.example.ui.theme.ChocolateBrown",
+      "Color(0xFF64748B)" to "com.example.ui.theme.MochaTaupe",
+      "Color(0xFF6366F1)" to "com.example.ui.theme.GoldGingerEnd",
+      "Color(0xFF10B981)" to "com.example.ui.theme.PositiveGreen",
+      "Color(0xFFF59E0B)" to "com.example.ui.theme.GoldGingerStart",
+      "Color(0xFFEF4444)" to "Color(0xFFC0392B)",
+      "Color(0xFFEEF2FF)" to "com.example.ui.theme.CreamBeige",
+      "Color(0xFFC7D2FE)" to "com.example.ui.theme.MochaTaupe",
+      "Color(0xFF2D2319)" to "com.example.ui.theme.ChocolateBrown",
+      "Color(0xFF1E1B4B)" to "com.example.ui.theme.ChocolateBrown.copy(alpha=0.9f)",
+      "Color(0xFFA5B4FC)" to "com.example.ui.theme.GoldGingerStart",
+      "Color(0xFFF8FAFC)" to "com.example.ui.theme.CreamBeige",
+      "Color(0xFFFCD34D)" to "com.example.ui.theme.GoldGingerStart"
+    )
+    dir.walk().forEach { f ->
+      if (f.extension == "kt") {
+        var content = f.readText()
+        for ((k, v) in replacements) {
+          content = content.replace(k, v)
+        }
+        content = content.replace(
+           "Brush.verticalGradient(\n                    listOf(darkBg, darkBg.copy(alpha = 0.9f))\n                )",
+           "Brush.verticalGradient(listOf(com.example.ui.theme.CreamBeige, com.example.ui.theme.WhiteWarm))"
+        )
+        content = content.replace(
+           "Brush.verticalGradient(\n                                    listOf(darkBg, darkBg.copy(alpha = 0.9f))\n                                )",
+           "Brush.verticalGradient(listOf(com.example.ui.theme.CreamBeige, com.example.ui.theme.WhiteWarm))"
+        )
+        f.writeText(content)
+      }
+    }
+    
+    val mainAct = file("src/main/java/com/example/MainActivity.kt")
+    var mainStr = mainAct.readText()
+    for ((k, v) in replacements) {
+      mainStr = mainStr.replace(k, v)
+    }
+    mainStr = mainStr.replace("{ currentDestination = nav.route }", "{ com.example.ui.SoundManager.playClick(); currentDestination = nav.route }")
+    mainAct.writeText(mainStr)
+  }
+}
+
+tasks.register("addHaptics") {
+  doLast {
+    val dir = file("src/main/java/com/example")
+    dir.walk().forEach { f ->
+      if (f.extension == "kt" && f.name != "SoundManager.kt" && f.name != "UIComponents.kt") {
+        var content = f.readText()
+        content = content.replace("com.example.ui.SoundManager.playClick(); ", "")
+        content = content.replace("onClick = {", "onClick = { com.example.ui.SoundManager.playClick(); ")
+        content = content.replace(".clickable {", ".clickable { com.example.ui.SoundManager.playClick(); ")
+        f.writeText(content)
+      }
+    }
+  }
+}
+
 // Configure the Secrets Gradle Plugin to use .env and .env.example files
 // to match the convention used in Web projects.
 secrets {

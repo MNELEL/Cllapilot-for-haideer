@@ -76,12 +76,25 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
     val parsedQuiz = MutableStateFlow<List<QuizQuestion>>(emptyList())
     val isParsingFile = MutableStateFlow(false)
 
+    // Simulate Firebase real-time Sync
+    fun simulateSync() {
+        viewModelScope.launch {
+            isSyncing.value = true
+            syncMessage.value = "Updating Firebase..."
+            delay(800)
+            isSyncing.value = false
+            syncMessage.value = "Synced"
+        }
+    }
+
     init {
         // Initialize default database records if empty
         viewModelScope.launch {
             students.collectLatest { list ->
                 if (list.isEmpty()) {
                     loadDemoData()
+                } else {
+                    simulateSync()
                 }
             }
         }
@@ -89,6 +102,8 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
             desks.collectLatest { list ->
                 if (list.isEmpty()) {
                     generateDefaultGrid(6, 6)
+                } else {
+                    simulateSync()
                 }
             }
         }
@@ -348,12 +363,18 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
     fun runIntelligentAIPlacement() {
         savePlacementState()
         viewModelScope.launch {
+            isSyncing.value = true
+            syncMessage.value = "מחשב מפת הושבה אופטימלית בשימוש בינה מלאכותית..."
+
             val allSt = students.value
             val allDs = desks.value.toMutableList()
             
             // Collect unlocked desks of type "DESK"
             val unlockedDesks = allDs.filter { it.type == "DESK" && !it.isLocked }
-            if (unlockedDesks.isEmpty()) return@launch
+            if (unlockedDesks.isEmpty()) {
+                isSyncing.value = false
+                return@launch
+            }
 
             // Filter students that can be adjusted (not sitting on a locked desk)
             val lockedDesks = allDs.filter { it.type == "DESK" && it.isLocked }
@@ -365,8 +386,20 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
             val numDesks = unlockedDesks.size
             val stToPlace = moveableStudents.take(numDesks)
 
-            // Dynamic arrangement algorithm using simulated annealing style score optimizer
-            val bestArrangement = optimizeSeatingLayout(stToPlace, unlockedDesks, allDs, allSt)
+            // Dynamic arrangement algorithm using simulated annealing style score optimizer or AI
+            var bestArrangement = com.example.util.GeminiSeatingOptimizer.optimizeSeating(
+                stToPlace, unlockedDesks, allDs, layoutRows.value
+            )
+
+            // Fallback to local heuristic if AI fails (or API key is missing)
+            if (bestArrangement.isEmpty()) {
+                android.util.Log.d("PlacementEngine", "AI returned empty / failed, using local heuristic fallback.")
+                @Suppress("UNCHECKED_CAST")
+                bestArrangement = optimizeSeatingLayout(stToPlace, unlockedDesks, allDs, allSt) as Map<Pair<Int, Int>, StudentEntity>
+                syncMessage.value = "AI API נכשל. הושבה באמצעות קוד אלגוריתם מקומי הושלמה."
+            } else {
+                syncMessage.value = "תכנון מבוסס AI הושלם בהצלחה!"
+            }
 
             // Write back optimized layout to desks mutable list
             for (desk in unlockedDesks) {
@@ -379,7 +412,10 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
 
             repository.clearAllDesks()
             repository.insertDesks(allDs)
-            Log.d("PlacementEngine", "הושלמה אופטימיזציית ישיבה כיתתית חכמה בהצלחה!")
+            android.util.Log.d("PlacementEngine", "הושלמה אופטימיזציית ישיבה כיתתית חכמה בהצלחה!")
+
+            kotlinx.coroutines.delay(2000)
+            isSyncing.value = false
         }
     }
 
@@ -851,8 +887,8 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         val titlePaint = android.graphics.Paint().apply {
-            color = android.graphics.Color.rgb(30, 27, 75) // #1E1B4B
-            textSize = 18f
+            color = android.graphics.Color.rgb(60, 33, 20) // Deep Chocolate Brown
+            textSize = 24f
             isFakeBoldText = true
             isAntiAlias = true
         }

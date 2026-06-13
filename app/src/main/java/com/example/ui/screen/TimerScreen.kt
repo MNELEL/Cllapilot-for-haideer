@@ -56,9 +56,9 @@ fun TimerScreen(viewModel: ClassViewModel) {
 
     // Dynamic Color based on percentage
     val timerColor = when {
-        progressFraction > 0.5f -> Color(0xFF10B981) // Safe Green
-        progressFraction >= 0.2f -> Color(0xFFF59E0B) // Warm Yellow
-        else -> Color(0xFFEF4444) // Danger Red
+        progressFraction > 0.5f -> com.example.ui.theme.PositiveGreen // Safe Green
+        progressFraction >= 0.2f -> com.example.ui.theme.GoldGingerStart // Warm Yellow
+        else -> Color(0xFFC0392B) // Danger Red
     }
 
     // Soft Pulsing Red Effect for Danger state
@@ -76,7 +76,7 @@ fun TimerScreen(viewModel: ClassViewModel) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8FAFC)) // bg-slate-50
+            .background(Color.Transparent) // bg-slate-50
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -129,13 +129,13 @@ fun TimerScreen(viewModel: ClassViewModel) {
                     fontSize = 72.sp,
                     fontWeight = FontWeight.Black,
                     fontFamily = FontFamily.Monospace,
-                    color = Color(0xFF1E293B) // Slate 800
+                    color = com.example.ui.theme.ChocolateBrown // Slate 800
                 )
                 Text(
                     text = if (isRunning) "זמן נותר" else "מושהה",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF64748B) // Slate 500
+                    color = com.example.ui.theme.MochaTaupe // Slate 500
                 )
             }
         }
@@ -146,21 +146,21 @@ fun TimerScreen(viewModel: ClassViewModel) {
         Row(horizontalArrangement = Arrangement.spacedBy(24.dp), verticalAlignment = Alignment.CenterVertically) {
             // Reset
             HoverScaleIconButton(
-                onClick = { 
+                onClick = { com.example.ui.SoundManager.playClick();  
                     isRunning = false
                     timeLeft = totalTime
                 },
                 icon = Icons.Default.Refresh,
                 containerColor = Color(0xFFF1F5F9),
-                contentColor = Color(0xFF64748B),
+                contentColor = com.example.ui.theme.MochaTaupe,
                 size = 56.dp
             )
             
             // Play/Pause
             HoverScaleIconButton(
-                onClick = { isRunning = !isRunning },
+                onClick = { com.example.ui.SoundManager.playClick();  isRunning = !isRunning },
                 icon = if (isRunning) Icons.Default.Clear else Icons.Default.PlayArrow,
-                containerColor = if (isRunning) Color(0xFFF59E0B) else Color(0xFF10B981),
+                containerColor = if (isRunning) com.example.ui.theme.GoldGingerStart else com.example.ui.theme.PositiveGreen,
                 contentColor = Color.White,
                 size = 72.dp,
                 iconSize = 36.dp
@@ -168,7 +168,7 @@ fun TimerScreen(viewModel: ClassViewModel) {
             
             // Stop/Clear 
             HoverScaleIconButton(
-                onClick = { 
+                onClick = { com.example.ui.SoundManager.playClick();  
                     isRunning = false
                     totalTime = 0
                     timeLeft = 0
@@ -189,7 +189,7 @@ fun TimerScreen(viewModel: ClassViewModel) {
             times.forEach { (mins, label) ->
                 HoverScalePillButton(
                     label = label,
-                    onClick = {
+                    onClick = { com.example.ui.SoundManager.playClick(); 
                         val newTotal = totalTime + (mins * 60)
                         val newTimeLeft = timeLeft + (mins * 60)
                         totalTime = newTotal
@@ -255,7 +255,7 @@ fun HoverScalePillButton(label: String, onClick: () -> Unit) {
             .padding(horizontal = 20.dp, vertical = 12.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(label, fontWeight = FontWeight.Bold, color = Color(0xFF6366F1), fontSize = 15.sp)
+        Text(label, fontWeight = FontWeight.Bold, color = com.example.ui.theme.GoldGingerEnd, fontSize = 15.sp)
     }
 }
 
