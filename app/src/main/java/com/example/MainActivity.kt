@@ -225,7 +225,7 @@ class MainActivity : ComponentActivity() {
                                     "STUDENTS" -> StudentsScreen(viewModel)
                                     "LIBRARY" -> LibraryScreen(viewModel)
                                     "PORTAL" -> ParentPortalScreen(viewModel)
-                                    "MORE" -> MoreScreen(viewModel)
+                                    "MORE" -> MoreScreen(viewModel) { currentDestination = it }
                                     "ATTENDANCE" -> AttendanceScreen(viewModel)
                                 }
                             }
@@ -323,12 +323,12 @@ class MainActivity : ComponentActivity() {
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .align(Alignment.BottomCenter)
-                                    .padding(horizontal = 24.dp, vertical = 24.dp)
-                                    .shadow(elevation = 16.dp, shape = RoundedCornerShape(32.dp), spotColor = Color(0x3364748B))
-                                    .clip(RoundedCornerShape(32.dp))
-                                    .background(Color.White.copy(alpha = 0.9f))
-                                    .border(1.dp, Color.White.copy(alpha = 0.5f), RoundedCornerShape(32.dp))
-                                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                                    .padding(horizontal = 12.dp, vertical = 12.dp)
+                                    .shadow(elevation = 16.dp, shape = RoundedCornerShape(24.dp), spotColor = Color(0x3364748B))
+                                    .clip(RoundedCornerShape(24.dp))
+                                    .background(Color.White.copy(alpha = 0.95f))
+                                    .border(1.dp, Color.White.copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+                                    .padding(horizontal = 8.dp, vertical = 8.dp)
                             ) {
                                 Row(
                                     horizontalArrangement = Arrangement.SpaceEvenly,
@@ -351,13 +351,13 @@ class MainActivity : ComponentActivity() {
                                                      interactionSource = remember { MutableInteractionSource() },
                                                      indication = LocalIndication.current
                                                 ) { com.example.ui.SoundManager.playClick(); currentDestination = nav.route }
-                                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                                                .padding(horizontal = 10.dp, vertical = 8.dp),
                                             verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                                         ) {
                                              Icon(nav.icon, contentDescription = nav.label, tint = contentColor, modifier = Modifier.size(20.dp))
                                              if (isSelected) {
-                                                 Text(nav.label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = contentColor)
+                                                 Text(nav.label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = contentColor)
                                              }
                                         }
                                     }
@@ -371,11 +371,10 @@ class MainActivity : ComponentActivity() {
     }
 
     private val navigationItems = listOf(
-        NavItem("SEATING", "מפת כיתה", Icons.Default.Place),
+        NavItem("DASHBOARD", "ראשי", Icons.Default.Home),
+        NavItem("SEATING", "מפה", Icons.Default.Place),
         NavItem("ATTENDANCE", "נוכחות", Icons.Default.CheckCircle),
-        NavItem("TIMER", "טיימר", Icons.Default.PlayArrow),
-        NavItem("MORE", "כלים וקמפיינים", Icons.Default.Star),
-        NavItem("STUDENTS", "רשימת תלמידים", Icons.Default.Person),
-        NavItem("LIBRARY", "ספרייה", Icons.Default.List)
+        NavItem("STUDENTS", "תלמידים", Icons.Default.Person),
+        NavItem("MORE", "עוד", Icons.Default.Menu)
     )
 }

@@ -31,7 +31,7 @@ import com.example.ui.viewmodel.ClassViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MoreScreen(viewModel: ClassViewModel) {
+fun MoreScreen(viewModel: ClassViewModel, onNavigate: (String) -> Unit = {}) {
     val studentsList by viewModel.students.collectAsState()
     val wheelName by viewModel.selectedStudentWheelName.collectAsState()
     val isWheelSpinning by viewModel.isWheelSpinning.collectAsState()
@@ -75,6 +75,90 @@ fun MoreScreen(viewModel: ClassViewModel) {
                     textAlign = TextAlign.End,
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
                 )
+            }
+
+            // EXTRA TOOLS CARD GRID Shortcuts Section
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.End
+                    ) {
+                        Text(
+                            "כלים ומסכים נוספים",
+                            fontWeight = FontWeight.Bold,
+                            color = primaryColor,
+                            style = MaterialTheme.typography.titleMedium,
+                            textAlign = TextAlign.End,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            // Library Screen card
+                            Card(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { com.example.ui.SoundManager.playClick(); onNavigate("LIBRARY") },
+                                colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.CreamBeige.copy(alpha = 0.5f)),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Icon(Icons.Default.List, contentDescription = "ספרייה", tint = primaryColor, modifier = Modifier.size(28.dp))
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text("ספריית שיעורים", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, textAlign = TextAlign.Center)
+                                }
+                            }
+
+                            // Parent Portal card
+                            Card(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { com.example.ui.SoundManager.playClick(); onNavigate("PORTAL") },
+                                colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.CreamBeige.copy(alpha = 0.5f)),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Icon(Icons.Default.Email, contentDescription = "קשר הורים", tint = primaryColor, modifier = Modifier.size(28.dp))
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text("פורטל הורים", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, textAlign = TextAlign.Center)
+                                }
+                            }
+
+                            // Timer Screen card
+                            Card(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { com.example.ui.SoundManager.playClick(); onNavigate("TIMER") },
+                                colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.CreamBeige.copy(alpha = 0.5f)),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Icon(Icons.Default.PlayArrow, contentDescription = "טיימר", tint = primaryColor, modifier = Modifier.size(28.dp))
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text("טיימר מלא", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, textAlign = TextAlign.Center)
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
 
