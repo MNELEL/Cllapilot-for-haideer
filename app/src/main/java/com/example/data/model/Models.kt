@@ -44,3 +44,11 @@ data class AttendanceLogEntity(
     val date: String, // YYYY-MM-DD
     val status: String // "PRESENT" | "ABSENT" | "LATE"
 )
+
+@Entity(tableName = "student_grades")
+data class StudentGradeEntity(
+    @PrimaryKey val id: String,
+    val studentId: String,
+    val assignmentId: String,
+    val gradeValue: String
+)

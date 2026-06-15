@@ -21,6 +21,9 @@ interface StudentDao {
     @Query("DELETE FROM students WHERE id = :id")
     suspend fun deleteStudentById(id: String)
 
+    @Query("DELETE FROM students WHERE id IN (:ids)")
+    suspend fun deleteStudentsByIds(ids: List<String>)
+
     @Query("SELECT * FROM students WHERE syncStatus = 'PENDING'")
     suspend fun getPendingSyncStudents(): List<StudentEntity>
 
@@ -79,5 +82,17 @@ interface AttendanceDao {
     suspend fun insertLogs(logs: List<AttendanceLogEntity>)
 
     @Query("DELETE FROM attendance_logs")
+    suspend fun clearAll()
+}
+
+@Dao
+interface GradeDao {
+    @Query("SELECT * FROM student_grades")
+    fun getGradesFlow(): Flow<List<StudentGradeEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertGrade(grade: StudentGradeEntity)
+
+    @Query("DELETE FROM student_grades")
     suspend fun clearAll()
 }

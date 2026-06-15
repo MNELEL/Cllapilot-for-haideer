@@ -100,6 +100,23 @@ fun AttendanceScreen(viewModel: ClassViewModel) {
                     StatBadge("מאחרים", lateCount.toString(), com.example.ui.theme.GoldGingerStart)
                     StatBadge("נעדרים", absentCount.toString(), Color(0xFFC0392B))
                 }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(onClick = { viewModel.setAllAttendanceStatus("PRESENT") }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = com.example.ui.theme.PositiveGreen)) {
+                        Text("כולם נוכחים")
+                    }
+                    Button(onClick = { viewModel.setAllAttendanceStatus("LATE") }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = com.example.ui.theme.GoldGingerStart)) {
+                        Text("כולם מאחרים")
+                    }
+                    Button(onClick = { viewModel.setAllAttendanceStatus("ABSENT") }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC0392B))) {
+                        Text("כולם נעדרים")
+                    }
+                }
             }
         }
 

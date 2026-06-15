@@ -12,11 +12,13 @@ class ClassRepository(context: Context) {
     private val deskDao = database.deskDao()
     private val academicDao = database.academicDao()
     private val attendanceDao = database.attendanceDao()
+    private val gradeDao = database.gradeDao()
 
     val allStudents: Flow<List<StudentEntity>> = studentDao.getStudentsFlow()
     val allDesks: Flow<List<DeskEntity>> = deskDao.getDesksFlow()
     val allMaterials: Flow<List<AcademicMaterialEntity>> = academicDao.getMaterialsFlow()
     val allLogs: Flow<List<AttendanceLogEntity>> = attendanceDao.getLogsFlow()
+    val allGrades: Flow<List<StudentGradeEntity>> = gradeDao.getGradesFlow()
 
     suspend fun insertStudent(student: StudentEntity) {
         studentDao.insertStudent(student)
@@ -28,6 +30,10 @@ class ClassRepository(context: Context) {
 
     suspend fun deleteStudent(id: String) {
         studentDao.deleteStudentById(id)
+    }
+
+    suspend fun deleteStudents(ids: List<String>) {
+        studentDao.deleteStudentsByIds(ids)
     }
 
     suspend fun clearAllStudents() {
@@ -64,6 +70,14 @@ class ClassRepository(context: Context) {
 
     suspend fun clearLogs() {
         attendanceDao.clearAll()
+    }
+
+    suspend fun insertGrade(grade: StudentGradeEntity) {
+        gradeDao.insertGrade(grade)
+    }
+
+    suspend fun clearAllGrades() {
+        gradeDao.clearAll()
     }
 
     // Force Sync trigger

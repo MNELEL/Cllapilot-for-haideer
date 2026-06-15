@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,6 +28,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.viewmodel.ClassViewModel
@@ -37,13 +39,22 @@ fun TimerScreen(viewModel: ClassViewModel) {
     var timeLeft by remember { mutableStateOf(5 * 60) } // 5 minutes by default
     var isRunning by remember { mutableStateOf(false) }
     var totalTime by remember { mutableStateOf(5 * 60) }
+    var hasFinished by remember { mutableStateOf(false) }
+    var showSoundSettings by remember { mutableStateOf(false) }
+    val currentContext = androidx.compose.ui.platform.LocalContext.current
 
     LaunchedEffect(isRunning, timeLeft) {
         if (isRunning && timeLeft > 0) {
             delay(1000L)
             timeLeft -= 1
-        } else if (timeLeft == 0) {
+            hasFinished = false
+            if (timeLeft <= 3 && timeLeft > 0) {
+                com.example.ui.SoundManager.playPop() // Tick sound for last 3 seconds
+            }
+        } else if (timeLeft == 0 && isRunning && !hasFinished) {
             isRunning = false
+            hasFinished = true
+            com.example.ui.SoundManager.playTaskComplete()
         }
     }
 
@@ -73,131 +84,169 @@ fun TimerScreen(viewModel: ClassViewModel) {
         label = "pulseScale"
     )
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Transparent) // bg-slate-50
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        val minutes = timeLeft / 60
-        val seconds = timeLeft % 60
-        val timeString = String.format("%02d:%02d", minutes, seconds)
-
-        Box(
-            contentAlignment = Alignment.Center,
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
             modifier = Modifier
-                .size(320.dp)
-                .graphicsLayer {
-                    scaleX = pulseScale
-                    scaleY = pulseScale
-                }
+                .fillMaxSize()
+                .background(Color.Transparent) // bg-slate-50
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            // Background shadow/glow ring
-            Canvas(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-                drawCircle(
-                    color = timerColor.copy(alpha = 0.1f),
-                    style = Stroke(width = 36.dp.toPx())
-                )
-            }
-            
-            // Background track
-            Canvas(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-                drawCircle(
-                    color = Color(0xFFE2E8F0), // Slate 200
-                    style = Stroke(width = 24.dp.toPx())
-                )
-            }
-            
-            // Progress ring
-            Canvas(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-                val sweepAngle = 360f * animatedProgress
-                drawArc(
-                    color = timerColor,
-                    startAngle = -90f,
-                    sweepAngle = sweepAngle,
-                    useCenter = false,
-                    style = Stroke(width = 24.dp.toPx(), cap = StrokeCap.Round)
-                )
-            }
-            
-            // Time Text Center
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = timeString,
-                    fontSize = 72.sp,
-                    fontWeight = FontWeight.Black,
-                    fontFamily = FontFamily.Monospace,
-                    color = com.example.ui.theme.ChocolateBrown // Slate 800
-                )
-                Text(
-                    text = if (isRunning) "זמן נותר" else "מושהה",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = com.example.ui.theme.MochaTaupe // Slate 500
-                )
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(48.dp))
-        
-        // Circular Playback Controls
-        Row(horizontalArrangement = Arrangement.spacedBy(24.dp), verticalAlignment = Alignment.CenterVertically) {
-            // Reset
-            HoverScaleIconButton(
-                onClick = { com.example.ui.SoundManager.playClick();  
-                    isRunning = false
-                    timeLeft = totalTime
-                },
-                icon = Icons.Default.Refresh,
-                containerColor = Color(0xFFF1F5F9),
-                contentColor = com.example.ui.theme.MochaTaupe,
-                size = 56.dp
-            )
-            
-            // Play/Pause
-            HoverScaleIconButton(
-                onClick = { com.example.ui.SoundManager.playClick();  isRunning = !isRunning },
-                icon = if (isRunning) Icons.Default.Clear else Icons.Default.PlayArrow,
-                containerColor = if (isRunning) com.example.ui.theme.GoldGingerStart else com.example.ui.theme.PositiveGreen,
-                contentColor = Color.White,
-                size = 72.dp,
-                iconSize = 36.dp
-            )
-            
-            // Stop/Clear 
-            HoverScaleIconButton(
-                onClick = { com.example.ui.SoundManager.playClick();  
-                    isRunning = false
-                    totalTime = 0
-                    timeLeft = 0
-                },
-                icon = Icons.Default.PlayArrow, // Just a placeholder for "Stop" or we can use another icon, maybe just leave it out to keep Play/Pause/Reset minimal. Wait, I'll remove this to match "Play, Pause, Reset"
-                containerColor = Color.Transparent,
-                contentColor = Color.Transparent,
-                size = 56.dp,
-                visible = false // hide to keep layout balanced if needed, or remove entirely. 
-            )
-        }
-        
-        Spacer(modifier = Modifier.height(48.dp))
-        
-        // Quick setters (Pill shaped + animation)
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            val times = listOf(1 to "+1 Min", 5 to "+5 Min", 10 to "+10 Min")
-            times.forEach { (mins, label) ->
-                HoverScalePillButton(
-                    label = label,
-                    onClick = { com.example.ui.SoundManager.playClick(); 
-                        val newTotal = totalTime + (mins * 60)
-                        val newTimeLeft = timeLeft + (mins * 60)
-                        totalTime = newTotal
-                        timeLeft = newTimeLeft
+            val minutes = timeLeft / 60
+            val seconds = timeLeft % 60
+            val timeString = String.format("%02d:%02d", minutes, seconds)
+
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(320.dp)
+                    .graphicsLayer {
+                        scaleX = pulseScale
+                        scaleY = pulseScale
                     }
+            ) {
+                // Background shadow/glow ring
+                Canvas(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+                    drawCircle(
+                        color = timerColor.copy(alpha = 0.1f),
+                        style = Stroke(width = 36.dp.toPx())
+                    )
+                }
+                
+                // Background track
+                Canvas(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+                    drawCircle(
+                        color = Color(0xFFE2E8F0), // Slate 200
+                        style = Stroke(width = 24.dp.toPx())
+                    )
+                }
+                
+                // Progress ring
+                Canvas(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+                    val sweepAngle = 360f * animatedProgress
+                    drawArc(
+                        color = timerColor,
+                        startAngle = -90f,
+                        sweepAngle = sweepAngle,
+                        useCenter = false,
+                        style = Stroke(width = 24.dp.toPx(), cap = StrokeCap.Round)
+                    )
+                }
+                
+                // Time Text Center
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = timeString,
+                        fontSize = 72.sp,
+                        fontWeight = FontWeight.Black,
+                        fontFamily = FontFamily.Monospace,
+                        color = com.example.ui.theme.ChocolateBrown // Slate 800
+                    )
+                    Text(
+                        text = if (isRunning) "זמן נותר" else "מושהה",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = com.example.ui.theme.MochaTaupe // Slate 500
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(48.dp))
+            
+            // Circular Playback Controls
+            Row(horizontalArrangement = Arrangement.spacedBy(24.dp), verticalAlignment = Alignment.CenterVertically) {
+                // Reset
+                HoverScaleIconButton(
+                    onClick = { com.example.ui.SoundManager.playClick();  
+                        isRunning = false
+                        timeLeft = totalTime
+                        hasFinished = false
+                    },
+                    icon = Icons.Default.Refresh,
+                    containerColor = Color(0xFFF1F5F9),
+                    contentColor = com.example.ui.theme.MochaTaupe,
+                    size = 56.dp
+                )
+                
+                // Play/Pause
+                HoverScaleIconButton(
+                    onClick = { com.example.ui.SoundManager.playClick();  isRunning = !isRunning },
+                    icon = if (isRunning) Icons.Default.Clear else Icons.Default.PlayArrow,
+                    containerColor = if (isRunning) com.example.ui.theme.GoldGingerStart else com.example.ui.theme.PositiveGreen,
+                    contentColor = Color.White,
+                    size = 72.dp,
+                    iconSize = 36.dp
                 )
             }
+            
+            Spacer(modifier = Modifier.height(48.dp))
+            
+            // Quick setters (Pill shaped + animation)
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                val times = listOf(1 to "+1 Min", 5 to "+5 Min", 10 to "+10 Min")
+                times.forEach { (mins, label) ->
+                    HoverScalePillButton(
+                        label = label,
+                        onClick = { com.example.ui.SoundManager.playClick(); 
+                            val newTotal = totalTime + (mins * 60)
+                            val newTimeLeft = timeLeft + (mins * 60)
+                            totalTime = newTotal
+                            timeLeft = newTimeLeft
+                        }
+                    )
+                }
+            }
         }
+        
+        // Settings corner
+        IconButton(
+            onClick = { com.example.ui.SoundManager.playClick(); showSoundSettings = true },
+            modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)
+        ) {
+            Icon(androidx.compose.material.icons.Icons.Default.Settings, contentDescription = "Sound Settings", tint = com.example.ui.theme.ChocolateBrown)
+        }
+    }
+
+    if (showSoundSettings) {
+        AlertDialog(
+            onDismissRequest = { showSoundSettings = false },
+            confirmButton = {
+                TextButton(onClick = { com.example.ui.SoundManager.playClick(); showSoundSettings = false }) {
+                    Text("סגור", color = com.example.ui.theme.ChocolateBrown)
+                }
+            },
+            title = {
+                Text("הגדרות צליל שעון", textAlign = TextAlign.End, modifier = Modifier.fillMaxWidth())
+            },
+            text = {
+                Column {
+                    com.example.ui.SoundTheme.values().forEach { theme ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { 
+                                    com.example.ui.SoundManager.updateTheme(currentContext, theme)
+                                    // Give a demo sample
+                                    com.example.ui.SoundManager.playTaskComplete()
+                                }
+                                .padding(vertical = 8.dp),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            Text(theme.displayName, modifier = Modifier.padding(end = 12.dp))
+                            RadioButton(
+                                selected = com.example.ui.SoundManager.currentTheme.value == theme,
+                                onClick = {
+                                    com.example.ui.SoundManager.updateTheme(currentContext, theme)
+                                    com.example.ui.SoundManager.playTaskComplete()
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        )
     }
 }
 

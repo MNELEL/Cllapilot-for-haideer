@@ -37,6 +37,10 @@ fun StudentsScreen(viewModel: ClassViewModel) {
     var studentToDelete by remember { mutableStateOf<StudentEntity?>(null) }
     var showIntakeDialog by remember { mutableStateOf(false) }
     var bulkInputText by remember { mutableStateOf("") }
+    
+    var isMultiSelectMode by remember { mutableStateOf(false) }
+    val selectedStudentIds = remember { mutableStateListOf<String>() }
+    var showMultiDeleteConfirm by remember { mutableStateOf(false) }
 
     // State trackers for adding/editing students
     var showAddDialog by remember { mutableStateOf(false) }
@@ -183,6 +187,35 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Multi-select mode toggle button
+                Button(
+                    onClick = {
+                        com.example.ui.SoundManager.playClick()
+                        isMultiSelectMode = !isMultiSelectMode
+                        if (!isMultiSelectMode) {
+                            selectedStudentIds.clear()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isMultiSelectMode) primaryColor else Color.White.copy(alpha = 0.8f)
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isMultiSelectMode) Icons.Default.CheckCircle else Icons.Default.Delete,
+                        contentDescription = "בחירה מרובה",
+                        tint = if (isMultiSelectMode) Color.Black else com.example.ui.theme.ChocolateBrown,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        if (isMultiSelectMode) "בחירה פעילה" else "בחירה מרובה",
+                        color = if (isMultiSelectMode) Color.Black else com.example.ui.theme.ChocolateBrown,
+                        fontSize = 11.sp
+                    )
+                }
+
                 // Sorting toggle
                 Button(
                     onClick = { com.example.ui.SoundManager.playClick();  sortFilter = if (sortFilter == "ALPHABETICAL") "POINTS" else "ALPHABETICAL" },
@@ -220,6 +253,62 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                 )
             }
 
+            AnimatedVisibility(
+                visible = isMultiSelectMode && selectedStudentIds.isNotEmpty(),
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    colors = CardDefaults.cardColors(containerColor = primaryColor.copy(alpha = 0.15f)),
+                    shape = RoundedCornerShape(12.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, primaryColor)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Button(
+                                onClick = {
+                                    com.example.ui.SoundManager.playClick()
+                                    showMultiDeleteConfirm = true
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC0392B)),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Icon(Icons.Default.Delete, contentDescription = "מחק הכל", tint = Color.White, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("מחק נבחרים (${selectedStudentIds.size})", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                            TextButton(
+                                onClick = {
+                                    com.example.ui.SoundManager.playClick()
+                                    selectedStudentIds.clear()
+                                }
+                            ) {
+                                Text("נקה בחירה", color = com.example.ui.theme.ChocolateBrown, fontSize = 11.sp)
+                            }
+                        }
+
+                        Text(
+                            "נבחרו ${selectedStudentIds.size} תלמידים",
+                            color = com.example.ui.theme.ChocolateBrown,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+
             if (importStatusMsg.isNotEmpty()) {
                 Surface(
                     color = primaryColor.copy(alpha = 0.15f),
@@ -243,7 +332,8 @@ fun StudentsScreen(viewModel: ClassViewModel) {
             // Scrollable roster lists
             LazyColumn(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                contentPadding = PaddingValues(bottom = 80.dp)
             ) {
                 items(processedStudents) { student ->
                     val pts = viewModel.getStudentPoints(student)
@@ -252,10 +342,21 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                     val isAbsent = todayLog?.status == "ABSENT"
                     val isLate = todayLog?.status == "LATE"
 
+                    val isSelected = selectedStudentIds.contains(student.id)
+
                     Card(
                         shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f)),
-                        modifier = Modifier.fillMaxWidth()
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (isMultiSelectMode && isSelected) primaryColor.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.8f)
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                if (isMultiSelectMode) {
+                                    com.example.ui.SoundManager.playClick()
+                                    if (isSelected) selectedStudentIds.remove(student.id) else selectedStudentIds.add(student.id)
+                                }
+                            }
                     ) {
                         Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
                             Row(
@@ -278,6 +379,20 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                                             tint = com.example.ui.theme.GoldGingerStart,
                                             modifier = Modifier.size(16.dp)
                                         )
+                                    }
+
+                                    if (!isMultiSelectMode) {
+                                        IconButton(
+                                            onClick = { com.example.ui.SoundManager.playClick(); studentToDelete = student },
+                                            modifier = Modifier.size(31.dp).clip(RoundedCornerShape(6.dp)).background(Color.Red.copy(alpha = 0.12f))
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Delete,
+                                                contentDescription = "מחק תלמיד לצמיתות",
+                                                tint = Color.Red.copy(alpha = 0.8f),
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                        }
                                     }
 
                                     Spacer(modifier = Modifier.width(4.dp))
@@ -312,23 +427,42 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(8.dp))
                                         .clickable { com.example.ui.SoundManager.playClick(); 
-                                            selectedStudentForEdit = student
-                                            nameField = student.name
-                                            heightField = student.height
-                                            rowPrefField = student.rowPreference
-                                            lovesField = student.loves
-                                            forbidsField = student.forbids
-                                            separateField = student.separate
-                                            notesField = student.notes
+                                            if (isMultiSelectMode) {
+                                                if (isSelected) selectedStudentIds.remove(student.id) else selectedStudentIds.add(student.id)
+                                            } else {
+                                                selectedStudentForEdit = student
+                                                nameField = student.name
+                                                heightField = student.height
+                                                rowPrefField = student.rowPreference
+                                                lovesField = student.loves
+                                                forbidsField = student.forbids
+                                                separateField = student.separate
+                                                notesField = student.notes
+                                            }
                                         }
                                         .padding(4.dp)
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Edit,
-                                        contentDescription = "ערוך תלמיד",
-                                        tint = com.example.ui.theme.MochaTaupe.copy(alpha = 0.6f),
-                                        modifier = Modifier.size(16.dp)
-                                    )
+                                    if (isMultiSelectMode) {
+                                        Checkbox(
+                                            checked = isSelected,
+                                            onCheckedChange = { checked ->
+                                                com.example.ui.SoundManager.playClick()
+                                                if (checked == true) {
+                                                    if (!selectedStudentIds.contains(student.id)) selectedStudentIds.add(student.id)
+                                                } else {
+                                                    selectedStudentIds.remove(student.id)
+                                                }
+                                            },
+                                            colors = CheckboxDefaults.colors(checkedColor = primaryColor)
+                                        )
+                                    } else {
+                                        Icon(
+                                            imageVector = Icons.Default.Edit,
+                                            contentDescription = "ערוך תלמיד",
+                                            tint = com.example.ui.theme.MochaTaupe.copy(alpha = 0.6f),
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
 
                                     Column(horizontalAlignment = Alignment.End) {
                                         Text(
@@ -374,7 +508,7 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                                     .height(1.dp)
                                     .background(Color.White.copy(alpha = 0.8f))
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(12.dp))
 
                             // Today's Attendance controls
                             Row(
@@ -670,6 +804,51 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                 text = {
                     Text(
                         "האם אתה בטוח שברצונך למחוק את ${studentToDelete!!.name} ממאגר הכיתה באופן סופי?",
+                        color = com.example.ui.theme.MochaTaupe,
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                },
+                containerColor = darkBg
+            )
+        }
+
+        // MULTI-DELETE CONFIRM DIALOG
+        if (showMultiDeleteConfirm) {
+            AlertDialog(
+                onDismissRequest = { showMultiDeleteConfirm = false },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            com.example.ui.SoundManager.playClick()
+                            viewModel.deleteStudents(selectedStudentIds.toList())
+                            selectedStudentIds.clear()
+                            isMultiSelectMode = false
+                            showMultiDeleteConfirm = false
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                    ) {
+                        Text("מחק לצמיתות", color = Color.White)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { com.example.ui.SoundManager.playClick(); showMultiDeleteConfirm = false }) {
+                        Text("ביטול", color = com.example.ui.theme.ChocolateBrown)
+                    }
+                },
+                title = {
+                    Text(
+                        "מחיקת תלמידים מרובים",
+                        fontWeight = FontWeight.Bold,
+                        color = com.example.ui.theme.ChocolateBrown,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.End
+                    )
+                },
+                text = {
+                    Text(
+                        "האם אתה בטוח שברצונך למחוק את ${selectedStudentIds.size} התלמידים שנבחרו? פעולה זו תסיר אותם באופן קבוע גם ממערך הישיבה.",
                         color = com.example.ui.theme.MochaTaupe,
                         fontSize = 14.sp,
                         textAlign = TextAlign.End,

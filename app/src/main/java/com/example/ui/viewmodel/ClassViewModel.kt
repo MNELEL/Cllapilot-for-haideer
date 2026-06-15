@@ -46,7 +46,23 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
         initialValue = emptyList()
     )
 
+    val activeMaterialId = MutableStateFlow<String?>(null)
+
+    val activeMaterial = combine(materials, activeMaterialId) { mats, id ->
+        mats.find { it.id == id }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    fun setActiveMaterial(materialId: String?) {
+        activeMaterialId.value = materialId
+    }
+
     val attendanceLogs = repository.allLogs.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
+
+    val grades = repository.allGrades.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = emptyList()
@@ -419,7 +435,7 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // Heuristic solver scoring layout compatibility
+    // Heuristic solver scoring layout compatibility using Simulated Annealing
     private fun optimizeSeatingLayout(
         students: List<StudentEntity>,
         desksToPlace: List<DeskEntity>,
@@ -429,32 +445,62 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
         val result = mutableMapOf<Pair<Int, Int>, StudentEntity?>()
         if (students.isEmpty()) return result
 
-        // Best configuration starts with a simple direct assignment
-        val placementMap = desksToPlace.mapIndexed { idx, d -> d to students.getOrNull(idx) }.toMap()
+        // Initial setup: Assign students to desks arbitrarily
+        var currentMap = desksToPlace.mapIndexed { idx, d -> Pair(d.row, d.col) to students.getOrNull(idx) }.toMap().toMutableMap()
+        var currentScore = computeLayoutScore(currentMap, allDesks, fullRoster)
         
-        // Let's do several iterations of randomized swapping to maximize compatibility score
-        var bestConfig = placementMap.map { it.key.row to it.key.col to it.value }.toMap()
-        var bestScore = computeLayoutScore(bestConfig, allDesks, fullRoster)
+        var bestMap = currentMap.toMap()
+        var bestScore = currentScore
 
         val deskList = desksToPlace.toList()
-        repeat(300) {
-            val d1 = deskList.random()
-            val d2 = deskList.random()
-            if (d1 != d2) {
-                val currentMap = bestConfig.toMutableMap()
-                val temp = currentMap[Pair(d1.row, d1.col)]
-                currentMap[Pair(d1.row, d1.col)] = currentMap[Pair(d2.row, d2.col)]
-                currentMap[Pair(d2.row, d2.col)] = temp
+        
+        // Simulated Annealing parameters
+        var temp = 1000.0
+        val coolingRate = 0.99
+        val minTemp = 0.1
+        val iterationsPerTemp = 50
 
-                val score = computeLayoutScore(currentMap, allDesks, fullRoster)
-                if (score > bestScore) {
-                    bestScore = score
-                    bestConfig = currentMap
+        while (temp > minTemp) {
+            repeat(iterationsPerTemp) {
+                // Pick two random desks to swap
+                val d1 = deskList.random()
+                val d2 = deskList.random()
+                if (d1 != d2) {
+                    val p1 = Pair(d1.row, d1.col)
+                    val p2 = Pair(d2.row, d2.col)
+                    
+                    // Propose swap
+                    val s1 = currentMap[p1]
+                    val s2 = currentMap[p2]
+                    
+                    // Only swap if they are different
+                    if (s1?.id != s2?.id) {
+                        currentMap[p1] = s2
+                        currentMap[p2] = s1
+                        
+                        val newScore = computeLayoutScore(currentMap, allDesks, fullRoster)
+                        val deltaOpt = newScore - currentScore
+                        
+                        // Accept if better, or with probability if worse
+                        if (deltaOpt > 0 || kotlin.math.exp(deltaOpt / temp) > kotlin.random.Random.nextDouble()) {
+                            // Accept swap
+                            currentScore = newScore
+                            if (currentScore > bestScore) {
+                                bestScore = currentScore
+                                bestMap = currentMap.toMap()
+                            }
+                        } else {
+                            // Revert swap
+                            currentMap[p1] = s1
+                            currentMap[p2] = s2
+                        }
+                    }
                 }
             }
+            temp *= coolingRate
         }
 
-        return bestConfig
+        return bestMap
     }
 
     private fun computeLayoutScore(
@@ -473,44 +519,66 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
 
             // 1. HEIGHT CONSTRAINT PENALTY: Shorts in front, Talls in back. Max row index corresponds to back of room.
             val heightPref = student.height
-            val deskRowRatio = r.toDouble() / (layoutRows.value.coerceAtLeast(1)) // 0.0 to 1.0 (0.0 is front, 1.0 is back)
+            val minRow = 0
+            val maxRow = layoutRows.value.coerceAtLeast(1) - 1
+            // Use precise row mapping (0 = Front to 1 = Back)
+            val deskRowRatio = if (maxRow > 0) r.toDouble() / maxRow else 0.0
 
             score += when (heightPref) {
-                "Low" -> if (deskRowRatio < 0.4) 30.0 else -30.0 * (deskRowRatio - 0.4)
-                "Tall" -> if (deskRowRatio > 0.6) 30.0 else -30.0 * (0.6 - deskRowRatio)
-                else -> 15.0 // Medium has no strict penalty
+                "Low" -> if (deskRowRatio <= 0.33) 40.0 else -50.0 * (deskRowRatio - 0.33)
+                "Tall" -> if (deskRowRatio >= 0.66) 40.0 else -50.0 * (0.66 - deskRowRatio)
+                else -> 10.0 // Medium generally fits anywhere safely in the middle.
             }
 
             // 2. ROW PREFERENCE CONSTRAINT: Front, Middle, Back
             score += when (student.rowPreference) {
-                "Front" -> if (r <= layoutRows.value / 3) 25.0 else -15.0
-                "Back" -> if (r >= layoutRows.value * 2 / 3) 25.0 else -15.0
-                "Middle" -> if (r > layoutRows.value / 3 && r < layoutRows.value * 2 / 3) 15.0 else -10.0
-                else -> 10.0
+                "Front" -> if (deskRowRatio <= 0.33) 30.0 else -20.0
+                "Back" -> if (deskRowRatio >= 0.66) 30.0 else -20.0
+                "Middle" -> if (deskRowRatio > 0.33 && deskRowRatio < 0.66) 20.0 else -10.0
+                else -> 5.0
             }
 
             // 3. SOCIAL MATRIX CONSTRAINTS (loves side-by-side / forbids separate)
-            // Look at neighboring desks
-            val neighbors = listOf(
-                Pair(r, c - 1), Pair(r, c + 1), // lateral neighbors
-                Pair(r - 1, c), Pair(r + 1, c)  // front/back neighbors
-            )
-
-            for (neighborPair in neighbors) {
-                val nr = neighborPair.first
-                val nc = neighborPair.second
-                val neighborStudent = config[Pair(nr, nc)]
-                if (neighborStudent != null) {
-                    // Loves peer
-                    if (student.loves.contains(neighborStudent.id)) {
-                        score += 50.0
-                    }
-                    // Forbids/separate peer
-                    if (student.forbids.contains(neighborStudent.id) || student.separate.contains(neighborStudent.id)) {
-                        score -= 100.0
+            val radius = 2 // Consider neighbors up to Manhattan distance 2
+            for (dr in -radius..radius) {
+                for (dc in -radius..radius) {
+                    if (dr == 0 && dc == 0) continue
+                    val nr = r + dr
+                    val nc = c + dc
+                    val neighborStudent = config[Pair(nr, nc)]
+                    
+                    if (neighborStudent != null) {
+                        val distance = kotlin.math.abs(dr) + kotlin.math.abs(dc)
+                        
+                        // Loves peer constraints
+                        if (student.loves.contains(neighborStudent.id)) {
+                            when (distance) {
+                                1 -> score += 60.0    // Direct neighbor
+                                2 -> score += 20.0    // Diagonal or 1 seat gap
+                            }
+                        }
+                        
+                        // Forbids peer constraints (Must not sit near each other)
+                        if (student.forbids.contains(neighborStudent.id)) {
+                            when (distance) {
+                                1 -> score -= 150.0   // Catastrophe if adjacent!
+                                2 -> score -= 80.0    // Still bad if too close
+                                3 -> score -= 20.0
+                            }
+                        }
+                        
+                        // Separate peer constraints (Must be in different rows entirely)
+                        if (student.separate.contains(neighborStudent.id)) {
+                            if (r == nr) {
+                                score -= 100.0 // Major penalty for same row
+                            } else if (distance <= 2) {
+                                score -= 40.0
+                            }
+                        }
                     }
                 }
             }
+
         }
 
         return score
@@ -552,6 +620,51 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
             }
             repository.clearAllDesks()
             repository.insertDesks(deskList)
+        }
+    }
+
+    fun deleteStudents(ids: List<String>) {
+        viewModelScope.launch {
+            repository.deleteStudents(ids)
+            // Evict students from any assigned desks
+            val deskList = desks.value.map {
+                if (it.studentId != null && ids.contains(it.studentId)) it.copy(studentId = null) else it
+            }
+            repository.clearAllDesks()
+            repository.insertDesks(deskList)
+        }
+    }
+
+    fun clearSeatingLayout() {
+        viewModelScope.launch {
+            val emptyDesks = desks.value.map { it.copy(studentId = null) }
+            repository.clearAllDesks()
+            repository.insertDesks(emptyDesks)
+            
+            // clear undo/redo stack
+            undoStack.clear()
+            redoStack.clear()
+            canUndo.value = false
+            canRedo.value = false
+        }
+    }
+
+    fun clearAllGrades() {
+        viewModelScope.launch {
+            repository.clearAllGrades()
+        }
+    }
+
+    fun addOrUpdateGrade(studentId: String, assignmentId: String, gradeValue: String) {
+        viewModelScope.launch {
+            repository.insertGrade(
+                StudentGradeEntity(
+                    id = "$studentId-$assignmentId",
+                    studentId = studentId,
+                    assignmentId = assignmentId,
+                    gradeValue = gradeValue
+                )
+            )
         }
     }
 
@@ -694,6 +807,17 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun saveStudentNotesAndPoints(studentId: String, points: Int, cleanNotes: String) {
+        viewModelScope.launch {
+            val student = students.value.find { it.id == studentId }
+            if (student != null) {
+                val ptsPrefix = "ניקוד: "
+                val updatedNotes = "$ptsPrefix$points | $cleanNotes"
+                repository.insertStudent(student.copy(notes = updatedNotes))
+            }
+        }
+    }
+
     fun deleteMaterial(id: String) {
         viewModelScope.launch {
             repository.deleteMaterial(id)
@@ -792,6 +916,21 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
                     status = status
                 )
             )
+        }
+    }
+
+    fun setAllAttendanceStatus(status: String) {
+        viewModelScope.launch {
+            val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+            val logs = students.value.map { student ->
+                AttendanceLogEntity(
+                    id = "${student.id}_$today",
+                    studentId = student.id,
+                    date = today,
+                    status = status
+                )
+            }
+            repository.insertLogs(logs)
         }
     }
 

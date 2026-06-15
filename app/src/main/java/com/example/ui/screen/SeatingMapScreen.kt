@@ -57,6 +57,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
     val canRedo by viewModel.canRedo.collectAsState()
     val isSyncing by viewModel.isSyncing.collectAsState()
     val syncMessage by viewModel.syncMessage.collectAsState()
+    val activeMaterial by viewModel.activeMaterial.collectAsState()
 
     val isSmartboardView by viewModel.isSmartboardView.collectAsState()
     var isRouletteModalOpen by remember { mutableStateOf(false) }
@@ -243,6 +244,41 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                 )
             }
 
+            activeMaterial?.let { mat ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = CardDefaults.cardColors(containerColor = primaryColor.copy(alpha = 0.12f)),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, primaryColor.copy(alpha = 0.4f))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = com.example.ui.theme.PositiveGreen, modifier = Modifier.size(12.dp))
+                            Text("שיעור פעיל בכיתה", color = com.example.ui.theme.PositiveGreen, fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                        }
+
+                        Text(
+                            mat.title,
+                            color = com.example.ui.theme.ChocolateBrown,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            textAlign = TextAlign.End
+                        )
+                    }
+                }
+            }
+
             // Conditionally show full screen smartboard or normal control panel
             if (isSmartboardView) {
                 // Full Screen Smartboard View
@@ -314,6 +350,14 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                     shape = RoundedCornerShape(8.dp)
                                 ) {
                                     Text("עדכן גודל")
+                                }
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Button(
+                                    onClick = { com.example.ui.SoundManager.playClick(); viewModel.clearSeatingLayout() },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC0392B)),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Text("נקה כיתה", color = Color.White)
                                 }
                                 Spacer(modifier = Modifier.width(6.dp))
                                 OutlinedTextField(
@@ -702,6 +746,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
 
                                     LazyColumn(
                                         verticalArrangement = Arrangement.spacedBy(6.dp),
+                                        contentPadding = PaddingValues(bottom = 80.dp),
                                         modifier = Modifier.weight(1f)
                                     ) {
                                         items(unassignedStudents, key = { it.id }) { student ->
@@ -908,7 +953,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                         shape = RoundedCornerShape(12.dp),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                     ) {
-                        Text("🎡 הגרלת תלמיד", color = com.example.ui.theme.ChocolateBrown, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text("🎡 הגרלת תלמידים / פרסים", color = com.example.ui.theme.ChocolateBrown, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
 
                     // 1. Interactive 3D View Toggle (Simulated perspective)
@@ -1172,6 +1217,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
 
                             LazyColumn(
                                 verticalArrangement = Arrangement.spacedBy(6.dp),
+                                contentPadding = PaddingValues(bottom = 80.dp),
                                 modifier = Modifier.weight(1f)
                             ) {
                                 items(unassignedStudents, key = { it.id }) { student ->

@@ -4,6 +4,8 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -38,6 +40,7 @@ fun DashboardScreen(viewModel: ClassViewModel) {
     val attendanceLogs by viewModel.attendanceLogs.collectAsState()
     val isSyncing by viewModel.isSyncing.collectAsState()
     val syncMsg by viewModel.syncMessage.collectAsState()
+    val activeMaterial by viewModel.activeMaterial.collectAsState()
 
     // Compute metrics
     val totalStudents = studentList.size
@@ -158,6 +161,89 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                                 text = "לוח הבקרה והניווט הכיתתי החכם שלך",
                                 style = MaterialTheme.typography.bodyMedium.copy(color = com.example.ui.theme.MochaTaupe),
                                 textAlign = TextAlign.End
+                            )
+                        }
+                    }
+                }
+            }
+
+            activeMaterial?.let { mat ->
+                item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .shadow(8.dp, RoundedCornerShape(24.dp), spotColor = Color(0x1F64748B)),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(containerColor = primaryColor.copy(alpha = 0.12f)),
+                        border = androidx.compose.foundation.BorderStroke(1.5.dp, primaryColor)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            horizontalAlignment = Alignment.End
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = "פעיל",
+                                        tint = com.example.ui.theme.PositiveGreen,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        "שיעור פעיל כעת",
+                                        color = com.example.ui.theme.PositiveGreen,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 11.sp
+                                    )
+                                }
+
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        "נושא השיעור הפעיל",
+                                        fontWeight = FontWeight.Bold,
+                                        color = com.example.ui.theme.ChocolateBrown,
+                                        fontSize = 14.sp
+                                    )
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        tint = primaryColor,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            Text(
+                                text = mat.title,
+                                color = com.example.ui.theme.ChocolateBrown,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp,
+                                textAlign = TextAlign.End,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            Text(
+                                text = mat.summaryNotes.take(160) + if (mat.summaryNotes.length > 160) "..." else "",
+                                color = com.example.ui.theme.MochaTaupe,
+                                fontSize = 12.sp,
+                                textAlign = TextAlign.End,
+                                modifier = Modifier.fillMaxWidth()
                             )
                         }
                     }
@@ -449,24 +535,68 @@ fun DashboardScreen(viewModel: ClassViewModel) {
             }
         }
     }
-    // 4. PROGRESS REPORT DIALOG FROM STUDENT MODAL
+    // 4. PROGRESS REPORT DIALOG FROM STUDENT MODAL (VIEW & EDIT PROFILE)
     showStudentModal?.let { st ->
         val pts = viewModel.getStudentPoints(st)
         
+        // Parse out points and clean comments for initial states
+        val ptsPrefix = "ניקוד: "
+        val initialCleanNotes = if (st.notes.startsWith(ptsPrefix)) {
+            val parts = st.notes.split(" | ", limit = 2)
+            parts.getOrNull(1) ?: ""
+        } else {
+            st.notes
+        }
+
+        var editedName by remember(st.id) { mutableStateOf(st.name) }
+        var pointsVal by remember(st.id) { mutableIntStateOf(pts) }
+        var heightVal by remember(st.id) { mutableStateOf(st.height) }
+        var rowPrefVal by remember(st.id) { mutableStateOf(st.rowPreference) }
+        var lovesVal by remember(st.id) { mutableStateOf(st.loves.joinToString(", ")) }
+        var forbidsVal by remember(st.id) { mutableStateOf(st.forbids.joinToString(", ")) }
+        var separateVal by remember(st.id) { mutableStateOf(st.separate.joinToString(", ")) }
+        var commentsVal by remember(st.id) { mutableStateOf(initialCleanNotes) }
+        var homeworkProgress by remember(st.id) { mutableFloatStateOf(85f) }
+
         AlertDialog(
             onDismissRequest = { showStudentModal = null },
             confirmButton = {
                 Button(
-                    onClick = { com.example.ui.SoundManager.playClick();  /* Export */ },
+                    onClick = {
+                        com.example.ui.SoundManager.playClick()
+                        val lovesList = lovesVal.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                        val forbidsList = forbidsVal.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                        val separateList = separateVal.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                        val finalNotes = "$ptsPrefix$pointsVal | $commentsVal"
+                        
+                        viewModel.addOrUpdateStudent(
+                            id = st.id,
+                            name = editedName,
+                            height = heightVal,
+                            rowPreference = rowPrefVal,
+                            loves = lovesList,
+                            forbids = forbidsList,
+                            separate = separateList,
+                            notes = finalNotes
+                        )
+                        showStudentModal = null
+                    },
                     colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
                 ) {
-                    Icon(Icons.Default.Share, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("יצא פרופיל (PDF)", color = Color.Black)
+                    Icon(Icons.Default.Check, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("שמור שינויים", color = Color.Black, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { com.example.ui.SoundManager.playClick();  showStudentModal = null }) { Text("סגור", color = com.example.ui.theme.ChocolateBrown) }
+                TextButton(
+                    onClick = { 
+                        com.example.ui.SoundManager.playClick()
+                        showStudentModal = null 
+                    }
+                ) { 
+                    Text("ביטול", color = com.example.ui.theme.ChocolateBrown) 
+                }
             },
             title = {
                 Row(
@@ -475,95 +605,286 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        "פרופיל אישי ודוח התקדמות",
+                        "עריכת פרופיל והעדפות ישיבה",
                         fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
                         color = com.example.ui.theme.ChocolateBrown,
                         textAlign = TextAlign.End
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Icon(Icons.Default.AccountCircle, contentDescription = null, tint = primaryColor)
+                    Icon(Icons.Default.AccountCircle, contentDescription = null, tint = primaryColor, modifier = Modifier.size(24.dp))
                 }
             },
             text = {
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(androidx.compose.foundation.rememberScrollState()),
                     horizontalAlignment = Alignment.End
                 ) {
-                    Text(st.name, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = primaryColor)
+                    // Name editor
+                    Text("שם התלמיד:", fontSize = 12.sp, color = com.example.ui.theme.MochaTaupe, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    OutlinedTextField(
+                        value = editedName,
+                        onValueChange = { editedName = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        textStyle = androidx.compose.ui.text.TextStyle(textAlign = TextAlign.End, fontWeight = FontWeight.Bold),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = primaryColor,
+                            unfocusedBorderColor = Color.LightGray
+                        )
+                    )
+
                     Spacer(modifier = Modifier.height(16.dp))
-                    
-                    // Gamification summary
+
+                    // Behavior Points (Performance Metric 1)
+                    Text("מדדי התנהגות וניקוד:", fontSize = 13.sp, color = com.example.ui.theme.ChocolateBrown, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(4.dp))
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f)),
-                        modifier = Modifier.fillMaxWidth()
+                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f)),
+                        modifier = Modifier.fillMaxWidth(),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray.copy(alpha=0.5f))
                     ) {
                         Column(modifier = Modifier.padding(12.dp).fillMaxWidth(), horizontalAlignment = Alignment.End) {
                             Row(
+                                modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text("$pts", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = com.example.ui.theme.PositiveGreen)
-                                Icon(Icons.Default.Star, contentDescription = null, tint = com.example.ui.theme.GoldGingerStart)
-                                Text("נקודות התנהגות או הישגים", color = com.example.ui.theme.MochaTaupe, fontSize = 12.sp)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    IconButton(
+                                        onClick = { com.example.ui.SoundManager.playClick(); pointsVal += 5 },
+                                        modifier = Modifier.size(36.dp).background(com.example.ui.theme.PositiveGreen.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
+                                    ) {
+                                        Text("+5", fontSize = 11.sp, color = com.example.ui.theme.PositiveGreen, fontWeight = FontWeight.Bold)
+                                    }
+                                    IconButton(
+                                        onClick = { com.example.ui.SoundManager.playClick(); pointsVal += 1 },
+                                        modifier = Modifier.size(36.dp).background(com.example.ui.theme.PositiveGreen.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                                    ) {
+                                        Icon(Icons.Default.Add, contentDescription = null, tint = com.example.ui.theme.PositiveGreen, modifier = Modifier.size(16.dp))
+                                    }
+                                    
+                                    Box(
+                                        modifier = Modifier
+                                            .width(50.dp)
+                                            .height(36.dp)
+                                            .background(Color.White, RoundedCornerShape(8.dp))
+                                            .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text("$pointsVal", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown)
+                                    }
+
+                                    IconButton(
+                                        onClick = { com.example.ui.SoundManager.playClick(); pointsVal -= 1 },
+                                        modifier = Modifier.size(36.dp).background(Color.Red.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                                    ) {
+                                        Icon(Icons.Default.Delete, contentDescription = null, tint = Color.Red, modifier = Modifier.size(16.dp))
+                                    }
+                                    IconButton(
+                                        onClick = { com.example.ui.SoundManager.playClick(); pointsVal -= 5 },
+                                        modifier = Modifier.size(36.dp).background(Color.Red.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
+                                    ) {
+                                        Text("-5", fontSize = 11.sp, color = Color.Red, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Text("ניקוד נוכחי", fontSize = 12.sp, color = com.example.ui.theme.MochaTaupe)
+                                    Icon(Icons.Default.Star, contentDescription = null, tint = com.example.ui.theme.GoldGingerStart, modifier = Modifier.size(16.dp))
+                                }
                             }
                         }
                     }
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
 
-                    Text("סטטוס משימות ושיעורי בית", fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, fontSize = 14.sp)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    // Mocked Homework List
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f)),
-                        modifier = Modifier.fillMaxWidth()
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Homework Completion Rate (Performance Metric 2)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(modifier = Modifier.padding(12.dp).fillMaxWidth(), horizontalAlignment = Alignment.End) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = com.example.ui.theme.PositiveGreen, modifier = Modifier.size(16.dp))
-                                Text("דף עבודה בספר בראשית - הוגש", color = com.example.ui.theme.ChocolateBrown, fontSize = 12.sp)
-                            }
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFC0392B), modifier = Modifier.size(16.dp))
-                                Text("מטלת סיכום משנה - חסר", color = com.example.ui.theme.MochaTaupe, fontSize = 12.sp)
-                            }
-                            Spacer(modifier = Modifier.height(12.dp))
-                            
-                            Button(
-                                onClick = { com.example.ui.SoundManager.playClick();  /* Simulated WhatsApp Trigger */ },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF128C7E)), // WhatsApp Green
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                                modifier = Modifier.align(Alignment.Start).height(32.dp),
-                                shape = RoundedCornerShape(8.dp)
+                        Text("${homeworkProgress.toInt()}%", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = com.example.ui.theme.PositiveGreen)
+                        Text("קצב הכנת שיעורי בית ומשימות:", fontSize = 13.sp, color = com.example.ui.theme.ChocolateBrown, fontWeight = FontWeight.Bold)
+                    }
+                    Slider(
+                        value = homeworkProgress,
+                        onValueChange = { homeworkProgress = it },
+                        valueRange = 0f..100f,
+                        colors = SliderDefaults.colors(
+                            thumbColor = primaryColor,
+                            activeTrackColor = primaryColor,
+                            inactiveTrackColor = Color.LightGray
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Divider(color = Color.LightGray.copy(alpha=0.4f), thickness = 1.dp)
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Seating Preferences Header
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("העדפות הושבה בכיתה", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Icon(Icons.Default.LocationOn, contentDescription = null, tint = primaryColor, modifier = Modifier.size(18.dp))
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Height Selection (גובה התלמיד)
+                    Text("גובה (נחוץ למניעת הסתרה):", fontSize = 12.sp, color = com.example.ui.theme.MochaTaupe, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        val heights = listOf(
+                            "Tall" to "גבוה (Tall)",
+                            "Medium" to "בינוני (Medium)",
+                            "Low" to "נמוך (Low)"
+                        )
+                        heights.forEach { (key, label) ->
+                            val isSelected = heightVal == key
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(if (isSelected) primaryColor else Color.White)
+                                    .border(1.dp, if (isSelected) primaryColor else Color.LightGray, RoundedCornerShape(8.dp))
+                                    .clickable { com.example.ui.SoundManager.playClick(); heightVal = key }
+                                    .padding(vertical = 8.dp),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.Default.Email, contentDescription = null, tint = com.example.ui.theme.ChocolateBrown, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("שלח תזכורת להורה (WhatsApp)", color = com.example.ui.theme.ChocolateBrown, fontSize = 10.sp)
+                                Text(
+                                    label,
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (isSelected) Color.Black else com.example.ui.theme.ChocolateBrown
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Row Preference Selection (העדפת שורה)
+                    Text("העדפת שורה בכיתה:", fontSize = 12.sp, color = com.example.ui.theme.MochaTaupe, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        val rowPrefs = listOf(
+                            "Back" to "אחורית (Back)",
+                            "Middle" to "אמצעית (Middle)",
+                            "Front" to "קדמית (Front)"
+                        )
+                        rowPrefs.forEach { (key, label) ->
+                            val isSelected = rowPrefVal == key
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(if (isSelected) primaryColor else Color.White)
+                                    .border(1.dp, if (isSelected) primaryColor else Color.LightGray, RoundedCornerShape(8.dp))
+                                    .clickable { com.example.ui.SoundManager.playClick(); rowPrefVal = key }
+                                    .padding(vertical = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    label,
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (isSelected) Color.Black else com.example.ui.theme.ChocolateBrown
+                                )
                             }
                         }
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("הערות ומשוב מורה", fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, fontSize = 14.sp)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    var teacherNotes by remember(st.id) { mutableStateOf(st.notes) }
-                    
+
+                    // Loves Seating Preference (אוהב לשבת ליד)
+                    Text("אוהב לשבת ליד (שמות מופרדים בפסיק):", fontSize = 12.sp, color = com.example.ui.theme.MochaTaupe, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(4.dp))
                     OutlinedTextField(
-                        value = teacherNotes,
-                        onValueChange = { newValue ->
-                            teacherNotes = newValue 
-                            viewModel.updateStudentNotes(st.id, newValue)
-                        },
+                        value = lovesVal,
+                        onValueChange = { lovesVal = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("יוסף, דניאל, איתן...", textAlign = TextAlign.End, modifier = Modifier.fillMaxWidth()) },
+                        textStyle = androidx.compose.ui.text.TextStyle(textAlign = TextAlign.End),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = primaryColor,
+                            unfocusedBorderColor = Color.LightGray
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Forbids Seating Preference (לא מוכן לשבת ליד)
+                    Text("לא מוכן לשבת ליד (להפריד בפסיק):", fontSize = 12.sp, color = com.example.ui.theme.MochaTaupe, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    OutlinedTextField(
+                        value = forbidsVal,
+                        onValueChange = { forbidsVal = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("להפריד מיוסף, ערן...", textAlign = TextAlign.End, modifier = Modifier.fillMaxWidth()) },
+                        textStyle = androidx.compose.ui.text.TextStyle(textAlign = TextAlign.End),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = primaryColor,
+                            unfocusedBorderColor = Color.LightGray
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Separate Seating Preference (להפריד בכל מקרה מ-)
+                    Text("שמור מרחק / הפרדה מוחלטת מ-:", fontSize = 12.sp, color = com.example.ui.theme.MochaTaupe, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    OutlinedTextField(
+                        value = separateVal,
+                        onValueChange = { separateVal = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("ישראל...", textAlign = TextAlign.End, modifier = Modifier.fillMaxWidth()) },
+                        textStyle = androidx.compose.ui.text.TextStyle(textAlign = TextAlign.End),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = primaryColor,
+                            unfocusedBorderColor = Color.LightGray
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Divider(color = Color.LightGray.copy(alpha=0.4f), thickness = 1.dp)
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Comments or Notes
+                    Text("הערות ומשוב מורה כללי:", fontSize = 12.sp, color = com.example.ui.theme.MochaTaupe, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    OutlinedTextField(
+                        value = commentsVal,
+                        onValueChange = { commentsVal = it },
                         modifier = Modifier.fillMaxWidth().height(100.dp),
                         textStyle = androidx.compose.ui.text.TextStyle(textAlign = TextAlign.End),
-                        placeholder = { Text("הזן הערות יומיומיות...", textAlign = TextAlign.End, modifier = Modifier.fillMaxWidth()) }
+                        placeholder = { Text("הזן הערות יומיומיות, המלצות ללמידה ומשוב...", textAlign = TextAlign.End, modifier = Modifier.fillMaxWidth()) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = primaryColor,
+                            unfocusedBorderColor = Color.LightGray
+                        )
                     )
                 }
             },
-            containerColor = Color.White.copy(alpha = 0.95f)
+            containerColor = Color.White.copy(alpha = 0.98f)
         )
     }
 }

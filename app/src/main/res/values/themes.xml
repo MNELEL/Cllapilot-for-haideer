@@ -1,5 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Base application theme. -->
+    <style name="Theme.MyApplication" parent="android:Theme.DeviceDefault.NoActionBar">
+        <!-- Primary brand colors -->
+        <item name="android:colorPrimary">@color/gold_ginger_start</item>
+        <item name="android:colorSecondary">@color/chocolate_brown</item>
+        <item name="android:windowBackground">@color/light_bg_center</item>
+        <item name="android:navigationBarColor">@color/light_bg_end</item>
+        <item name="android:statusBarColor">@color/light_bg_start</item>
+    </style>
 
-    <style name="Theme.MyApplication" parent="android:Theme.DeviceDefault.NoActionBar" />
+    <!-- Specific Light Theme Style -->
+    <style name="Theme.MyApplication.Light" parent="Theme.MyApplication">
+        <item name="android:windowBackground">@color/cream_beige</item>
+        <item name="android:statusBarColor">@color/white_warm</item>
+        <item name="android:navigationBarColor">@color/cream_beige</item>
+    </style>
+
+    <!-- Specific Dark Theme Style -->
+    <style name="Theme.MyApplication.Dark" parent="android:Theme.DeviceDefault.NoActionBar">
+        <item name="android:colorPrimary">@color/gold_ginger_start</item>
+        <item name="android:colorSecondary">@color/white_warm</item>
+        <item name="android:windowBackground">@color/dark_bg_center</item>
+        <item name="android:statusBarColor">@color/dark_bg_start</item>
+        <item name="android:navigationBarColor">@color/dark_bg_end</item>
+    </style>
 </resources>
+

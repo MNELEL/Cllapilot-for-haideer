@@ -35,6 +35,7 @@ import org.json.JSONArray
 fun LibraryScreen(viewModel: ClassViewModel) {
     val materials by viewModel.materials.collectAsState()
     val isParsingFile by viewModel.isParsingFile.collectAsState()
+    val activeMaterialId by viewModel.activeMaterialId.collectAsState()
     
     val context = androidx.compose.ui.platform.LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -329,6 +330,66 @@ fun LibraryScreen(viewModel: ClassViewModel) {
                             modifier = Modifier.fillMaxSize().padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
+                            item {
+                                val isActive = activeMaterialId == mat.id
+                                Card(
+                                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = if (isActive) primaryColor.copy(alpha = 0.25f) else Color.White.copy(alpha = 0.5f)
+                                    ),
+                                    border = androidx.compose.foundation.BorderStroke(
+                                        width = 1.dp,
+                                        color = if (isActive) primaryColor else Color.LightGray.copy(alpha = 0.5f)
+                                    )
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(12.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        if (isActive) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.CheckCircle,
+                                                    contentDescription = "פעיל כעת",
+                                                    tint = com.example.ui.theme.PositiveGreen,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                                Text(
+                                                    "שיעור פעיל בכיתה",
+                                                    color = com.example.ui.theme.PositiveGreen,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 12.sp
+                                                )
+                                            }
+                                        } else {
+                                            Button(
+                                                onClick = {
+                                                    com.example.ui.SoundManager.playClick()
+                                                    viewModel.setActiveMaterial(mat.id)
+                                                },
+                                                colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
+                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                                modifier = Modifier.height(30.dp),
+                                                shape = RoundedCornerShape(8.dp)
+                                            ) {
+                                                Text("הפעל שיעור זה", color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+
+                                        Text(
+                                            "סטטוס מערך שיעור",
+                                            color = com.example.ui.theme.ChocolateBrown,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
+                                }
+                            }
+
                             item {
                                 Text(
                                     mat.title,

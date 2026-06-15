@@ -26,8 +26,20 @@ object SoundManager {
     private var vibrator: Vibrator? = null
     
     var currentTheme = mutableStateOf(SoundTheme.MODERN)
+    var isSoundEnabled = mutableStateOf(true)
 
     fun init(context: Context) {
+        val appContext = context.applicationContext
+        try {
+            val sharedPref = appContext.getSharedPreferences("classpro_prefs", Context.MODE_PRIVATE)
+            val themeStr = sharedPref.getString("sound_theme", SoundTheme.MODERN.name)
+            currentTheme.value = SoundTheme.valueOf(themeStr ?: SoundTheme.MODERN.name)
+            isSoundEnabled.value = sharedPref.getBoolean("is_sound_enabled", true)
+        } catch (e: Exception) {
+            currentTheme.value = SoundTheme.MODERN
+            isSoundEnabled.value = true
+        }
+
         if (toneGen == null) {
             try {
                 // Use a modest volume (e.g., 70% of max tone volume)
@@ -39,13 +51,34 @@ object SoundManager {
         
         if (vibrator == null) {
             vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                val attributionCtx = context.createAttributionContext("SoundManager")
-                val vibratorManager = attributionCtx.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+                val vibratorManager = appContext.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
                 vibratorManager.defaultVibrator
             } else {
                 @Suppress("DEPRECATION")
-                context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+                appContext.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
             }
+        }
+    }
+
+    fun updateTheme(context: Context, theme: SoundTheme) {
+        currentTheme.value = theme
+        val appContext = context.applicationContext
+        try {
+            val sharedPref = appContext.getSharedPreferences("classpro_prefs", Context.MODE_PRIVATE)
+            sharedPref.edit().putString("sound_theme", theme.name).apply()
+        } catch (e: Exception) {
+            Log.e("SoundManager", "Failed to save theme preference", e)
+        }
+    }
+
+    fun updateSoundEnabled(context: Context, enabled: Boolean) {
+        isSoundEnabled.value = enabled
+        val appContext = context.applicationContext
+        try {
+            val sharedPref = appContext.getSharedPreferences("classpro_prefs", Context.MODE_PRIVATE)
+            sharedPref.edit().putBoolean("is_sound_enabled", enabled).apply()
+        } catch (e: Exception) {
+            Log.e("SoundManager", "Failed to save sound enabled preference", e)
         }
     }
 
@@ -71,7 +104,7 @@ object SoundManager {
     }
 
     fun playClick() {
-        if (currentTheme.value == SoundTheme.SILENT) return
+        if (!isSoundEnabled.value || currentTheme.value == SoundTheme.SILENT) return
         triggerHaptic(10L, 30)
         when (currentTheme.value) {
             SoundTheme.CLASSIC -> toneGen?.startTone(ToneGenerator.TONE_PROP_BEEP, 30)
@@ -81,7 +114,7 @@ object SoundManager {
     }
 
     fun playPop() {
-        if (currentTheme.value == SoundTheme.SILENT) return
+        if (!isSoundEnabled.value || currentTheme.value == SoundTheme.SILENT) return
         triggerHaptic(10L, 40)
         when (currentTheme.value) {
             SoundTheme.CLASSIC -> toneGen?.startTone(ToneGenerator.TONE_PROP_BEEP2, 30)
@@ -91,7 +124,7 @@ object SoundManager {
     }
 
     fun playModalOpen() {
-        if (currentTheme.value == SoundTheme.SILENT) return
+        if (!isSoundEnabled.value || currentTheme.value == SoundTheme.SILENT) return
         triggerHaptic(20L, 80)
         when (currentTheme.value) {
             SoundTheme.CLASSIC -> toneGen?.startTone(ToneGenerator.TONE_SUP_INTERCEPT, 50)
@@ -101,7 +134,7 @@ object SoundManager {
     }
 
     fun playTaskComplete() {
-        if (currentTheme.value == SoundTheme.SILENT) return
+        if (!isSoundEnabled.value || currentTheme.value == SoundTheme.SILENT) return
         triggerHaptic(40L, 100)
         when (currentTheme.value) {
             SoundTheme.CLASSIC -> toneGen?.startTone(ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD, 150)
@@ -111,6 +144,7 @@ object SoundManager {
     }
 
     fun playError() {
+        if (!isSoundEnabled.value) return
         if (currentTheme.value == SoundTheme.SILENT) {
             triggerHaptic(100L, 200)
             return
@@ -124,7 +158,7 @@ object SoundManager {
     }
 
     fun playDelete() {
-        if (currentTheme.value == SoundTheme.SILENT) return
+        if (!isSoundEnabled.value || currentTheme.value == SoundTheme.SILENT) return
         triggerHaptic(30L, 120) 
         when (currentTheme.value) {
             SoundTheme.CLASSIC -> toneGen?.startTone(ToneGenerator.TONE_PROP_NACK, 100)
@@ -134,7 +168,7 @@ object SoundManager {
     }
 
     fun playNotification() {
-        if (currentTheme.value == SoundTheme.SILENT) return
+        if (!isSoundEnabled.value || currentTheme.value == SoundTheme.SILENT) return
         triggerHaptic(30L, 80)
         when (currentTheme.value) {
             SoundTheme.CLASSIC -> toneGen?.startTone(ToneGenerator.TONE_PROP_PROMPT, 150)

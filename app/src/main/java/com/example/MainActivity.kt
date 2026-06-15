@@ -18,6 +18,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.animation.core.*
@@ -40,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.screen.*
 import com.example.ui.theme.MyApplicationTheme
+import com.example.ui.theme.ThemeManager
 import com.example.ui.viewmodel.ClassViewModel
 import com.example.ui.SoundManager
 
@@ -56,6 +59,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         SoundManager.init(this)
+        ThemeManager.init(this)
         
         enableEdgeToEdge()
 
@@ -83,11 +87,21 @@ class MainActivity : ComponentActivity() {
                         label = "bg_offset"
                     )
 
-                    val mainBgBrush = Brush.linearGradient(
-                        colors = listOf(com.example.ui.theme.CreamBeige, Color(0xFFFFFFFF), Color(0xFFECFEFF)),
-                        start = androidx.compose.ui.geometry.Offset(0f, offsetAnim),
-                        end = androidx.compose.ui.geometry.Offset(2000f, offsetAnim + 1000f)
-                    )
+                    val isDarkTheme by ThemeManager.isDarkTheme.collectAsState()
+
+                    val mainBgBrush = if (isDarkTheme) {
+                        Brush.linearGradient(
+                            colors = listOf(Color(0xFF1A1A1E), Color(0xFF101012), Color(0xFF1D1728)),
+                            start = androidx.compose.ui.geometry.Offset(0f, offsetAnim),
+                            end = androidx.compose.ui.geometry.Offset(2000f, offsetAnim + 1000f)
+                        )
+                    } else {
+                        Brush.linearGradient(
+                            colors = listOf(com.example.ui.theme.WhiteWarm, com.example.ui.theme.CreamBeige, Color(0xFFFFF2D9)),
+                            start = androidx.compose.ui.geometry.Offset(0f, offsetAnim),
+                            end = androidx.compose.ui.geometry.Offset(2000f, offsetAnim + 1000f)
+                        )
+                    }
 
                     val isUnlocked by viewModel.isAppUnlocked.collectAsState()
 
@@ -127,27 +141,36 @@ class MainActivity : ComponentActivity() {
                                 var errorMsg by remember { mutableStateOf("") }
 
                                 Row(
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     for (i in 1..4) {
                                         val active = enteredCode.length >= i
+                                        val size by animateDpAsState(if (active) 22.dp else 16.dp, label = "size")
                                         Box(
                                             modifier = Modifier
-                                                .size(18.dp)
+                                                .size(size)
                                                 .clip(androidx.compose.foundation.shape.CircleShape)
                                                 .background(if (active) com.example.ui.theme.GoldGingerEnd else Color(0xFF94A3B8).copy(alpha = 0.3f))
+                                                .shadow(if (active) 4.dp else 0.dp, CircleShape)
                                         )
                                     }
                                 }
 
                                 if (errorMsg.isNotEmpty()) {
-                                    Spacer(modifier = Modifier.height(12.dp))
-                                    Text(errorMsg, color = Color.Red, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text(
+                                        text = errorMsg, 
+                                        color = Color(0xFFE11D48), 
+                                        fontSize = 14.sp, 
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 16.dp),
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                    )
                                 }
 
                                 Spacer(modifier = Modifier.height(32.dp))
-
+                                
                                 val buttons = listOf(
                                     listOf("1", "2", "3"),
                                     listOf("4", "5", "6"),
@@ -155,12 +178,22 @@ class MainActivity : ComponentActivity() {
                                     listOf("CLR", "0", "OK")
                                 )
 
-                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                // Keypad Area with softer aesthetics
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                                    modifier = Modifier.padding(horizontal = 24.dp)
+                                ) {
                                     buttons.forEach { row ->
-                                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally)
+                                        ) {
                                             row.forEach { btn ->
+                                                val isAction = btn == "CLR" || btn == "OK"
                                                 Button(
-                                                    onClick = { com.example.ui.SoundManager.playClick(); 
+                                                    onClick = { 
+                                                        com.example.ui.SoundManager.playClick()
+                                                        android.util.Log.d("Keypad", "Clicked: $btn")
                                                         when (btn) {
                                                             "CLR" -> {
                                                                 enteredCode = ""
@@ -177,23 +210,33 @@ class MainActivity : ComponentActivity() {
                                                             else -> {
                                                                 if (enteredCode.length < 4) {
                                                                     enteredCode += btn
-                                                                }
-                                                                if (enteredCode.length == 4) {
-                                                                    if (viewModel.attemptUnlock(enteredCode)) {
-                                                                        errorMsg = ""
-                                                                    } else {
-                                                                        errorMsg = "קוד שגוי, אנא נסה שוב!"
-                                                                        enteredCode = ""
+                                                                    android.util.Log.d("Keypad", "Entered: $enteredCode")
+                                                                    // Auto-unlock on 4th digit
+                                                                    if (enteredCode.length == 4) {
+                                                                        if (viewModel.attemptUnlock(enteredCode)) {
+                                                                            errorMsg = ""
+                                                                        } else {
+                                                                            errorMsg = "קוד שגוי, אנא נסה שוב!"
+                                                                            enteredCode = ""
+                                                                        }
                                                                     }
                                                                 }
                                                             }
                                                         }
                                                     },
-                                                    modifier = Modifier.size(64.dp),
-                                                    shape = androidx.compose.foundation.shape.CircleShape,
-                                                    colors = ButtonDefaults.buttonColors(containerColor = Color.White)
+                                                    modifier = Modifier.size(64.dp), // slightly smaller for layout
+                                                    shape = RoundedCornerShape(20.dp),
+                                                    colors = ButtonDefaults.buttonColors(
+                                                        containerColor = if (isAction) Color(0xFFF1F5F9).copy(alpha = 0.8f) else Color.White.copy(alpha = 0.9f),
+                                                        contentColor = com.example.ui.theme.ChocolateBrown
+                                                    ),
+                                                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
                                                 ) {
-                                                    Text(btn, color = com.example.ui.theme.ChocolateBrown, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                                    Text(
+                                                        text = btn, 
+                                                        fontSize = 20.sp, 
+                                                        fontWeight = FontWeight.Bold
+                                                    )
                                                 }
                                             }
                                         }
@@ -227,6 +270,8 @@ class MainActivity : ComponentActivity() {
                                     "PORTAL" -> ParentPortalScreen(viewModel)
                                     "MORE" -> MoreScreen(viewModel) { currentDestination = it }
                                     "ATTENDANCE" -> AttendanceScreen(viewModel)
+                                    "GRADES" -> GradesScreen(viewModel)
+                                    "GAMIFICATION" -> GamificationScreen(viewModel)
                                 }
                             }
                             
@@ -247,8 +292,25 @@ class MainActivity : ComponentActivity() {
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    // Minimalist Blue Geometric Logo
+                                    // Minimalist Blue Geometric Logo & Back Navigation Flow
                                     Row(verticalAlignment = Alignment.CenterVertically) {
+                                        if (currentDestination in listOf("TIMER", "LIBRARY", "PORTAL")) {
+                                            IconButton(
+                                                onClick = { com.example.ui.SoundManager.playClick(); currentDestination = "MORE" },
+                                                modifier = Modifier
+                                                    .size(36.dp)
+                                                    .clip(CircleShape)
+                                                    .background(com.example.ui.theme.CreamBeige)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.ArrowBack,
+                                                    contentDescription = "Back",
+                                                    tint = com.example.ui.theme.ChocolateBrown,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.width(12.dp))
+                                        }
                                         androidx.compose.foundation.Canvas(modifier = Modifier.size(32.dp)) {
                                             drawRoundRect(
                                                 color = com.example.ui.theme.GoldGingerEnd, // Soft Indigo
@@ -319,24 +381,42 @@ class MainActivity : ComponentActivity() {
                             }
 
                             // Floating Bottom Navigation
+                            var dragOffset by remember { mutableStateOf(0f) }
+                            
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .align(Alignment.BottomCenter)
+                                    .offset { androidx.compose.ui.unit.IntOffset(0, dragOffset.toInt()) }
+                                    .pointerInput(Unit) {
+                                        detectVerticalDragGestures { change, dragAmount ->
+                                            change.consume()
+                                            dragOffset = (dragOffset + dragAmount).coerceIn(0f, 200f)
+                                        }
+                                    }
                                     .padding(horizontal = 12.dp, vertical = 12.dp)
                                     .shadow(elevation = 16.dp, shape = RoundedCornerShape(24.dp), spotColor = Color(0x3364748B))
                                     .clip(RoundedCornerShape(24.dp))
                                     .background(Color.White.copy(alpha = 0.95f))
                                     .border(1.dp, Color.White.copy(alpha = 0.5f), RoundedCornerShape(24.dp))
-                                    .padding(horizontal = 8.dp, vertical = 8.dp)
                             ) {
-                                Row(
-                                    horizontalArrangement = Arrangement.SpaceEvenly,
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    navigationItems.forEach { nav ->
-                                        val isSelected = currentDestination == nav.route
+                                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                                    // Drag handle
+                                    Box(
+                                        modifier = Modifier
+                                            .padding(top = 4.dp)
+                                            .width(40.dp)
+                                            .height(4.dp)
+                                            .clip(CircleShape)
+                                            .background(Color.LightGray)
+                                    )
+                                    Row(
+                                        horizontalArrangement = Arrangement.SpaceEvenly,
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp).padding(top = 4.dp, bottom = 8.dp)
+                                    ) {
+                                        navigationItems.forEach { nav ->
+                                        val isSelected = currentDestination == nav.route || (nav.route == "MORE" && currentDestination in listOf("TIMER", "LIBRARY", "PORTAL"))
                                         val scale by animateFloatAsState(targetValue = if (isSelected) 1.05f else 1f, label = "scaleAnim", animationSpec = tween(300))
                                         // soft pastel fill: indigo-50
                                         val backgroundColor = if (isSelected) com.example.ui.theme.CreamBeige else Color.Transparent
@@ -360,6 +440,7 @@ class MainActivity : ComponentActivity() {
                                                  Text(nav.label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = contentColor)
                                              }
                                         }
+                                    }
                                     }
                                 }
                             }

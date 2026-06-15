@@ -1,10 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="purple_200">#FFBB86FC</color>
-    <color name="purple_500">#FF6200EE</color>
-    <color name="purple_700">#FF3700B3</color>
-    <color name="teal_200">#FF03DAC5</color>
-    <color name="teal_700">#FF018786</color>
+    <!-- Basic Palette -->
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    
+    <!-- Primary Theme Colors -->
+    <color name="chocolate_brown">#FF3C2114</color>
+    <color name="cream_beige">#FFFDF6E8</color>
+    <color name="white_warm">#FFFCFBF9</color>
+    <color name="mocha_taupe">#FFAB8F7D</color>
+    <color name="gold_ginger_start">#FFD8A86C</color>
+    <color name="gold_ginger_end">#FF996D44</color>
+    <color name="positive_green">#FF00A65F</color>
+    <color name="dark_grey">#FF2A2A2A</color>
+
+    <!-- Light Theme Background Gradients -->
+    <color name="light_bg_start">#FFFCFBF9</color>
+    <color name="light_bg_center">#FFFDF6E8</color>
+    <color name="light_bg_end">#FFFFF2D9</color>
+
+    <!-- Dark Theme Background Gradients -->
+    <color name="dark_bg_start">#FF1A1A1E</color>
+    <color name="dark_bg_center">#FF101012</color>
+    <color name="dark_bg_end">#FF1D1728</color>
+
+    <!-- Light Theme Pastel Tiles (image_0 and image_1 styles) -->
+    <color name="light_tile_pink_start">#FFFFF2F2</color>
+    <color name="light_tile_pink_end">#FFFDE8E8</color>
+    
+    <color name="light_tile_teal_start">#FFEBFDFB</color>
+    <color name="light_tile_teal_end">#FFD5F8F2</color>
+    
+    <color name="light_tile_gold_start">#FFFFFDF0</color>
+    <color name="light_tile_gold_end">#FFFFF2C2</color>
+
+    <!-- Dark Theme Deep Rich Tiles -->
+    <color name="dark_tile_purple_start">#FF201235</color>
+    <color name="dark_tile_purple_end">#FF3D166D</color>
+    
+    <color name="dark_tile_teal_start">#FF06211C</color>
+    <color name="dark_tile_teal_end">#FF0A4437</color>
+    
+    <color name="dark_tile_blue_start">#FF0A192F</color>
+    <color name="dark_tile_blue_end">#FF172A45</color>
 </resources>
+

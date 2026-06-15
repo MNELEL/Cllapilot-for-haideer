@@ -3,6 +3,7 @@ package com.example.ui.screen
 import androidx.compose.animation.core.*
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
@@ -32,6 +33,7 @@ import com.example.ui.viewmodel.ClassViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MoreScreen(viewModel: ClassViewModel, onNavigate: (String) -> Unit = {}) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val studentsList by viewModel.students.collectAsState()
     val wheelName by viewModel.selectedStudentWheelName.collectAsState()
     val isWheelSpinning by viewModel.isWheelSpinning.collectAsState()
@@ -154,6 +156,48 @@ fun MoreScreen(viewModel: ClassViewModel, onNavigate: (String) -> Unit = {}) {
                                     Icon(Icons.Default.PlayArrow, contentDescription = "טיימר", tint = primaryColor, modifier = Modifier.size(28.dp))
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text("טיימר מלא", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, textAlign = TextAlign.Center)
+                                }
+                            }
+                        }
+
+                        // Row for more tools
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            // Grades Screen card
+                            Card(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { com.example.ui.SoundManager.playClick(); onNavigate("GRADES") },
+                                colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.CreamBeige.copy(alpha = 0.5f)),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Icon(Icons.Default.Edit, contentDescription = "ציונים", tint = primaryColor, modifier = Modifier.size(28.dp))
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text("ניהול ציונים", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, textAlign = TextAlign.Center)
+                                }
+                            }
+                            
+                            // Gamification card
+                            Card(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { com.example.ui.SoundManager.playClick(); onNavigate("GAMIFICATION") },
+                                colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.CreamBeige.copy(alpha = 0.5f)),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Icon(Icons.Default.Star, contentDescription = "גמיפיקציה", tint = primaryColor, modifier = Modifier.size(28.dp))
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text("מובילים", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, textAlign = TextAlign.Center)
                                 }
                             }
                         }
@@ -395,6 +439,41 @@ fun MoreScreen(viewModel: ClassViewModel, onNavigate: (String) -> Unit = {}) {
                         )
                         Spacer(modifier = Modifier.height(16.dp))
 
+                        // Master Sound Toggle Row
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            val soundEnabled = com.example.ui.SoundManager.isSoundEnabled.value
+                            Text(
+                                text = if (soundEnabled) "הצלילים מופעלים כעת" else "הצלילים מושתקים כעת",
+                                color = if (soundEnabled) com.example.ui.theme.PositiveGreen else com.example.ui.theme.MochaTaupe,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(end = 12.dp)
+                            )
+                            Switch(
+                                checked = soundEnabled,
+                                onCheckedChange = { checked ->
+                                    com.example.ui.SoundManager.updateSoundEnabled(context, checked)
+                                    if (checked) {
+                                        com.example.ui.SoundManager.playTaskComplete()
+                                    }
+                                },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color.White,
+                                    checkedTrackColor = com.example.ui.theme.GoldGingerStart,
+                                    uncheckedThumbColor = Color.White,
+                                    uncheckedTrackColor = Color.LightGray
+                                )
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
                         // Audio Theme Selection
                         Text("ערכת צלילים מובנית", color = com.example.ui.theme.MochaTaupe, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         Spacer(modifier = Modifier.height(12.dp))
@@ -410,7 +489,7 @@ fun MoreScreen(viewModel: ClassViewModel, onNavigate: (String) -> Unit = {}) {
                                 androidx.compose.material3.FilterChip(
                                     selected = isSelected,
                                     onClick = {
-                                        com.example.ui.SoundManager.currentTheme.value = theme
+                                        com.example.ui.SoundManager.updateTheme(context, theme)
                                         com.example.ui.SoundManager.playTaskComplete()
                                     },
                                     label = { Text(theme.displayName, fontSize = 13.sp) },
@@ -419,6 +498,250 @@ fun MoreScreen(viewModel: ClassViewModel, onNavigate: (String) -> Unit = {}) {
                                         selectedLabelColor = com.example.ui.theme.ChocolateBrown
                                     )
                                 )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // EXTRA DESIGN: DYNAMIC ALIGNED CONTAINER WITH GRADIENS & ROUNDED TILES (image_0/image_1)
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth().testTag("theme_showcase_card"),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.CreamBeige),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        horizontalAlignment = Alignment.End
+                    ) {
+                        Text(
+                            "ערכת רקעים ומכולות עקביים (UI Guidelines)",
+                            fontWeight = FontWeight.Black,
+                            color = com.example.ui.theme.ChocolateBrown,
+                            style = MaterialTheme.typography.titleLarge,
+                            textAlign = TextAlign.End,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            "מארג רקעים של ClassAlign Studio המבוסס על מעבר צבעים אחיד ומלבני אריחים בעלי פינות מעוגלות.",
+                            color = com.example.ui.theme.MochaTaupe,
+                            fontSize = 12.sp,
+                            textAlign = TextAlign.End,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Interactive Dynamic Switcher
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            val activeDark by com.example.ui.theme.ThemeManager.isDarkTheme.collectAsState()
+                            
+                            Switch(
+                                checked = activeDark,
+                                onCheckedChange = { checked ->
+                                    com.example.ui.SoundManager.playPop()
+                                    com.example.ui.theme.ThemeManager.setDarkTheme(context, checked)
+                                },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color.White,
+                                    checkedTrackColor = com.example.ui.theme.GoldGingerStart,
+                                    uncheckedThumbColor = Color.White,
+                                    uncheckedTrackColor = Color.LightGray
+                                )
+                            )
+                            
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    "מעבר לערכת נושא כהה (Dark Theme)",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = com.example.ui.theme.ChocolateBrown
+                                )
+                                Icon(
+                                    imageVector = if (activeDark) Icons.Default.Star else Icons.Default.Build,
+                                    contentDescription = null,
+                                    tint = com.example.ui.theme.GoldGingerEnd,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(18.dp))
+
+                        // A. ערכת נושא בהירה
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("ערכת נושא בהירה (Light Mode)", fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, fontSize = 14.sp)
+                            Icon(Icons.Default.Share, contentDescription = null, tint = com.example.ui.theme.GoldGingerStart, modifier = Modifier.size(16.dp))
+                        }
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Screen mock container (light theme background)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(115.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(
+                                    Brush.linearGradient(
+                                        colors = listOf(com.example.ui.theme.WhiteWarm, com.example.ui.theme.CreamBeige, Color(0xFFFFF2D9))
+                                    )
+                                )
+                                .padding(12.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Tile 1: Cream-pink style
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(75.dp)
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(Brush.radialGradient(colors = listOf(com.example.ui.theme.LightPinkStart, com.example.ui.theme.LightPinkEnd)))
+                                        .border(1.dp, Color.White.copy(alpha = 0.5f), RoundedCornerShape(14.dp))
+                                        .padding(8.dp),
+                                    contentAlignment = Alignment.BottomEnd
+                                ) {
+                                    Text("קרם-ורדרד\nעדין", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, textAlign = TextAlign.End)
+                                }
+
+                                // Tile 2: Green-blue style
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(75.dp)
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(Brush.radialGradient(colors = listOf(com.example.ui.theme.LightTealStart, com.example.ui.theme.LightTealEnd)))
+                                        .border(1.dp, Color.White.copy(alpha = 0.5f), RoundedCornerShape(14.dp))
+                                        .padding(8.dp),
+                                    contentAlignment = Alignment.BottomEnd
+                                ) {
+                                    Text("ירקרק-\nתכלת עדין", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, textAlign = TextAlign.End)
+                                }
+
+                                // Tile 3: Golden style
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(75.dp)
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(Brush.radialGradient(colors = listOf(com.example.ui.theme.LightGoldStart, com.example.ui.theme.LightGoldEnd)))
+                                        .border(1.dp, Color.White.copy(alpha = 0.5f), RoundedCornerShape(14.dp))
+                                        .padding(8.dp),
+                                    contentAlignment = Alignment.BottomEnd
+                                ) {
+                                    Text("זהבהב\nעדין", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, textAlign = TextAlign.End)
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(18.dp))
+
+                        // B. ערכת נושא כהה
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("ערכת נושא כהה (Dark Mode)", fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, fontSize = 14.sp)
+                            Icon(Icons.Default.Warning, contentDescription = null, tint = com.example.ui.theme.ChocolateBrown, modifier = Modifier.size(16.dp))
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Screen mock container (dark theme background)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(115.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(
+                                    Brush.linearGradient(
+                                        colors = listOf(Color(0xFF1E1E22), Color(0xFF121214), Color(0xFF18151E))
+                                    )
+                                )
+                                .padding(12.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Tile 1: Deep purple
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(75.dp)
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(Brush.radialGradient(colors = listOf(com.example.ui.theme.DarkPurpleStart, com.example.ui.theme.DarkPurpleEnd)))
+                                        .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(14.dp))
+                                        .padding(8.dp),
+                                    contentAlignment = Alignment.BottomEnd
+                                ) {
+                                    Text("סגול\nעמוק", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.9f), textAlign = TextAlign.End)
+                                }
+
+                                // Tile 2: Turquoise-green deep
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(75.dp)
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(Brush.radialGradient(colors = listOf(com.example.ui.theme.DarkTealStart, com.example.ui.theme.DarkTealEnd)))
+                                        .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(14.dp))
+                                        .padding(8.dp),
+                                    contentAlignment = Alignment.BottomEnd
+                                ) {
+                                    Text("טורקיז-\nירוק עמוק", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.9f), textAlign = TextAlign.End)
+                                }
+
+                                // Tile 3: Dark blue with tiny blue loading circular icon over it
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(75.dp)
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(Brush.radialGradient(colors = listOf(com.example.ui.theme.DarkBlueStart, com.example.ui.theme.DarkBlueEnd)))
+                                        .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(14.dp))
+                                        .padding(8.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center,
+                                        modifier = Modifier.fillMaxSize()
+                                    ) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(16.dp),
+                                            color = Color(0xFF64B5F6),
+                                            strokeWidth = 2.dp
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text("כחול כהה", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.9f), textAlign = TextAlign.Center)
+                                    }
+                                }
                             }
                         }
                     }
