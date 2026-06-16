@@ -10,9 +10,10 @@ import com.example.data.model.*
         DeskEntity::class,
         AcademicMaterialEntity::class,
         AttendanceLogEntity::class,
-        StudentGradeEntity::class
+        StudentGradeEntity::class,
+        PacingEntity::class
     ],
-    version = 2,
+    version = 4,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -22,6 +23,8 @@ abstract class ClassProDatabase : RoomDatabase() {
     abstract fun academicDao(): AcademicDao
     abstract fun attendanceDao(): AttendanceDao
     abstract fun gradeDao(): GradeDao
+    abstract fun pacingDao(): PacingDao
+
 
     companion object {
         @Volatile

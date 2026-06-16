@@ -42,7 +42,8 @@ data class AttendanceLogEntity(
     @PrimaryKey val id: String,
     val studentId: String,
     val date: String, // YYYY-MM-DD
-    val status: String // "PRESENT" | "ABSENT" | "LATE"
+    val status: String, // "PRESENT" | "ABSENT" | "LATE"
+    val syncStatus: SyncState = SyncState.PENDING
 )
 
 @Entity(tableName = "student_grades")
@@ -51,4 +52,15 @@ data class StudentGradeEntity(
     val studentId: String,
     val assignmentId: String,
     val gradeValue: String
+)
+
+@Entity(tableName = "pacing_milestones")
+data class PacingEntity(
+    @PrimaryKey val id: String,
+    val moduleName: String,
+    val rangeStart: String,
+    val rangeEnd: String,
+    val associatedMaterialId: String,
+    val completionStatus: Boolean,
+    val behaviorStyleScore: Int = 0 // Used for behavioral tracking learning style
 )

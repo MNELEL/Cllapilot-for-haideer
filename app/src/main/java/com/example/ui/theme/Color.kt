@@ -2,19 +2,19 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val ChocolateBrown = Color(0xFF1A2332)   // text
-val CreamBeige = Color(0xFFF0FAFB)       // bg
-val MochaTaupe = Color(0xFF607D8B)       // sub
-val PositiveGreen = Color(0xFF43A047)    // green
+val ChocolateBrown = Color(0xFF0F172A)   // Midnight Slate text & core containers
+val CreamBeige = Color(0xFFF8FAFC)       // Premium Ivory Slate bg
+val MochaTaupe = Color(0xFF475569)       // Polished Slate Gray support
+val PositiveGreen = Color(0xFF10B981)    // Emerald Green accent
 
-val GoldGingerStart = Color(0xFF00BCD4)  // teal
-val GoldGingerEnd = Color(0xFF0097A7)    // tealD
+val GoldGingerStart = Color(0xFFF59E0B)  // Vibrant Amber Accent
+val GoldGingerEnd = Color(0xFFD97706)    // Deep tactile Amber accent shadow
 
-val PalePink = Color(0xFFFFE0E0)
-val PaleGreen = Color(0xFFE8F5E9)
+val PalePink = Color(0xFFFFE4E6)
+val PaleGreen = Color(0xFFD1FAE5)
 
-val WhiteWarm = Color(0xFFFFFFFF)        // card
-val DarkGrey = Color(0xFFE0EEF0)         // border
+val WhiteWarm = Color(0xFFFFFFFF)        // Pure tactile White card
+val DarkGrey = Color(0xFFE2E8F0)         // Clean Slate line-dividers
 
 // --- Light Theme Pastel Tile Colors ---
 val LightPinkStart = Color(0xFFFFF2F2)

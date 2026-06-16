@@ -1,0 +1,36 @@
+========================================================================
+                          CLASSPRO PRIVACY POLICY
+========================================================================
+Last updated: June 15, 2026
+
+1. INTRODUCTION / הקדמה
+ClassPro ("we", "our", or "us") is dedicated to protecting the privacy of educators, students, and parents. This Privacy Policy outlines how our mobile application ClassPro manages, collects, and safeguards information.
+אפליקציית ClassPro מחויבת להגנה על פרטיותם של אנשי חינוך, תלמידים והורים. מסמך מדיניות פרטיות זה מתאר כיצד אנו שומרים ומנהלים את המידע באפליקציה.
+
+2. LOCAL DATA STORAGE & OFFLINE-FIRST ARCHITECTURE / אחסון מידע מקומי
+ClassPro is designed as an offline-first helper application.
+- All student names, seating map structures, grades, attendance logs, and report states are stored securely on the user's local device within an isolated SQLite (Room DB) container.
+- None of this sensitive pedagogical data is processed, rented, sold, or shared with third parties.
+- אפליקציית ClassPro מעוצבת בארכיטקטורת Offline-First. כל שמות התלמידים, מפות הישיבה, הציונים ומעקבי הנוכחות נשמרים באופן מאובטח ומקומי בלבד במכשיר המשתמש (בתוך בסיס נתונים מוצפן Room DB). מידע רגיש זה אינו מועבר, נמכר או משותף עם אף גורם שלישי.
+
+3. OPTIONAL BACKUP & FIRESTORE CLOUD SYNC / גיבוי ענן אופציונלי
+To prevent data loss, the app offers an optional cloud sync mechanism storing data in secure, isolated Firebase/Firestore clusters inside Google Cloud platform.
+- This configuration is optional and can be managed directly.
+- All transmitted credentials use high-level TLS/HTTPS encryption.
+- לצורך מניעת אובדן מידע, האפליקציה מאפשרת סנכרון וגיבוי אופציונלי בלבד לענן מאובטח של Google Cloud. הסנכרון מוצפן מקצה לקצה בדרגת TLS/HTTPS הגבוהה ביותר.
+
+4. USER PERMISSIONS / הרשאות אפליקציה
+We request minor runtime permissions only for critical functions:
+- STORAGE: To export PDF reports and custom student logs to the device memory.
+- CAMERA/CAMERA ROLL: To optionally allow selecting school logos for printable letterhead exports.
+- האפליקציה מבקשת הרשאות מינימליות בלבד: גישה לאחסון המקומי לצורך ייצוא דוחות PDF, וגישה לגלריה להעלאת לוגו בית הספר עבור מסמכי הדפסה רשמיים.
+
+5. COMPLIANCE WITH CHILDREN'S ONLINE PRIVACY PROTECTION ACT (COPPA / GDPR)
+ClassPro does not directly collect any personally identifiable information from students. The app is operated solely by educators who act as safe, authorized data stewards.
+- ClassPro אינה אוספת מידע מזוהה באופן ישיר מתלמידים. האפליקציה מופעלת אך ורק על ידי אנשי חינוך מורשים לצורכי כיתה פנימיים.
+
+6. CONTACT US / יצירת קשר
+If you have any questions or security clearance recommendations regarding ClassPro, please reach out to:
+לכל שאלה או הבהרה בנושא אבטחת מידע באפליקציה, ניתן ליצור קשר בכתובת:
+Support Email: nm0527603669@gmail.com
+========================================================================

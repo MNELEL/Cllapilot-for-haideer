@@ -59,6 +59,31 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         SoundManager.init(this)
+        
+        // Schedule periodic sync worker
+        val syncWorkRequest = androidx.work.PeriodicWorkRequestBuilder<com.example.data.sync.ClassSyncWorker>(
+            15, java.util.concurrent.TimeUnit.MINUTES
+        ).setConstraints(
+            androidx.work.Constraints.Builder()
+                .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
+                .build()
+        ).build()
+        
+        androidx.work.WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "ClassSyncWorker",
+            androidx.work.ExistingPeriodicWorkPolicy.KEEP,
+            syncWorkRequest
+        )
+
+        // Schedule periodic style worker
+        val styleWorkRequest = androidx.work.PeriodicWorkRequestBuilder<com.example.data.sync.PedagogicalStyleWorker>(
+            15, java.util.concurrent.TimeUnit.MINUTES
+        ).build()
+        androidx.work.WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "PedagogicalStyleWorker",
+            androidx.work.ExistingPeriodicWorkPolicy.KEEP,
+            styleWorkRequest
+        )
         ThemeManager.init(this)
         
         enableEdgeToEdge()
@@ -178,7 +203,7 @@ class MainActivity : ComponentActivity() {
                                     listOf("CLR", "0", "OK")
                                 )
 
-                                // Keypad Area with softer aesthetics
+                                // Keypad Area with softer aesthetics and highly touch-responsive targets
                                 Column(
                                     verticalArrangement = Arrangement.spacedBy(12.dp),
                                     modifier = Modifier.padding(horizontal = 24.dp)
@@ -190,52 +215,53 @@ class MainActivity : ComponentActivity() {
                                         ) {
                                             row.forEach { btn ->
                                                 val isAction = btn == "CLR" || btn == "OK"
-                                                Button(
-                                                    onClick = { 
-                                                        com.example.ui.SoundManager.playClick()
-                                                        android.util.Log.d("Keypad", "Clicked: $btn")
-                                                        when (btn) {
-                                                            "CLR" -> {
-                                                                enteredCode = ""
-                                                                errorMsg = ""
-                                                            }
-                                                            "OK" -> {
-                                                                if (viewModel.attemptUnlock(enteredCode)) {
-                                                                    errorMsg = ""
-                                                                } else {
-                                                                    errorMsg = "קוד שגוי, אנא נסה שוב!"
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(64.dp)
+                                                        .shadow(2.dp, RoundedCornerShape(20.dp))
+                                                        .clip(RoundedCornerShape(20.dp))
+                                                        .background(if (isAction) Color(0xFFE2E8F0).copy(alpha = 0.9f) else Color.White.copy(alpha = 0.95f))
+                                                        .border(1.dp, Color(0xFFCBD5E1).copy(alpha = 0.6f), RoundedCornerShape(20.dp))
+                                                        .clickable { 
+                                                            com.example.ui.SoundManager.playClick()
+                                                            android.util.Log.d("Keypad", "Clicked: $btn")
+                                                            when (btn) {
+                                                                "CLR" -> {
                                                                     enteredCode = ""
+                                                                    errorMsg = ""
                                                                 }
-                                                            }
-                                                            else -> {
-                                                                if (enteredCode.length < 4) {
-                                                                    enteredCode += btn
-                                                                    android.util.Log.d("Keypad", "Entered: $enteredCode")
-                                                                    // Auto-unlock on 4th digit
-                                                                    if (enteredCode.length == 4) {
-                                                                        if (viewModel.attemptUnlock(enteredCode)) {
-                                                                            errorMsg = ""
-                                                                        } else {
-                                                                            errorMsg = "קוד שגוי, אנא נסה שוב!"
-                                                                            enteredCode = ""
+                                                                "OK" -> {
+                                                                    if (viewModel.attemptUnlock(enteredCode)) {
+                                                                        errorMsg = ""
+                                                                    } else {
+                                                                        errorMsg = "קוד שגוי, אנא נסה שוב!"
+                                                                        enteredCode = ""
+                                                                    }
+                                                                }
+                                                                else -> {
+                                                                    if (enteredCode.length < 4) {
+                                                                        enteredCode += btn
+                                                                        android.util.Log.d("Keypad", "Entered: $enteredCode")
+                                                                        // Auto-unlock on 4th digit
+                                                                        if (enteredCode.length == 4) {
+                                                                            if (viewModel.attemptUnlock(enteredCode)) {
+                                                                                errorMsg = ""
+                                                                            } else {
+                                                                                errorMsg = "קוד שגוי, אנא נסה שוב!"
+                                                                                enteredCode = ""
+                                                                            }
                                                                         }
                                                                     }
                                                                 }
                                                             }
-                                                        }
-                                                    },
-                                                    modifier = Modifier.size(64.dp), // slightly smaller for layout
-                                                    shape = RoundedCornerShape(20.dp),
-                                                    colors = ButtonDefaults.buttonColors(
-                                                        containerColor = if (isAction) Color(0xFFF1F5F9).copy(alpha = 0.8f) else Color.White.copy(alpha = 0.9f),
-                                                        contentColor = com.example.ui.theme.ChocolateBrown
-                                                    ),
-                                                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                                                        },
+                                                    contentAlignment = Alignment.Center
                                                 ) {
                                                     Text(
                                                         text = btn, 
                                                         fontSize = 20.sp, 
-                                                        fontWeight = FontWeight.Bold
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = com.example.ui.theme.ChocolateBrown
                                                     )
                                                 }
                                             }
@@ -244,7 +270,25 @@ class MainActivity : ComponentActivity() {
                                 }
 
                                 Spacer(modifier = Modifier.height(24.dp))
-                                Text("קוד מוסדי ברירת מחדל: 1234", color = com.example.ui.theme.MochaTaupe, fontSize = 11.sp)
+                                val currentPinCode by viewModel.appPinCode.collectAsState()
+                                Text(
+                                    text = "קוד מוסדי נוכחי: $currentPinCode (לחץ להזנה מהירה 🔓)",
+                                    color = com.example.ui.theme.MochaTaupe,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    modifier = Modifier
+                                        .shadow(1.dp, RoundedCornerShape(8.dp))
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(Color.White.copy(alpha = 0.85f))
+                                        .clickable {
+                                            com.example.ui.SoundManager.playClick()
+                                            enteredCode = currentPinCode
+                                            if (viewModel.attemptUnlock(currentPinCode)) {
+                                                errorMsg = ""
+                                            }
+                                        }
+                                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                                )
                             }
                         }
                     } else {
@@ -262,7 +306,7 @@ class MainActivity : ComponentActivity() {
                                     .padding(top = 90.dp, bottom = 100.dp) // generous top and bottom padding
                             ) {
                                 when (currentDestination) {
-                                    "DASHBOARD" -> DashboardScreen(viewModel)
+                                    "DASHBOARD" -> DashboardScreen(viewModel) { currentDestination = it }
                                     "SEATING" -> SeatingMapScreen(viewModel)
                                     "TIMER" -> TimerScreen(viewModel)
                                     "STUDENTS" -> StudentsScreen(viewModel)
@@ -272,6 +316,7 @@ class MainActivity : ComponentActivity() {
                                     "ATTENDANCE" -> AttendanceScreen(viewModel)
                                     "GRADES" -> GradesScreen(viewModel)
                                     "GAMIFICATION" -> GamificationScreen(viewModel)
+                                    "PACING" -> PacingScreen(viewModel)
                                 }
                             }
                             

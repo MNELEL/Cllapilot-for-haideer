@@ -60,6 +60,9 @@ interface AcademicDao {
     @Query("SELECT * FROM academic_materials ORDER BY timestamp DESC")
     fun getMaterialsFlow(): Flow<List<AcademicMaterialEntity>>
 
+    @Query("SELECT * FROM academic_materials ORDER BY timestamp DESC")
+    suspend fun getMaterials(): List<AcademicMaterialEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMaterial(material: AcademicMaterialEntity)
 
@@ -81,6 +84,12 @@ interface AttendanceDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertLogs(logs: List<AttendanceLogEntity>)
 
+    @Query("SELECT * FROM attendance_logs WHERE syncStatus = 'PENDING'")
+    suspend fun getPendingSyncLogs(): List<AttendanceLogEntity>
+
+    @Query("UPDATE attendance_logs SET syncStatus = :status WHERE id = :id")
+    suspend fun updateSyncStatus(id: String, status: SyncState)
+
     @Query("DELETE FROM attendance_logs")
     suspend fun clearAll()
 }
@@ -95,4 +104,19 @@ interface GradeDao {
 
     @Query("DELETE FROM student_grades")
     suspend fun clearAll()
+}
+
+@Dao
+interface PacingDao {
+    @Query("SELECT * FROM pacing_milestones ORDER BY moduleName ASC")
+    fun getPacingFlow(): Flow<List<PacingEntity>>
+
+    @Query("SELECT * FROM pacing_milestones ORDER BY moduleName ASC")
+    suspend fun getPacingList(): List<PacingEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertPacing(pacing: PacingEntity)
+
+    @Query("DELETE FROM pacing_milestones WHERE id = :id")
+    suspend fun deletePacing(id: String)
 }

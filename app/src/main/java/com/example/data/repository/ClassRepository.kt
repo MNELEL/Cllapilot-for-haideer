@@ -13,12 +13,15 @@ class ClassRepository(context: Context) {
     private val academicDao = database.academicDao()
     private val attendanceDao = database.attendanceDao()
     private val gradeDao = database.gradeDao()
+    private val pacingDao = database.pacingDao()
 
     val allStudents: Flow<List<StudentEntity>> = studentDao.getStudentsFlow()
     val allDesks: Flow<List<DeskEntity>> = deskDao.getDesksFlow()
     val allMaterials: Flow<List<AcademicMaterialEntity>> = academicDao.getMaterialsFlow()
     val allLogs: Flow<List<AttendanceLogEntity>> = attendanceDao.getLogsFlow()
     val allGrades: Flow<List<StudentGradeEntity>> = gradeDao.getGradesFlow()
+    val allPacing: Flow<List<PacingEntity>> = pacingDao.getPacingFlow()
+
 
     suspend fun insertStudent(student: StudentEntity) {
         studentDao.insertStudent(student)
@@ -80,14 +83,27 @@ class ClassRepository(context: Context) {
         gradeDao.clearAll()
     }
 
+    suspend fun insertPacing(pacing: PacingEntity) {
+        pacingDao.insertPacing(pacing)
+    }
+
+    suspend fun deletePacing(id: String) {
+        pacingDao.deletePacing(id)
+    }
+
     // Force Sync trigger
     suspend fun forceCloudSync(): Boolean {
-        val pending = studentDao.getPendingSyncStudents()
-        if (pending.isEmpty()) return true
+        val pendingStudents = studentDao.getPendingSyncStudents()
+        val pendingLogs = attendanceDao.getPendingSyncLogs()
+        
+        if (pendingStudents.isEmpty() && pendingLogs.isEmpty()) return true
         
         delay(1500) // Simulate cloud transit time
-        for (st in pending) {
+        for (st in pendingStudents) {
             studentDao.updateSyncStatus(st.id, SyncState.SYNCED)
+        }
+        for (log in pendingLogs) {
+            attendanceDao.updateSyncStatus(log.id, SyncState.SYNCED)
         }
         return true
     }

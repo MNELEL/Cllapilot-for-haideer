@@ -21,17 +21,27 @@ object GeminiParser {
         .writeTimeout(30, TimeUnit.SECONDS)
         .build()
 
-    suspend fun parseAcademicDocument(documentTitle: String, textContent: String): ParseResult = withContext(Dispatchers.IO) {
+    suspend fun parseAcademicDocument(documentTitle: String, textContent: String, context: android.content.Context? = null): ParseResult = withContext(Dispatchers.IO) {
         val apiKey = BuildConfig.GEMINI_API_KEY
         if (apiKey.isEmpty() || apiKey == "MY_GEMINI_API_KEY") {
             Log.w("GeminiParser", "מפתח ה-API של Gemini אינו מוגדר. משתמש במחולל נתונים מקומי.")
             return@withContext generateHeuristicFallback(documentTitle, textContent)
         }
 
+        var customTone = "עיוני ומעמיק, מותאם לצורכי החינוך וההוראה"
+        var customFormat = "סיכום מובנה, ציר זמן פדגוגי ברור ושאלות חזרה בהבנה מעמיקה"
+        if (context != null) {
+            val sharedPref = context.getSharedPreferences("classpro_prefs", android.content.Context.MODE_PRIVATE)
+            customTone = sharedPref.getString("pedagogical_tone", customTone) ?: customTone
+            customFormat = sharedPref.getString("pedagogical_format", customFormat) ?: customFormat
+        }
+
         val prompt = """
             You are an expert pedagogical assistant. Process the following text document and provide:
             1. A concise Hebrew summary of the core concepts (summary).
+               Ensure the tone matches this learned style: $customTone.
             2. An educator's lesson timeline with exact minutes and actions, in Hebrew (timeline).
+               Ensure the formatting matches this learned preference: $customFormat.
             3. A set of 3 interesting multiple-choice questions in Hebrew, each with 4 options and the correct option index (0-3).
             
             Format your final response ONLY as a valid raw JSON object. Do not wrap in markdown ```json blocks.

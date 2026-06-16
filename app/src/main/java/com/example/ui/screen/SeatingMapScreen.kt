@@ -234,8 +234,22 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                     Text("סידור מקומות אוטומטי", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
 
-                IconButton(onClick = { com.example.ui.SoundManager.playClick();  viewModel.isSmartboardView.value = !isSmartboardView }) {
-                    Icon(if (isSmartboardView) Icons.Default.Close else Icons.Default.Menu, contentDescription = "Smartboard", tint = com.example.ui.theme.ChocolateBrown)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val activeDark by com.example.ui.theme.ThemeManager.isDarkTheme.collectAsState()
+                    val contextText = androidx.compose.ui.platform.LocalContext.current
+                    IconButton(
+                        onClick = { 
+                            com.example.ui.SoundManager.playClick()
+                            com.example.ui.theme.ThemeManager.setDarkTheme(contextText, !activeDark)
+                        },
+                        modifier = Modifier.testTag("theme_toggle_btn")
+                    ) {
+                        Icon(if (activeDark) Icons.Default.Star else Icons.Default.Build, contentDescription = "Toggle Theme", tint = com.example.ui.theme.ChocolateBrown)
+                    }
+
+                    IconButton(onClick = { com.example.ui.SoundManager.playClick();  viewModel.isSmartboardView.value = !isSmartboardView }) {
+                        Icon(if (isSmartboardView) Icons.Default.Close else Icons.Default.Menu, contentDescription = "Smartboard", tint = com.example.ui.theme.ChocolateBrown)
+                    }
                 }
 
                 Text(
@@ -282,7 +296,12 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
             // Conditionally show full screen smartboard or normal control panel
             if (isSmartboardView) {
                 // Full Screen Smartboard View
-                Box(modifier = Modifier.fillMaxSize().padding(16.dp).background(Color.Black)) {
+                val activeDarkSb by com.example.ui.theme.ThemeManager.isDarkTheme.collectAsState()
+                Box(modifier = Modifier.fillMaxSize().padding(16.dp).background(if (activeDarkSb) Color.Black else Color.White)) {
+                    val emptyBg = if (activeDarkSb) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.05f)
+                    val borderColor = if (activeDarkSb) Color.White else Color.Black
+                    val emptyTint = if (activeDarkSb) Color.White.copy(alpha = 0.5f) else Color.Black.copy(alpha = 0.5f)
+                    
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -302,14 +321,14 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                         if (desk != null) {
                                             val studentAssigned = students.find { it.id == desk.studentId }
                                             
-                                            Box(modifier = Modifier.weight(1f).aspectRatio(1f).clip(RoundedCornerShape(8.dp)).background(if (studentAssigned != null) primaryColor else Color.White.copy(alpha = 0.12f)).border(BorderStroke(1.dp, Color.White), RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
+                                            Box(modifier = Modifier.weight(1f).aspectRatio(1f).clip(RoundedCornerShape(8.dp)).background(if (studentAssigned != null) primaryColor else emptyBg).border(BorderStroke(1.dp, borderColor), RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
                                                 if (studentAssigned != null) {
                                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                                         Icon(Icons.Default.Menu, contentDescription = "Drag Handle", tint = Color.Black, modifier = Modifier.size(32.dp))
                                                         Text(studentAssigned.name, color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 24.sp)
                                                     }
                                                 } else {
-                                                    Icon(Icons.Default.Add, contentDescription = "Place Student", tint = com.example.ui.theme.ChocolateBrown.copy(alpha=0.5f), modifier = Modifier.size(48.dp))
+                                                    Icon(Icons.Default.Add, contentDescription = "Place Student", tint = emptyTint, modifier = Modifier.size(48.dp))
                                                 }
                                             }
                                         } else {
@@ -1551,22 +1570,36 @@ fun DeskCell(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         AnimatedVisibility(visible = isHighlighted || desk.isLocked || !student.notes.isNullOrBlank()) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(1.dp)) {
                                 if (desk.isLocked || isHighlighted) {
-                                    Icon(
-                                        imageVector = Icons.Default.Lock,
-                                        contentDescription = "נעול",
-                                        tint = if (desk.isLocked) com.example.ui.theme.GoldGingerStart else Color(0xFFCBD5E1),
-                                        modifier = Modifier.size(10.dp).clickable { com.example.ui.SoundManager.playClick();  onLockToggle() }
-                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .size(24.dp)
+                                            .clickable { com.example.ui.SoundManager.playClick(); onLockToggle() },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Lock,
+                                            contentDescription = "נעול",
+                                            tint = if (desk.isLocked) com.example.ui.theme.GoldGingerStart else Color(0xFFCBD5E1),
+                                            modifier = Modifier.size(11.dp)
+                                        )
+                                    }
                                 }
                                 if (!student.notes.isNullOrBlank() || isHighlighted) {
-                                    Icon(
-                                        imageVector = Icons.Default.Info,
-                                        contentDescription = "הערה",
-                                        tint = if (!student.notes.isNullOrBlank()) com.example.ui.theme.GoldGingerEnd else Color(0xFFCBD5E1),
-                                        modifier = Modifier.size(10.dp).clickable { com.example.ui.SoundManager.playClick();  onEditNote() }
-                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .size(24.dp)
+                                            .clickable { com.example.ui.SoundManager.playClick(); onEditNote() },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Info,
+                                            contentDescription = "הערה",
+                                            tint = if (!student.notes.isNullOrBlank()) com.example.ui.theme.GoldGingerEnd else Color(0xFFCBD5E1),
+                                            modifier = Modifier.size(11.dp)
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -1581,18 +1614,26 @@ fun DeskCell(
                         if (statusColor != Color.Transparent) {
                             Box(
                                 modifier = Modifier
+                                    .padding(end = 4.dp)
                                     .size(6.dp)
                                     .clip(androidx.compose.foundation.shape.CircleShape)
                                     .background(statusColor)
                             )
                         } else {
                             androidx.compose.animation.AnimatedVisibility(visible = isHighlighted) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "הסר",
-                                    tint = Color(0xFF94A3B8), // slate-400
-                                    modifier = Modifier.size(12.dp).clickable { com.example.ui.SoundManager.playClick();  onEvict(student.id) }
-                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .clickable { com.example.ui.SoundManager.playClick(); onEvict(student.id) },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "הסר",
+                                        tint = Color(0xFF94A3B8), // slate-400
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                }
                             }
                         }
                     }

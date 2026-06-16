@@ -122,30 +122,79 @@ fun AttendanceScreen(viewModel: ClassViewModel) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Grid of students
-        LazyVerticalGrid(
-            columns = GridCells.Adaptive(110.dp),
-            contentPadding = PaddingValues(bottom = 80.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.fillMaxSize()
-        ) {
-            items(students, key = { it.id }) { student ->
-                val currentStatus = todayAttendance[student]
-                AttendanceStudentCard(
-                    student = student,
-                    status = currentStatus,
-                    onStatusSelected = { newStatus ->
-                        viewModel.toggleAttendance(student.id, newStatus)
-                        if (newStatus == "PRESENT") {
-                            SoundManager.playPop()
-                        } else if (newStatus == "LATE") {
-                            SoundManager.playNotification()
-                        } else {
-                            SoundManager.playDelete()
-                        }
+        // Grid of students or gorgeous empty state
+        if (students.isEmpty()) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(vertical = 16.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(72.dp)
+                            .clip(CircleShape)
+                            .background(com.example.ui.theme.PositiveGreen.copy(alpha = 0.1f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = com.example.ui.theme.PositiveGreen,
+                            modifier = Modifier.size(36.dp)
+                        )
                     }
-                )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        "אין תלמידים רשומים לרישום נוכחות",
+                        color = com.example.ui.theme.ChocolateBrown,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "הכיתה שלך ריקה כרגע. תוכל להוסיף תלמידים בקלות דרך מסך התלמידים כדי להתחיל ברישום ובקרה.",
+                        color = com.example.ui.theme.MochaTaupe,
+                        fontSize = 12.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+                }
+            }
+        } else {
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(110.dp),
+                contentPadding = PaddingValues(bottom = 80.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(students, key = { it.id }) { student ->
+                    val currentStatus = todayAttendance[student]
+                    AttendanceStudentCard(
+                        student = student,
+                        status = currentStatus,
+                        onStatusSelected = { newStatus ->
+                            viewModel.toggleAttendance(student.id, newStatus)
+                            if (newStatus == "PRESENT") {
+                                SoundManager.playPop()
+                            } else if (newStatus == "LATE") {
+                                SoundManager.playNotification()
+                            } else {
+                                SoundManager.playDelete()
+                            }
+                        }
+                    )
+                }
             }
         }
     }
@@ -242,37 +291,38 @@ fun AttendanceStudentCard(
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            // Mini buttons row
+            // Mini buttons row with highly accessible, touch-friendly oversized icons
             Row(
-                horizontalArrangement = Arrangement.SpaceAround,
-                modifier = Modifier.fillMaxWidth()
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
             ) {
                 IconButton(
                     onClick = { onStatusSelected("PRESENT") },
                     modifier = Modifier
-                        .size(28.dp)
+                        .size(36.dp)
                         .clip(CircleShape)
                         .background(if (status == "PRESENT") com.example.ui.theme.PositiveGreen else Color.LightGray.copy(0.3f))
                 ) {
-                    Icon(Icons.Default.Check, contentDescription = "Present", tint = if (status == "PRESENT") Color.White else Color.Gray, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Check, contentDescription = "Present", tint = if (status == "PRESENT") Color.White else Color.Gray, modifier = Modifier.size(18.dp))
                 }
                 IconButton(
                     onClick = { onStatusSelected("LATE") },
                     modifier = Modifier
-                        .size(28.dp)
+                        .size(36.dp)
                         .clip(CircleShape)
                         .background(if (status == "LATE") com.example.ui.theme.GoldGingerStart else Color.LightGray.copy(0.3f))
                 ) {
-                    Icon(Icons.Default.Warning, contentDescription = "Late", tint = if (status == "LATE") Color.White else Color.Gray, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Warning, contentDescription = "Late", tint = if (status == "LATE") Color.White else Color.Gray, modifier = Modifier.size(18.dp))
                 }
                 IconButton(
                     onClick = { onStatusSelected("ABSENT") },
                     modifier = Modifier
-                        .size(28.dp)
+                        .size(36.dp)
                         .clip(CircleShape)
                         .background(if (status == "ABSENT") Color(0xFFC0392B) else Color.LightGray.copy(0.3f))
                 ) {
-                    Icon(Icons.Default.Close, contentDescription = "Absent", tint = if (status == "ABSENT") Color.White else Color.Gray, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Close, contentDescription = "Absent", tint = if (status == "ABSENT") Color.White else Color.Gray, modifier = Modifier.size(18.dp))
                 }
             }
         }

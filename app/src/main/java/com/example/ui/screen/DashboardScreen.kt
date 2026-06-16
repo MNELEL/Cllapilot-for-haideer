@@ -9,6 +9,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -34,7 +35,7 @@ import com.example.ui.viewmodel.ClassViewModel
 
 @OptIn(ExperimentalAnimationApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun DashboardScreen(viewModel: ClassViewModel) {
+fun DashboardScreen(viewModel: ClassViewModel, onNavigate: (String) -> Unit = {}) {
     var showStudentModal by remember { mutableStateOf<StudentEntity?>(null) }
     val studentList by viewModel.students.collectAsState()
     val attendanceLogs by viewModel.attendanceLogs.collectAsState()
@@ -53,6 +54,30 @@ fun DashboardScreen(viewModel: ClassViewModel) {
     val attendanceRate = if (totalStudents > 0) {
         ((presentCount + lateCount).toDouble() / totalStudents * 100).toInt().coerceAtMost(100)
     } else 0
+
+    val lastSevenDays = remember(attendanceLogs) {
+        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+        val displayFormat = java.text.SimpleDateFormat("dd/MM", java.util.Locale.US)
+        (0..6).map { offset ->
+            val cal = java.util.Calendar.getInstance()
+            cal.add(java.util.Calendar.DAY_OF_YEAR, -offset)
+            val dateStr = sdf.format(cal.time)
+            val shortLabel = displayFormat.format(cal.time)
+            
+            val logsForDay = attendanceLogs.filter { it.date == dateStr }
+            val present = logsForDay.count { it.status == "PRESENT" }
+            val late = logsForDay.count { it.status == "LATE" }
+            val absent = logsForDay.count { it.status == "ABSENT" }
+            
+            AttendanceDayData(
+                dateLabel = shortLabel,
+                present = present,
+                late = late,
+                absent = absent,
+                total = present + late + absent
+            )
+        }.reversed()
+    }
 
     val primaryColor = if (viewModel.selectedTheme.collectAsState().value == "MODERN") {
         com.example.ui.theme.GoldGingerStart // modern soft violet
@@ -172,7 +197,11 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .shadow(8.dp, RoundedCornerShape(24.dp), spotColor = Color(0x1F64748B)),
+                            .shadow(8.dp, RoundedCornerShape(24.dp), spotColor = Color(0x1F64748B))
+                            .clickable {
+                                com.example.ui.SoundManager.playClick()
+                                onNavigate("LIBRARY")
+                            },
                         shape = RoundedCornerShape(24.dp),
                         colors = CardDefaults.cardColors(containerColor = primaryColor.copy(alpha = 0.12f)),
                         border = androidx.compose.foundation.BorderStroke(1.5.dp, primaryColor)
@@ -258,7 +287,13 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                 ) {
                     // Total Students Card
                     Card(
-                        modifier = Modifier.weight(1f).shadow(8.dp, RoundedCornerShape(24.dp), spotColor = Color(0x1F64748B)),
+                        modifier = Modifier
+                            .weight(1f)
+                            .shadow(8.dp, RoundedCornerShape(24.dp), spotColor = Color(0x1F64748B))
+                            .clickable {
+                                com.example.ui.SoundManager.playClick()
+                                onNavigate("STUDENTS")
+                            },
                         shape = RoundedCornerShape(24.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.85f))
                     ) {
@@ -275,7 +310,13 @@ fun DashboardScreen(viewModel: ClassViewModel) {
 
                     // Attendance Rate Card
                     Card(
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .shadow(8.dp, RoundedCornerShape(16.dp), spotColor = Color(0x1F64748B))
+                            .clickable {
+                                com.example.ui.SoundManager.playClick()
+                                onNavigate("ATTENDANCE")
+                            },
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f))
                     ) {
@@ -303,7 +344,13 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                 ) {
                     // Class Profile Card
                     Card(
-                        modifier = Modifier.weight(1f).shadow(8.dp, RoundedCornerShape(24.dp), spotColor = Color(0x1F64748B)),
+                        modifier = Modifier
+                            .weight(1f)
+                            .shadow(8.dp, RoundedCornerShape(24.dp), spotColor = Color(0x1F64748B))
+                            .clickable {
+                                com.example.ui.SoundManager.playClick()
+                                onNavigate("SEATING")
+                            },
                         shape = RoundedCornerShape(24.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.85f)),
                         border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.5f))
@@ -332,7 +379,13 @@ fun DashboardScreen(viewModel: ClassViewModel) {
 
                     // Teacher Profile Card
                     Card(
-                        modifier = Modifier.weight(1f).shadow(8.dp, RoundedCornerShape(24.dp), spotColor = Color(0x1F64748B)),
+                        modifier = Modifier
+                            .weight(1f)
+                            .shadow(8.dp, RoundedCornerShape(24.dp), spotColor = Color(0x1F64748B))
+                            .clickable {
+                                com.example.ui.SoundManager.playClick()
+                                onNavigate("MORE")
+                            },
                         shape = RoundedCornerShape(24.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.85f)),
                         border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.5f))
@@ -364,7 +417,13 @@ fun DashboardScreen(viewModel: ClassViewModel) {
             // Attendance counters detail
             item {
                 Card(
-                    modifier = Modifier.fillMaxWidth().shadow(8.dp, RoundedCornerShape(24.dp), spotColor = Color(0x1F64748B)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(8.dp, RoundedCornerShape(24.dp), spotColor = Color(0x1F64748B))
+                        .clickable {
+                            com.example.ui.SoundManager.playClick()
+                            onNavigate("ATTENDANCE")
+                        },
                     shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.85f))
                 ) {
@@ -389,6 +448,11 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                         }
                     }
                 }
+            }
+
+            // Weekly attendance pattern chart
+            item {
+                WeeklyAttendanceChart(lastSevenDays)
             }
 
             // Sync Card
@@ -451,10 +515,10 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                 }
             }
 
-            // Recent activity Feed/ticker title
+            // Real-time interactive attendance control deck
             item {
                 Text(
-                    text = "רישומי נוכחות אחרונים",
+                    text = "מעקב נוכחות בזמן אמת וניהול מהיר",
                     fontWeight = FontWeight.Bold,
                     color = com.example.ui.theme.ChocolateBrown,
                     style = MaterialTheme.typography.titleMedium,
@@ -465,70 +529,206 @@ fun DashboardScreen(viewModel: ClassViewModel) {
                 )
             }
 
-            // Last activity logs
             if (studentList.isEmpty()) {
                 item {
-                    Text(
-                        "אין עדיין פעילויות רשומות.",
-                        color = com.example.ui.theme.MochaTaupe,
-                        textAlign = TextAlign.Center,
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.85f)),
+                        shape = RoundedCornerShape(24.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(24.dp)
-                    )
-                }
-            } else {
-                items(studentList.take(5)) { student ->
-                    val log = attendanceLogs.find { it.studentId == student.id }
-                    val statusText = when (log?.status) {
-                        "PRESENT" -> "נוכח/ת"
-                        "ABSENT" -> "נעדר/ת"
-                        "LATE" -> "איחר/ה"
-                        else -> "טרם עודכן"
-                    }
-                    val statusColor = when (log?.status) {
-                        "PRESENT" -> com.example.ui.theme.PositiveGreen
-                        "ABSENT" -> Color(0xFFC0392B)
-                        "LATE" -> com.example.ui.theme.GoldGingerStart
-                        else -> Color.Gray
-                    }
-
-                    Card(
-                        modifier = Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(16.dp), spotColor = Color(0x1A64748B)),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.85f))
+                            .padding(vertical = 8.dp)
+                            .shadow(4.dp, RoundedCornerShape(24.dp))
                     ) {
-                        Row(
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                                .padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
                         ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(64.dp)
+                                    .clip(CircleShape)
+                                    .background(com.example.ui.theme.GoldGingerStart.copy(alpha = 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = null,
+                                    tint = com.example.ui.theme.GoldGingerEnd,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(16.dp))
                             Text(
-                                statusText,
-                                color = statusColor,
-                                fontWeight = FontWeight.SemiBold,
-                                style = MaterialTheme.typography.bodyMedium
+                                "טרם נרשמו תלמידים בכיתה",
+                                color = com.example.ui.theme.ChocolateBrown,
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.titleMedium,
+                                textAlign = TextAlign.Center
                             )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                "כדי לקבל את דוחות ה-PDF, מדדי התקדמות החומר, נוכחות בזמן אמת ומפת הושבה כיתתית אינטראקטיבית, אנא הוסף את התלמידים הראשונים שלך במסך תלמידים.",
+                                color = com.example.ui.theme.MochaTaupe,
+                                fontSize = 12.sp,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(horizontal = 12.dp)
+                            )
+                        }
+                    }
+                }
+            } else {
+                items(studentList) { student ->
+                    val log = attendanceLogs.find { it.studentId == student.id }
+                    val currentStatus = log?.status ?: "NONE"
 
-                                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .shadow(2.dp, RoundedCornerShape(16.dp), spotColor = Color(0x0C64748B)),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.95f))
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp)
+                        ) {
+                            // Student Name and Profile Icon
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Profile Launcher
+                                IconButton(
+                                    onClick = {
+                                        com.example.ui.SoundManager.playClick()
+                                        showStudentModal = student
+                                    },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Person,
+                                        contentDescription = "Profile",
+                                        tint = com.example.ui.theme.GoldGingerEnd,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+
+                                // Student Name & Description
+                                Column(horizontalAlignment = Alignment.End) {
                                     Text(
                                         student.name,
                                         color = com.example.ui.theme.ChocolateBrown,
-                                        fontWeight = FontWeight.SemiBold,
-                                        style = MaterialTheme.typography.bodyLarge
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        textAlign = TextAlign.End
                                     )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    IconButton(onClick = { com.example.ui.SoundManager.playClick();  showStudentModal = student }, modifier = Modifier.size(24.dp)) {
-                                        Icon(
-                                            Icons.Default.Person,
-                                            contentDescription = "Profile",
-                                            tint = com.example.ui.theme.GoldGingerEnd,
-                                            modifier = Modifier.size(16.dp)
-                                        )
+                                    val pts = viewModel.getStudentPoints(student)
+                                    Text(
+                                        "ניקוד פנימי: $pts נק'",
+                                        color = Color.Gray,
+                                        fontSize = 11.sp,
+                                        textAlign = TextAlign.End
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            // Interactive Toggle Buttons for Attendance
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // 1. PRESENT button
+                                val presentSelected = currentStatus == "PRESENT"
+                                Button(
+                                    onClick = {
+                                        com.example.ui.SoundManager.playClick()
+                                        viewModel.markAttendance(student.id, "PRESENT")
+                                    },
+                                    modifier = Modifier.weight(1f).height(36.dp),
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (presentSelected) com.example.ui.theme.PositiveGreen else Color.White,
+                                        contentColor = if (presentSelected) Color.White else com.example.ui.theme.PositiveGreen
+                                    ),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.PositiveGreen.copy(alpha = 0.7f)),
+                                    contentPadding = PaddingValues(0.dp)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        if (presentSelected) {
+                                            Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                        }
+                                        Text("נוכח", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                     }
                                 }
+
+                                // 2. LATE button
+                                val lateSelected = currentStatus == "LATE"
+                                Button(
+                                    onClick = {
+                                        com.example.ui.SoundManager.playClick()
+                                        viewModel.markAttendance(student.id, "LATE")
+                                    },
+                                    modifier = Modifier.weight(1f).height(36.dp),
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (lateSelected) com.example.ui.theme.GoldGingerStart else Color.White,
+                                        contentColor = if (lateSelected) Color.White else com.example.ui.theme.GoldGingerEnd
+                                    ),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.GoldGingerStart.copy(alpha = 0.7f)),
+                                    contentPadding = PaddingValues(0.dp)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        if (lateSelected) {
+                                            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                        }
+                                        Text("איחור", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+
+                                // 3. ABSENT button
+                                val absentSelected = currentStatus == "ABSENT"
+                                Button(
+                                    onClick = {
+                                        com.example.ui.SoundManager.playClick()
+                                        viewModel.markAttendance(student.id, "ABSENT")
+                                    },
+                                    modifier = Modifier.weight(1f).height(36.dp),
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (absentSelected) Color(0xFFC0392B) else Color.White,
+                                        contentColor = if (absentSelected) Color.White else Color(0xFFC0392B)
+                                    ),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFC0392B).copy(alpha = 0.7f)),
+                                    contentPadding = PaddingValues(0.dp)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        if (absentSelected) {
+                                            Icon(Icons.Default.Clear, contentDescription = null, modifier = Modifier.size(14.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                        }
+                                        Text("חיסור", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -900,5 +1100,188 @@ fun StatPill(label: String, valStr: String, color: Color) {
     ) {
         Text(valStr, style = MaterialTheme.typography.titleLarge.copy(color = color, fontWeight = FontWeight.Bold))
         Text(label, style = MaterialTheme.typography.bodySmall.copy(color = com.example.ui.theme.MochaTaupe))
+    }
+}
+
+data class AttendanceDayData(
+    val dateLabel: String,
+    val present: Int,
+    val late: Int,
+    val absent: Int,
+    val total: Int
+)
+
+@Composable
+fun WeeklyAttendanceChart(dayDataList: List<AttendanceDayData>) {
+    val darkBg = com.example.ui.theme.ChocolateBrown
+    val primaryColor = com.example.ui.theme.GoldGingerStart
+    val greenColor = com.example.ui.theme.PositiveGreen
+    val redColor = Color(0xFFC0392B)
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(8.dp, RoundedCornerShape(24.dp), spotColor = Color(0x1F64748B)),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.85f))
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            horizontalAlignment = Alignment.End
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Legend
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    LegendItem("נוכח", greenColor)
+                    LegendItem("איחור", primaryColor)
+                    LegendItem("חיסור", redColor)
+                }
+                
+                Text(
+                    "מגמת נוכחות שבועית (הספק 7 ימים ברצף)",
+                    fontWeight = FontWeight.Bold,
+                    color = darkBg,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Draw Chart
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp)
+                    .padding(horizontal = 4.dp)
+            ) {
+                androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
+                    val width = size.width
+                    val height = size.height
+                    
+                    // Grid lines
+                    val gridLinesCount = 4
+                    val stepY = height / gridLinesCount
+                    for (i in 0..gridLinesCount) {
+                        val y = i * stepY
+                        drawLine(
+                            color = Color.LightGray.copy(alpha = 0.3f),
+                            start = androidx.compose.ui.geometry.Offset(0f, y),
+                            end = androidx.compose.ui.geometry.Offset(width, y),
+                            strokeWidth = 1f
+                        )
+                    }
+                    
+                    // Determine max count for scale
+                    val maxAttendanceRecorded = dayDataList.maxOfOrNull { it.present + it.late + it.absent } ?: 0
+                    val maxScale = maxOf(maxAttendanceRecorded + 1, 5).toFloat()
+                    
+                    val barGroupCount = dayDataList.size
+                    val spacingBetweenGroups = 24.dp.toPx()
+                    val totalSpacing = spacingBetweenGroups * (barGroupCount - 1)
+                    val availableWidthForBars = width - totalSpacing
+                    val groupWidth = availableWidthForBars / barGroupCount
+                    
+                    // We will draw stacked bars to represent: Present, Late, Absent
+                    dayDataList.forEachIndexed { index, dayData ->
+                        val groupX = index * (groupWidth + spacingBetweenGroups)
+                        val centerX = groupX + groupWidth / 2f
+                        
+                        // Stacked portion calculations
+                        val total = dayData.total.toFloat()
+                        if (total > 0) {
+                            val presentHeightPx = (dayData.present.toFloat() / maxScale) * (height - 30.dp.toPx())
+                            val lateHeightPx = (dayData.late.toFloat() / maxScale) * (height - 30.dp.toPx())
+                            val absentHeightPx = (dayData.absent.toFloat() / maxScale) * (height - 30.dp.toPx())
+                            
+                            val barWidth = (groupWidth * 0.7f).coerceIn(12.dp.toPx(), 40.dp.toPx())
+                            val barLeft = centerX - barWidth / 2f
+                            
+                            var currentBottomY = height - 20.dp.toPx()
+                            
+                            // Absent chunk
+                            if (dayData.absent > 0) {
+                                drawRect(
+                                    color = redColor.copy(alpha = 0.85f),
+                                    topLeft = androidx.compose.ui.geometry.Offset(barLeft, currentBottomY - absentHeightPx),
+                                    size = androidx.compose.ui.geometry.Size(barWidth, absentHeightPx)
+                                )
+                                currentBottomY -= absentHeightPx
+                            }
+                            
+                            // Late chunk
+                            if (dayData.late > 0) {
+                                drawRect(
+                                    color = primaryColor.copy(alpha = 0.85f),
+                                    topLeft = androidx.compose.ui.geometry.Offset(barLeft, currentBottomY - lateHeightPx),
+                                    size = androidx.compose.ui.geometry.Size(barWidth, lateHeightPx)
+                                )
+                                currentBottomY -= lateHeightPx
+                            }
+                            
+                            // Present chunk
+                            if (dayData.present > 0) {
+                                drawRect(
+                                    color = greenColor.copy(alpha = 0.85f),
+                                    topLeft = androidx.compose.ui.geometry.Offset(barLeft, currentBottomY - presentHeightPx),
+                                    size = androidx.compose.ui.geometry.Size(barWidth, presentHeightPx)
+                                )
+                            }
+                        } else {
+                            // Empty day placeholder
+                            val barWidth = (groupWidth * 0.7f).coerceIn(12.dp.toPx(), 40.dp.toPx())
+                            val barLeft = centerX - barWidth / 2f
+                            drawRect(
+                                color = Color.LightGray.copy(alpha = 0.2f),
+                                topLeft = androidx.compose.ui.geometry.Offset(barLeft, 10f),
+                                size = androidx.compose.ui.geometry.Size(barWidth, height - 30.dp.toPx())
+                            )
+                        }
+                    }
+                }
+                
+                // Overlay text labels under bars
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.BottomCenter)
+                        .padding(top = 160.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    dayDataList.forEach { dayData ->
+                        Text(
+                            text = dayData.dateLabel,
+                            fontSize = 11.sp,
+                            color = Color.Gray,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun LegendItem(label: String, color: Color) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(10.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(color)
+        )
+        Text(text = label, fontSize = 11.sp, color = Color.Gray, fontWeight = FontWeight.SemiBold)
     }
 }

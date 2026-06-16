@@ -183,16 +183,18 @@ fun LibraryScreen(viewModel: ClassViewModel) {
                                     }
                                 }
                                 Spacer(modifier = Modifier.height(6.dp))
-                                Row(
+                                @OptIn(ExperimentalLayoutApi::class)
+                                FlowRow(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
                                     // 1. העלאה (Upload)
                                     Button(
                                         onClick = { com.example.ui.SoundManager.playClick();  fileImportLauncher.launch("*/*") },
                                         colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.8f)),
                                         contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
-                                        modifier = Modifier.weight(1f).height(34.dp),
+                                        modifier = Modifier.height(34.dp),
                                         shape = RoundedCornerShape(8.dp)
                                     ) {
                                         Icon(Icons.Default.ArrowBack, contentDescription = null, tint = com.example.ui.theme.ChocolateBrown, modifier = Modifier.size(12.dp))
@@ -209,12 +211,32 @@ fun LibraryScreen(viewModel: ClassViewModel) {
                                         },
                                         colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
                                         contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
-                                        modifier = Modifier.weight(1f).height(34.dp),
+                                        modifier = Modifier.height(34.dp),
                                         shape = RoundedCornerShape(8.dp)
                                     ) {
                                         Icon(Icons.Default.AddCircle, contentDescription = null, tint = Color.Black, modifier = Modifier.size(12.dp))
                                         Spacer(modifier = Modifier.width(2.dp))
                                         Text("חולל שיעור", color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                    
+                                    // 3. סינתוז מסמכים (Content Synthesis)
+                                    Button(
+                                        onClick = { com.example.ui.SoundManager.playClick(); 
+                                            val allIds = materials.map { it.id }
+                                            if (allIds.isNotEmpty()) {
+                                                viewModel.synthesizeMaterials(allIds, "שלב והצג מסקנות ומערך מסכם המגשר בין החומרים השונים תוך יצירת מבחן אחיד רחב", "חוברת מסונתזת")
+                                            } else {
+                                                userFeedbackMessage = "אין מסמכים בספרייה ליצירת סינתזה."
+                                            }
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = primaryColor.copy(alpha=0.6f)),
+                                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                                        modifier = Modifier.height(34.dp),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Icon(Icons.Default.Build, contentDescription = null, tint = Color.Black, modifier = Modifier.size(12.dp))
+                                        Spacer(modifier = Modifier.width(2.dp))
+                                        Text("סינתוז ארכיון", color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }

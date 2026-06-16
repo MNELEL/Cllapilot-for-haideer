@@ -68,6 +68,12 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
         initialValue = emptyList()
     )
 
+    val pacingList = repository.allPacing.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
+
     // Seating Selection Tracks
     val selectedStudentForHighlight = MutableStateFlow<StudentEntity?>(null)
     val selectedUnassignedStudent = MutableStateFlow<StudentEntity?>(null)
@@ -92,6 +98,11 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
     val parsedQuiz = MutableStateFlow<List<QuizQuestion>>(emptyList())
     val isParsingFile = MutableStateFlow(false)
 
+    val pdfPaperFormat = MutableStateFlow("A4") // "A4" or "Letter"
+    val schoolLogoUri = MutableStateFlow<String?>(null) // URI or Path for school logo
+    val classReportWeeklyTheme = MutableStateFlow("למידה שיתופית ושיפור מיומנויות חברתיות")
+    val classReportTeacherSummary = MutableStateFlow("השבוע התקדמנו בלמידת עמיתים בסיוע סידור הישיבה האופטימלי שנוצר ע״י ה-AI. רמת הקשב, ההשתתפות והמשמעת של כלל התלמידים עלו בצורה ניכרת, בייחוד בשלבי התרגול הממוקדים.")
+
     // Simulate Firebase real-time Sync
     fun simulateSync() {
         viewModelScope.launch {
@@ -104,6 +115,11 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     init {
+        // Load settings from SharedPreferences
+        val sharedPref = getApplication<android.app.Application>().getSharedPreferences("classpro_prefs", android.content.Context.MODE_PRIVATE)
+        pdfPaperFormat.value = sharedPref.getString("pdf_paper_format", "A4") ?: "A4"
+        schoolLogoUri.value = sharedPref.getString("school_logo_uri", null)
+
         // Initialize default database records if empty
         viewModelScope.launch {
             students.collectLatest { list ->
@@ -123,6 +139,26 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
         }
+    }
+
+    fun setPdfPaperFormat(format: String) {
+        pdfPaperFormat.value = format
+        val sharedPref = getApplication<android.app.Application>().getSharedPreferences("classpro_prefs", android.content.Context.MODE_PRIVATE)
+        sharedPref.edit().putString("pdf_paper_format", format).apply()
+    }
+
+    fun setSchoolLogoUri(uri: String?) {
+        schoolLogoUri.value = uri
+        val sharedPref = getApplication<android.app.Application>().getSharedPreferences("classpro_prefs", android.content.Context.MODE_PRIVATE)
+        sharedPref.edit().putString("school_logo_uri", uri).apply()
+    }
+
+    fun setClassReportWeeklyTheme(theme: String) {
+        classReportWeeklyTheme.value = theme
+    }
+
+    fun setClassReportTeacherSummary(summary: String) {
+        classReportTeacherSummary.value = summary
     }
 
     fun setTheme(theme: String) {
@@ -378,6 +414,8 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
     // AI Multi-row / Height Smart Seat Placement Solver
     fun runIntelligentAIPlacement() {
         savePlacementState()
+        val allGrades = grades.value
+        
         viewModelScope.launch {
             isSyncing.value = true
             syncMessage.value = "מחשב מפת הושבה אופטימלית בשימוש בינה מלאכותית..."
@@ -404,7 +442,7 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
 
             // Dynamic arrangement algorithm using simulated annealing style score optimizer or AI
             var bestArrangement = com.example.util.GeminiSeatingOptimizer.optimizeSeating(
-                stToPlace, unlockedDesks, allDs, layoutRows.value
+                stToPlace, unlockedDesks, allDs, layoutRows.value, allGrades
             )
 
             // Fallback to local heuristic if AI fails (or API key is missing)
@@ -759,7 +797,7 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
     fun parseLibraryDocument(title: String, documentContent: String) {
         viewModelScope.launch {
             isParsingFile.value = true
-            val res = GeminiParser.parseAcademicDocument(title, documentContent)
+            val res = GeminiParser.parseAcademicDocument(title, documentContent, getApplication())
             
             // Build the MC answers JSON
             val mcJsonBuilder = StringBuilder("[")
@@ -798,6 +836,57 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // Content Synthesis functionality:
+    fun synthesizeMaterials(selectedMatIds: List<String>, instructions: String, titlePrefix: String = "מערך מסונתז") {
+        viewModelScope.launch {
+            isParsingFile.value = true
+            try {
+                // Fetch the materials
+                val matsToCombine = materials.value.filter { selectedMatIds.contains(it.id) }
+                if (matsToCombine.isEmpty()) return@launch
+
+                val combinedText = matsToCombine.joinToString("\n\n") { "Title: ${it.title}\n${it.summaryNotes}" }
+                
+                // Combine them using Gemini
+                val requestText = "חולל מסמך מאוחד מתוך חומרים אלה: $instructions. \n$combinedText"
+                // Re-use parseAcademicDocument as the parsing engine works similarly
+                val synthesizedRes = GeminiParser.parseAcademicDocument("$titlePrefix: ${matsToCombine.joinToString(", ") { it.title }.take(15)}...", requestText, getApplication())
+                
+                // Build the MC answers JSON
+                val mcJsonBuilder = StringBuilder("[")
+                synthesizedRes.quiz.forEachIndexed { i, q ->
+                    mcJsonBuilder.append("{")
+                        .append("\"question\":\"").append(q.question).append("\",")
+                        .append("\"options\":[")
+                    q.options.forEachIndexed { j, opt ->
+                        mcJsonBuilder.append("\"").append(opt).append("\"")
+                        if (j < q.options.lastIndex) mcJsonBuilder.append(",")
+                    }
+                    mcJsonBuilder.append("],")
+                        .append("\"correctAnswerIndex\":").append(q.correctAnswerIndex)
+                        .append("}")
+                    if (i < synthesizedRes.quiz.lastIndex) mcJsonBuilder.append(",")
+                }
+                mcJsonBuilder.append("]")
+
+                val newMaterial = AcademicMaterialEntity(
+                    id = UUID.randomUUID().toString(),
+                    title = "$titlePrefix: ${matsToCombine.joinToString(", ") { it.title }.take(15)}...",
+                    summaryNotes = synthesizedRes.summary,
+                    lessonTimeline = synthesizedRes.timeline,
+                    quizJson = mcJsonBuilder.toString(),
+                    coveragePercentage = 100,
+                    timestamp = System.currentTimeMillis()
+                )
+                repository.insertMaterial(newMaterial)
+            } catch (e: Exception) {
+                Log.e("ClassViewModel", "Error synthesizing materials", e)
+            } finally {
+                isParsingFile.value = false
+            }
+        }
+    }
+
     fun updateStudentNotes(studentId: String, newNote: String) {
         viewModelScope.launch {
             val student = students.value.find { it.id == studentId }
@@ -821,6 +910,18 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
     fun deleteMaterial(id: String) {
         viewModelScope.launch {
             repository.deleteMaterial(id)
+        }
+    }
+
+    fun insertPacing(pacing: PacingEntity) {
+        viewModelScope.launch {
+            repository.insertPacing(pacing)
+        }
+    }
+
+    fun deletePacing(id: String) {
+        viewModelScope.launch {
+            repository.deletePacing(id)
         }
     }
 
@@ -958,6 +1059,21 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
         repository.insertLogs(logs)
     }
 
+    fun markAttendance(studentId: String, status: String) {
+        viewModelScope.launch {
+            val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+            val logId = "${studentId}_$today"
+            val log = com.example.data.model.AttendanceLogEntity(
+                id = logId,
+                studentId = studentId,
+                date = today,
+                status = status,
+                syncStatus = com.example.data.model.SyncState.PENDING
+            )
+            repository.insertLog(log)
+        }
+    }
+
     fun exportToCSV(context: android.content.Context) {
         val allDesks = desks.value
         val allSt = students.value
@@ -1014,10 +1130,44 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
         val rCount = layoutRows.value
         val cCount = layoutCols.value
 
+        val isA4 = pdfPaperFormat.value == "A4"
+        val pageWidth = if (isA4) 595 else 612
+        val pageHeight = if (isA4) 842 else 792
+
         val pdfDoc = android.graphics.pdf.PdfDocument()
-        val pageInfo = android.graphics.pdf.PdfDocument.PageInfo.Builder(595, 842, 1).create()
+        val pageInfo = android.graphics.pdf.PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 1).create()
         val page = pdfDoc.startPage(pageInfo)
         val canvas = page.canvas
+
+        // Double Border Styling (Institutional Branding Frame)
+        val borderPaint = android.graphics.Paint().apply {
+            color = android.graphics.Color.rgb(197, 160, 89) // Elegant Gold
+            style = android.graphics.Paint.Style.STROKE
+            strokeWidth = 2f
+        }
+        val innerBorderPaint = android.graphics.Paint().apply {
+            color = android.graphics.Color.rgb(197, 160, 89)
+            style = android.graphics.Paint.Style.STROKE
+            strokeWidth = 0.5f
+        }
+        canvas.drawRect(15f, 15f, pageWidth - 15f, pageHeight - 15f, borderPaint)
+        canvas.drawRect(18f, 18f, pageWidth - 18f, pageHeight - 18f, innerBorderPaint)
+
+        // Watermark background
+        val watermarkPaint = android.graphics.Paint().apply {
+            color = android.graphics.Color.argb(15, 197, 160, 89)
+            style = android.graphics.Paint.Style.FILL
+            textSize = 50f
+            isFakeBoldText = true
+            isAntiAlias = true
+        }
+        canvas.drawCircle(pageWidth / 2f, pageHeight / 2f, 120f, watermarkPaint)
+        watermarkPaint.apply {
+            textSize = 14f
+            color = android.graphics.Color.argb(20, 197, 160, 89)
+            textAlign = android.graphics.Paint.Align.CENTER
+        }
+        canvas.drawText("ClassPro מוסד פדגוגי", pageWidth / 2f, pageHeight / 2f + 5f, watermarkPaint)
 
         val paint = android.graphics.Paint().apply {
             color = android.graphics.Color.BLACK
@@ -1027,7 +1177,7 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
 
         val titlePaint = android.graphics.Paint().apply {
             color = android.graphics.Color.rgb(60, 33, 20) // Deep Chocolate Brown
-            textSize = 24f
+            textSize = 22f
             isFakeBoldText = true
             isAntiAlias = true
         }
@@ -1055,21 +1205,60 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
             style = android.graphics.Paint.Style.FILL
         }
 
-        val borderPaint = android.graphics.Paint().apply {
+        val cellBorderPaint = android.graphics.Paint().apply {
             color = android.graphics.Color.LTGRAY
             style = android.graphics.Paint.Style.STROKE
             strokeWidth = 1f
         }
 
-        // Header
-        canvas.drawText("מפת ישיבה כיתתית - ClassPro", 40f, 50f, titlePaint)
+        // Draw School Logo (Institutional Branding)
+        var hasLogo = false
+        val logoUriStr = schoolLogoUri.value
+        if (!logoUriStr.isNullOrEmpty()) {
+            try {
+                val inputStr = context.contentResolver.openInputStream(android.net.Uri.parse(logoUriStr))
+                val bitmap = android.graphics.BitmapFactory.decodeStream(inputStr)
+                if (bitmap != null) {
+                    val scaledLogo = android.graphics.Bitmap.createScaledBitmap(bitmap, 45, 45, true)
+                    canvas.drawBitmap(scaledLogo, pageWidth - 80f, 32f, null)
+                    hasLogo = true
+                }
+                inputStr?.close()
+            } catch (e: Exception) {
+                Log.e("ExportPDF", "Error drawing custom logo", e)
+            }
+        }
+
+        if (!hasLogo) {
+            // Standard decorative shield
+            val crestPaint = android.graphics.Paint().apply {
+                color = android.graphics.Color.rgb(197, 160, 89)
+                style = android.graphics.Paint.Style.FILL
+                isAntiAlias = true
+            }
+            val path = android.graphics.Path()
+            path.moveTo(pageWidth - 75f, 32f)
+            path.lineTo(pageWidth - 45f, 32f)
+            path.lineTo(pageWidth - 45f, 52f)
+            path.quadTo(pageWidth - 60f, 62f, pageWidth - 75f, 52f)
+            path.close()
+            canvas.drawPath(path, crestPaint)
+        }
+
+        // Proper RTL Right-Aligned Header
+        val titleText = "מפת ישיבה כיתתית - ClassPro"
         val dateText = "תאריך הדפסה: " + java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.US).format(java.util.Date())
-        canvas.drawText(dateText, 40f, 75f, paint)
+        
+        val titleWidth = titlePaint.measureText(titleText)
+        val dateWidth = paint.measureText(dateText)
+        
+        canvas.drawText(titleText, pageWidth - 90f - titleWidth, 50f, titlePaint)
+        canvas.drawText(dateText, pageWidth - 90f - dateWidth, 75f, paint)
 
         // classroom layout params
-        val startX = 40f
+        val startX = 35f
         val startY = 130f
-        val maxGridWidth = 515f
+        val maxGridWidth = pageWidth - 70f
         val cellSizeX = (maxGridWidth / cCount.coerceAtLeast(1).toFloat()).coerceAtMost(100f)
         val cellSizeY = 55f
 
@@ -1101,7 +1290,7 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
                             val student = allSt.find { it.id == d.studentId }
                             if (student != null) {
                                 canvas.drawRect(x, y, x + cellSizeX - 4f, y + cellSizeY - 4f, activeDeskPaint)
-                                canvas.drawRect(x, y, x + cellSizeX - 4f, y + cellSizeY - 4f, borderPaint)
+                                canvas.drawRect(x, y, x + cellSizeX - 4f, y + cellSizeY - 4f, cellBorderPaint)
                                 
                                 val displayName = if (student.name.length > 14) student.name.substring(0, 12) + ".." else student.name
                                 canvas.drawText(displayName, x + 6f, y + 20f, textPaint)
@@ -1116,7 +1305,7 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
                                 canvas.drawText(infoText, x + 6f, y + 36f, subTextPaint)
                             } else {
                                 canvas.drawRect(x, y, x + cellSizeX - 4f, y + cellSizeY - 4f, emptyDeskPaint)
-                                canvas.drawRect(x, y, x + cellSizeX - 4f, y + cellSizeY - 4f, borderPaint)
+                                canvas.drawRect(x, y, x + cellSizeX - 4f, y + cellSizeY - 4f, cellBorderPaint)
                                 val textP = android.graphics.Paint().apply { textSize = 8f; color = android.graphics.Color.GRAY }
                                 canvas.drawText("[מושב פנוי]", x + 6f, y + 25f, textP)
                             }
@@ -1127,7 +1316,7 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
                                 style = android.graphics.Paint.Style.FILL
                             }
                             canvas.drawRect(x, y, x + cellSizeX - 4f, y + cellSizeY - 4f, blockFill)
-                            canvas.drawRect(x, y, x + cellSizeX - 4f, y + cellSizeY - 4f, borderPaint)
+                            canvas.drawRect(x, y, x + cellSizeX - 4f, y + cellSizeY - 4f, cellBorderPaint)
                             val textP = android.graphics.Paint().apply { textSize = 8f; color = android.graphics.Color.DKGRAY }
                             canvas.drawText("[מחסום]", x + 6f, y + 25f, textP)
                         }
@@ -1171,12 +1360,34 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // Classroom Pin-Code Gate State
-    val isAppUnlocked = MutableStateFlow(false)
-    val appPinCode = "1234"
+    // Classroom Pin-Code Gate State and Persistent Configuration
+    private val cryptoPrefs by lazy {
+        getApplication<Application>().getSharedPreferences("classpro_secure_prefs", android.content.Context.MODE_PRIVATE)
+    }
+
+    val pinEnabled = MutableStateFlow(cryptoPrefs.getBoolean("pin_enabled", true))
+    val appPinCode = MutableStateFlow(cryptoPrefs.getString("app_pin_code", "1234") ?: "1234")
+    val isAppUnlocked = MutableStateFlow(!cryptoPrefs.getBoolean("pin_enabled", true))
+
+    fun updatePinEnabled(enabled: Boolean) {
+        pinEnabled.value = enabled
+        cryptoPrefs.edit().putBoolean("pin_enabled", enabled).apply()
+        if (!enabled) {
+            isAppUnlocked.value = true
+        } else {
+            isAppUnlocked.value = false
+        }
+    }
+
+    fun updatePinCode(newPin: String) {
+        if (newPin.length == 4 && newPin.all { it.isDigit() }) {
+            appPinCode.value = newPin
+            cryptoPrefs.edit().putString("app_pin_code", newPin).apply()
+        }
+    }
 
     fun attemptUnlock(pin: String): Boolean {
-        return if (pin == appPinCode) {
+        return if (!pinEnabled.value || pin == appPinCode.value) {
             isAppUnlocked.value = true
             true
         } else {
@@ -1376,15 +1587,54 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
 
     fun exportMaterialToPDF(context: android.content.Context, material: AcademicMaterialEntity) {
         try {
+            val isA4 = pdfPaperFormat.value == "A4"
+            val pageWidth = if (isA4) 595 else 612
+            val pageHeight = if (isA4) 842 else 792
+
             val pdfDoc = android.graphics.pdf.PdfDocument()
-            val pageInfo = android.graphics.pdf.PdfDocument.PageInfo.Builder(595, 842, 1).create()
+            val pageInfo = android.graphics.pdf.PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 1).create()
             val page = pdfDoc.startPage(pageInfo)
             val canvas = page.canvas
 
+            // Professional institution frame decoration (Golden Ginger Borders)
+            val borderPaint = android.graphics.Paint().apply {
+                color = android.graphics.Color.rgb(197, 160, 89) // gold gingery ginger
+                style = android.graphics.Paint.Style.STROKE
+                strokeWidth = 2.5f
+            }
+            val innerBorderPaint = android.graphics.Paint().apply {
+                color = android.graphics.Color.rgb(197, 160, 89)
+                style = android.graphics.Paint.Style.STROKE
+                strokeWidth = 0.5f
+            }
+            canvas.drawRect(15f, 15f, pageWidth - 15f, pageHeight - 15f, borderPaint)
+            canvas.drawRect(18f, 18f, pageWidth - 18f, pageHeight - 18f, innerBorderPaint)
+
+            // Academic Background Watermark
+            val watermarkFont = android.graphics.Paint().apply {
+                color = android.graphics.Color.argb(12, 197, 160, 89)
+                textSize = 65f
+                isFakeBoldText = true
+                isAntiAlias = true
+            }
+            canvas.drawCircle(pageWidth / 2f, pageHeight / 2f, 130f, watermarkFont)
+            watermarkFont.apply {
+                textSize = 15f
+                color = android.graphics.Color.argb(20, 197, 160, 89)
+                textAlign = android.graphics.Paint.Align.CENTER
+            }
+            canvas.drawText("ClassPro מערך שיעור רשמי", pageWidth / 2f, pageHeight / 2f + 5f, watermarkFont)
+
             val titlePaint = android.graphics.Paint().apply {
                 color = android.graphics.Color.rgb(30, 27, 75)
-                textSize = 18f
+                textSize = 20f
                 isFakeBoldText = true
+                isAntiAlias = true
+            }
+
+            val subtitlePaint = android.graphics.Paint().apply {
+                color = android.graphics.Color.GRAY
+                textSize = 10f
                 isAntiAlias = true
             }
 
@@ -1395,38 +1645,117 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             val headerPaint = android.graphics.Paint().apply {
-                color = android.graphics.Color.rgb(10, 10, 10)
+                color = android.graphics.Color.rgb(197, 160, 89)
                 textSize = 13f
                 isFakeBoldText = true
                 isAntiAlias = true
             }
 
-            canvas.drawText(material.title, 400f, 60f, titlePaint)
-            canvas.drawText("ClassPro מסמך פדגוגי רשמי", 400f, 95f, bodyPaint)
-
-            var currentY = 140f
-
-            canvas.drawText("עיקרי סיכום ומטרות:", 480f, currentY, headerPaint)
-            currentY += 25f
-
-            val summaryLines = material.summaryNotes.split("\n")
-            summaryLines.forEach { line ->
-                if (currentY < 800f) {
-                    canvas.drawText(line, 480f - (line.length * 1.5f).coerceAtMost(350f), currentY, bodyPaint)
-                    currentY += 20f
+            // Draw custom school logo or fallback emblem
+            var hasLogo = false
+            val logoUriStr = schoolLogoUri.value
+            if (!logoUriStr.isNullOrEmpty()) {
+                try {
+                    val inputStr = context.contentResolver.openInputStream(android.net.Uri.parse(logoUriStr))
+                    val bitmap = android.graphics.BitmapFactory.decodeStream(inputStr)
+                    if (bitmap != null) {
+                        val scaledLogo = android.graphics.Bitmap.createScaledBitmap(bitmap, 45, 45, true)
+                        canvas.drawBitmap(scaledLogo, pageWidth - 80f, 32f, null)
+                        hasLogo = true
+                    }
+                    inputStr?.close()
+                } catch (e: Exception) {
+                    Log.e("ExportMaterialPDF", "Error drawing custom logo", e)
                 }
             }
 
-            currentY += 15f
-            canvas.drawText("ציר זמן שיעור פדגוגי:", 480f, currentY, headerPaint)
+            if (!hasLogo) {
+                // Gold decorative badge
+                val crestPaint = android.graphics.Paint().apply {
+                    color = android.graphics.Color.rgb(197, 160, 89)
+                    style = android.graphics.Paint.Style.FILL
+                    isAntiAlias = true
+                }
+                val path = android.graphics.Path()
+                path.moveTo(pageWidth - 75f, 32f)
+                path.lineTo(pageWidth - 45f, 32f)
+                path.lineTo(pageWidth - 45f, 52f)
+                path.quadTo(pageWidth - 60f, 62f, pageWidth - 75f, 52f)
+                path.close()
+                canvas.drawPath(path, crestPaint)
+            }
+
+            // Header labels aligned layout
+            val titleText = material.title
+            val subtitleText = "מתוך הספרייה הפדגוגית של ClassPro"
+            
+            val rightX = pageWidth - 90f
+            canvas.drawText(titleText, rightX - titlePaint.measureText(titleText), 50f, titlePaint)
+            canvas.drawText(subtitleText, rightX - subtitlePaint.measureText(subtitleText), 72f, subtitlePaint)
+
+            var currentY = 110f
+
+            // Separator bar
+            val sepPaint = android.graphics.Paint().apply {
+                color = android.graphics.Color.rgb(229, 231, 235)
+                strokeWidth = 1f
+            }
+            canvas.drawLine(35f, currentY, pageWidth - 35f, currentY, sepPaint)
             currentY += 25f
 
-            val timelineLines = material.lessonTimeline.split("\n")
-            timelineLines.forEach { line ->
-                if (currentY < 800f) {
-                    canvas.drawText(line, 480f - (line.length * 1.5f).coerceAtMost(350f), currentY, bodyPaint)
-                    currentY += 20f
+            // RTL wrapped text printing helper function
+            fun drawRTLTextFlow(text: String, startY: Float, paint: android.graphics.Paint, size: Float, isHeader: Boolean = false): Float {
+                var y = startY
+                val availableW = pageWidth - 90f // generous margins
+                val rightMargin = pageWidth - 45f
+                
+                val lines = text.split("\n")
+                for (line in lines) {
+                    if (line.trim().isEmpty()) {
+                        y += 10f
+                        continue
+                    }
+                    val words = line.split(" ")
+                    val lineBuilder = StringBuilder()
+                    for (word in words) {
+                        val testLine = if (lineBuilder.isEmpty()) word else "${lineBuilder.toString()} $word"
+                        if (paint.measureText(testLine) > availableW) {
+                            val lineStr = lineBuilder.toString()
+                            canvas.drawText(lineStr, rightMargin - paint.measureText(lineStr), y, paint)
+                            y += size + 5f
+                            lineBuilder.setLength(0)
+                            lineBuilder.append(word)
+                        } else {
+                            if (lineBuilder.isNotEmpty()) lineBuilder.append(" ")
+                            lineBuilder.append(word)
+                        }
+                    }
+                    if (lineBuilder.isNotEmpty()) {
+                        val lineStr = lineBuilder.toString()
+                        canvas.drawText(lineStr, rightMargin - paint.measureText(lineStr), y, paint)
+                        y += size + 10f
+                    }
                 }
+                return y
+            }
+
+            // 1. Summary Header
+            val sumHeader = "א. תקציר ומטרות פדגוגיות:"
+            canvas.drawText(sumHeader, rightX - headerPaint.measureText(sumHeader), currentY, headerPaint)
+            currentY += 22f
+
+            // Draw wrapped summary body
+            currentY = drawRTLTextFlow(material.summaryNotes, currentY, bodyPaint, 11f)
+            currentY += 15f
+
+            // 2. Timeline Header
+            if (currentY < pageHeight - 100f) {
+                val timeHeader = "ב. ציר זמן מובנה למהלך השיעור:"
+                canvas.drawText(timeHeader, rightX - headerPaint.measureText(timeHeader), currentY, headerPaint)
+                currentY += 22f
+
+                // Draw wrapped timeline body
+                currentY = drawRTLTextFlow(material.lessonTimeline, currentY, bodyPaint, 11f)
             }
 
             pdfDoc.finishPage(page)
@@ -1456,6 +1785,218 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
             context.startActivity(chooser)
         } catch (e: Exception) {
             Log.e("ExportMaterialPDF", "Error saving PDF file", e)
+        }
+    }
+
+    fun exportClassWeeklyReportToPDF(context: android.content.Context) {
+        try {
+            val isA4 = pdfPaperFormat.value == "A4"
+            val pageWidth = if (isA4) 595 else 612
+            val pageHeight = if (isA4) 842 else 792
+
+            val pdfDoc = android.graphics.pdf.PdfDocument()
+            val pageInfo = android.graphics.pdf.PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 1).create()
+            val page = pdfDoc.startPage(pageInfo)
+            val canvas = page.canvas
+
+            // Professional border lines
+            val borderPaint = android.graphics.Paint().apply {
+                color = android.graphics.Color.rgb(197, 160, 89)
+                style = android.graphics.Paint.Style.STROKE
+                strokeWidth = 2.5f
+            }
+            val innerBorderPaint = android.graphics.Paint().apply {
+                color = android.graphics.Color.rgb(197, 160, 89)
+                style = android.graphics.Paint.Style.STROKE
+                strokeWidth = 0.5f
+            }
+            canvas.drawRect(15f, 15f, pageWidth - 15f, pageHeight - 15f, borderPaint)
+            canvas.drawRect(18f, 18f, pageWidth - 18f, pageHeight - 18f, innerBorderPaint)
+
+            // Academic Background Watermark
+            val watermarkFont = android.graphics.Paint().apply {
+                color = android.graphics.Color.argb(12, 197, 160, 89)
+                textSize = 60f
+                isFakeBoldText = true
+                isAntiAlias = true
+            }
+            canvas.drawCircle(pageWidth / 2f, pageHeight / 2f, 130f, watermarkFont)
+            watermarkFont.apply {
+                textSize = 14f
+                color = android.graphics.Color.argb(20, 197, 160, 89)
+                textAlign = android.graphics.Paint.Align.CENTER
+            }
+            canvas.drawText("ClassPro דוח כיתתי שבועי רשמי", pageWidth / 2f, pageHeight / 2f + 5f, watermarkFont)
+
+            val titlePaint = android.graphics.Paint().apply {
+                color = android.graphics.Color.rgb(30, 27, 75)
+                textSize = 16f
+                isFakeBoldText = true
+                isAntiAlias = true
+            }
+
+            val subtitlePaint = android.graphics.Paint().apply {
+                color = android.graphics.Color.GRAY
+                textSize = 9f
+                isAntiAlias = true
+            }
+
+            val bodyPaint = android.graphics.Paint().apply {
+                color = android.graphics.Color.BLACK
+                textSize = 10f
+                isAntiAlias = true
+            }
+
+            val headerPaint = android.graphics.Paint().apply {
+                color = android.graphics.Color.rgb(197, 160, 89)
+                textSize = 12f
+                isFakeBoldText = true
+                isAntiAlias = true
+            }
+
+            var hasLogo = false
+            val logoUriStr = schoolLogoUri.value
+            if (!logoUriStr.isNullOrEmpty()) {
+                try {
+                    val inputStr = context.contentResolver.openInputStream(android.net.Uri.parse(logoUriStr))
+                    val bitmap = android.graphics.BitmapFactory.decodeStream(inputStr)
+                    if (bitmap != null) {
+                        val scaledLogo = android.graphics.Bitmap.createScaledBitmap(bitmap, 40, 40, true)
+                        canvas.drawBitmap(scaledLogo, pageWidth - 70f, 32f, null)
+                        hasLogo = true
+                    }
+                    inputStr?.close()
+                } catch (e: java.lang.Exception) {
+                    Log.e("ExportClassReportPDF", "Error drawing custom logo", e)
+                }
+            }
+
+            if (!hasLogo) {
+                val crestPaint = android.graphics.Paint().apply {
+                    color = android.graphics.Color.rgb(197, 160, 89)
+                    style = android.graphics.Paint.Style.FILL
+                    isAntiAlias = true
+                }
+                val path = android.graphics.Path()
+                path.moveTo(pageWidth - 70f, 32f)
+                path.lineTo(pageWidth - 45f, 32f)
+                path.lineTo(pageWidth - 45f, 52f)
+                path.quadTo(pageWidth - 57.5f, 62f, pageWidth - 70f, 52f)
+                path.close()
+                canvas.drawPath(path, crestPaint)
+            }
+
+            val titleText = "דוח סיכום כיתתי שבועי - ClassPro"
+            val currentDateStr = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.US).format(java.util.Date())
+            val subtitleText = "הופק בתאריך: $currentDateStr | נושא פדגוגי: ${classReportWeeklyTheme.value}"
+
+            val rightX = pageWidth - 85f
+            canvas.drawText(titleText, rightX - titlePaint.measureText(titleText), 48f, titlePaint)
+            canvas.drawText(subtitleText, rightX - subtitlePaint.measureText(subtitleText), 66f, subtitlePaint)
+
+            var currentY = 100f
+            val sepPaint = android.graphics.Paint().apply {
+                color = android.graphics.Color.rgb(229, 231, 235)
+                strokeWidth = 1f
+            }
+            canvas.drawLine(35f, currentY, pageWidth - 35f, currentY, sepPaint)
+            currentY += 20f
+
+            fun drawRTLTextFlow(text: String, startY: Float, paint: android.graphics.Paint, size: Float): Float {
+                var y = startY
+                val availableW = pageWidth - 70f
+                val rightMargin = pageWidth - 35f
+                val lines = text.split("\n")
+                for (line in lines) {
+                    if (y > pageHeight - 50f) break
+                    if (line.trim().isEmpty()) {
+                        y += 10f
+                        continue
+                    }
+                    val words = line.split(" ")
+                    val lineBuilder = StringBuilder()
+                    for (word in words) {
+                        val testLine = if (lineBuilder.isEmpty()) word else "${lineBuilder.toString()} $word"
+                        if (paint.measureText(testLine) > availableW) {
+                            val lineStr = lineBuilder.toString()
+                            canvas.drawText(lineStr, rightMargin - paint.measureText(lineStr), y, paint)
+                            y += size + 5f
+                            lineBuilder.setLength(0)
+                            lineBuilder.append(word)
+                        } else {
+                            if (lineBuilder.isNotEmpty()) lineBuilder.append(" ")
+                            lineBuilder.append(word)
+                        }
+                    }
+                    if (lineBuilder.isNotEmpty() && y <= pageHeight - 50f) {
+                        val lineStr = lineBuilder.toString()
+                        canvas.drawText(lineStr, rightMargin - paint.measureText(lineStr), y, paint)
+                        y += size + 10f
+                    }
+                }
+                return y
+            }
+
+            // Section 1: Behavior & Achievements
+            val sec1Header = "1. מדדי התנהגות כיתתית ודירוג שיעורי השבוע:"
+            canvas.drawText(sec1Header, rightX - headerPaint.measureText(sec1Header), currentY, headerPaint)
+            currentY += 18f
+
+            val sortedStudents = students.value.sortedByDescending { getStudentPoints(it) }
+            val behaviorLines = sortedStudents.take(10).mapIndexed { idx, st ->
+                "${idx + 1}. התלמיד: ${st.name}  —  צבר: ${getStudentPoints(st)} נקודות שבועיות"
+            }.joinToString("\n")
+            currentY = drawRTLTextFlow(behaviorLines, currentY, bodyPaint, 10f)
+            currentY += 12f
+
+            // Section 2: Pedagogical & Classroom GPA summaries
+            val sec2Header = "2. הערכה פדגוגית, ציונים ממוצעים ומבחנים:"
+            canvas.drawText(sec2Header, rightX - headerPaint.measureText(sec2Header), currentY, headerPaint)
+            currentY += 18f
+
+            val allGradeList = grades.value
+            val gradesLines = students.value.sortedBy { it.name }.mapIndexed { idx, st ->
+                val studGrades = allGradeList.filter { it.studentId == st.id }
+                val avg = studGrades.mapNotNull { it.gradeValue.toIntOrNull() }.let { if (it.isEmpty()) 0.0 else it.average() }
+                val avgStr = if (avg > 0) "${avg.toInt()}" else "ללא דיווח"
+                "${idx + 1}. תלמיד: ${st.name} | ציון משוער ממוצע: $avgStr"
+            }.joinToString("\n")
+            currentY = drawRTLTextFlow(gradesLines, currentY, bodyPaint, 10f)
+            currentY += 12f
+
+            // Section 3: Actionable weekly summary and educational notes
+            val sec3Header = "3. דגשים פדגוגיים, יעדים והערות מהמורה המלווה:"
+            canvas.drawText(sec3Header, rightX - headerPaint.measureText(sec3Header), currentY, headerPaint)
+            currentY += 18f
+
+            currentY = drawRTLTextFlow(classReportTeacherSummary.value, currentY, bodyPaint, 10f)
+
+            pdfDoc.finishPage(page)
+
+            val file = java.io.File(context.cacheDir, "ClassPro_Weekly_Class_Report.pdf")
+            val outputStream = java.io.FileOutputStream(file)
+            pdfDoc.writeTo(outputStream)
+            pdfDoc.close()
+            outputStream.close()
+
+            val uri = androidx.core.content.FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.provider",
+                file
+            )
+
+            val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                type = "application/pdf"
+                putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                putExtra(android.content.Intent.EXTRA_SUBJECT, "דוח סיכום כיתתי פדגוגי שבועי לכלל התלמידים - ClassPro")
+                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+
+            val chooser = android.content.Intent.createChooser(intent, "ייצא דוח שבועי כיתתי")
+            chooser.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(chooser)
+        } catch (e: Exception) {
+            Log.e("ExportClassReportPDF", "Error saving report PDF file", e)
         }
     }
 }

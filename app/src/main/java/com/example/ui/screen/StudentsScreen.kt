@@ -366,6 +366,7 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                             ) {
                                 // Gamified scoring controls (+1 / -1) and profile action
                                 Row(
+                                    modifier = Modifier.weight(1.1f, fill = false),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
@@ -395,36 +396,37 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                                         }
                                     }
 
-                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Spacer(modifier = Modifier.width(2.dp))
 
                                     IconButton(
                                         onClick = { com.example.ui.SoundManager.playClick();  viewModel.incrementScore(student.id, -1) },
-                                        modifier = Modifier.size(30.dp).clip(RoundedCornerShape(6.dp)).background(Color.Red.copy(alpha = 0.2f))
+                                        modifier = Modifier.size(28.dp).clip(RoundedCornerShape(6.dp)).background(Color.Red.copy(alpha = 0.2f))
                                     ) {
-                                        Text("-1", color = Color.Red, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                        Text("-1", color = Color.Red, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                     }
 
                                     Text(
-                                        "$pts נק'",
+                                        "$pts",
                                         color = primaryColor,
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = 13.sp,
-                                        modifier = Modifier.padding(horizontal = 4.dp)
+                                        fontSize = 12.sp,
+                                        modifier = Modifier.padding(horizontal = 2.dp)
                                     )
 
                                     IconButton(
                                         onClick = { com.example.ui.SoundManager.playClick();  viewModel.incrementScore(student.id, 1) },
-                                        modifier = Modifier.size(30.dp).clip(RoundedCornerShape(6.dp)).background(Color.Green.copy(alpha = 0.2f))
+                                        modifier = Modifier.size(28.dp).clip(RoundedCornerShape(6.dp)).background(Color.Green.copy(alpha = 0.2f))
                                     ) {
-                                        Text("+1", color = Color.Green, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                        Text("+1", color = Color.Green, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                     }
                                 }
 
                                 // Clickable Info details + Edit icon to trigger the edit popup dialog
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                                     modifier = Modifier
+                                        .weight(1f)
                                         .clip(RoundedCornerShape(8.dp))
                                         .clickable { com.example.ui.SoundManager.playClick(); 
                                             if (isMultiSelectMode) {
@@ -453,30 +455,48 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                                                     selectedStudentIds.remove(student.id)
                                                 }
                                             },
-                                            colors = CheckboxDefaults.colors(checkedColor = primaryColor)
+                                            colors = CheckboxDefaults.colors(checkedColor = primaryColor),
+                                            modifier = Modifier.size(20.dp)
                                         )
                                     } else {
                                         Icon(
                                             imageVector = Icons.Default.Edit,
                                             contentDescription = "ערוך תלמיד",
                                             tint = com.example.ui.theme.MochaTaupe.copy(alpha = 0.6f),
-                                            modifier = Modifier.size(16.dp)
+                                            modifier = Modifier.size(14.dp)
                                         )
                                     }
 
-                                    Column(horizontalAlignment = Alignment.End) {
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        horizontalAlignment = Alignment.End
+                                    ) {
                                         Text(
                                             student.name,
                                             fontWeight = FontWeight.Bold,
                                             color = com.example.ui.theme.ChocolateBrown,
-                                            fontSize = 15.sp,
+                                            fontSize = 14.sp,
+                                            maxLines = 1,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                                             textAlign = TextAlign.End
                                         )
-                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Spacer(modifier = Modifier.height(2.dp))
                                         Row(
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                            verticalAlignment = Alignment.CenterVertically
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.fillMaxWidth()
                                         ) {
+                                            Text(
+                                                "שורה: ${when(student.rowPreference) {
+                                                    "Front" -> "קדמית"
+                                                    "Back" -> "אחורית"
+                                                    else -> "אמצעית"
+                                                }}",
+                                                color = com.example.ui.theme.MochaTaupe,
+                                                fontSize = 10.sp,
+                                                maxLines = 1,
+                                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                            )
                                             Text(
                                                 "גובה: ${when(student.height) {
                                                     "Low" -> "נמוך"
@@ -484,16 +504,9 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                                                     else -> "בינוני"
                                                 }}",
                                                 color = com.example.ui.theme.MochaTaupe,
-                                                fontSize = 12.sp
-                                            )
-                                            Text(
-                                                "שורה מועדפת: ${when(student.rowPreference) {
-                                                    "Front" -> "קדמית"
-                                                    "Back" -> "אחורית"
-                                                    else -> "אמצעית"
-                                                }}",
-                                                color = com.example.ui.theme.MochaTaupe,
-                                                fontSize = 12.sp
+                                                fontSize = 10.sp,
+                                                maxLines = 1,
+                                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                             )
                                         }
                                     }
@@ -903,19 +916,40 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                         Text(st.name, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = primaryColor)
                         Spacer(modifier = Modifier.height(16.dp))
                         
-                        // Gamification summary
+                        // Gamification summary (using grid-based proportional layout avoiding wrapping crash on 320dp)
                         Card(
                             colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f)),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(modifier = Modifier.padding(12.dp).fillMaxWidth(), horizontalAlignment = Alignment.End) {
                                 Row(
+                                    modifier = Modifier.fillMaxWidth(),
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    horizontalArrangement = Arrangement.End
                                 ) {
-                                    Text("$pts", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = com.example.ui.theme.PositiveGreen)
-                                    Icon(Icons.Default.Star, contentDescription = null, tint = com.example.ui.theme.GoldGingerStart)
-                                    Text("נקודות התנהגות או הישגים", color = com.example.ui.theme.MochaTaupe, fontSize = 12.sp)
+                                    Text(
+                                        "נקודות התנהגות או הישגים",
+                                        color = com.example.ui.theme.MochaTaupe,
+                                        fontSize = 11.sp,
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f),
+                                        textAlign = TextAlign.End
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Icon(
+                                        Icons.Default.Star,
+                                        contentDescription = null,
+                                        tint = com.example.ui.theme.GoldGingerStart,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        "$pts",
+                                        fontSize = 20.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = com.example.ui.theme.PositiveGreen
+                                    )
                                 }
                             }
                         }
@@ -931,14 +965,40 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(modifier = Modifier.padding(12.dp).fillMaxWidth(), horizontalAlignment = Alignment.End) {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically, 
+                                    horizontalArrangement = Arrangement.End
+                                ) {
+                                    Text(
+                                        "דף עבודה בספר בראשית - הוגש", 
+                                        color = com.example.ui.theme.ChocolateBrown, 
+                                        fontSize = 12.sp,
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f),
+                                        textAlign = TextAlign.End
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
                                     Icon(Icons.Default.CheckCircle, contentDescription = null, tint = com.example.ui.theme.PositiveGreen, modifier = Modifier.size(16.dp))
-                                    Text("דף עבודה בספר בראשית - הוגש", color = com.example.ui.theme.ChocolateBrown, fontSize = 12.sp)
                                 }
                                 Spacer(modifier = Modifier.height(6.dp))
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically, 
+                                    horizontalArrangement = Arrangement.End
+                                ) {
+                                    Text(
+                                        "מטלת סיכום משנה - חסר", 
+                                        color = com.example.ui.theme.MochaTaupe, 
+                                        fontSize = 12.sp,
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f),
+                                        textAlign = TextAlign.End
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
                                     Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFC0392B), modifier = Modifier.size(16.dp))
-                                    Text("מטלת סיכום משנה - חסר", color = com.example.ui.theme.MochaTaupe, fontSize = 12.sp)
                                 }
                                 Spacer(modifier = Modifier.height(12.dp))
                                 

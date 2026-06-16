@@ -5,6 +5,8 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -46,6 +48,12 @@ fun MoreScreen(viewModel: ClassViewModel, onNavigate: (String) -> Unit = {}) {
 
     var showReportDialog by remember { mutableStateOf(false) }
     var reportOutputText by remember { mutableStateOf("") }
+    
+    val classReportTheme by viewModel.classReportWeeklyTheme.collectAsState()
+    val classReportTeacherSummary by viewModel.classReportTeacherSummary.collectAsState()
+    val gradesList by viewModel.grades.collectAsState()
+    val pdfPaperFormat by viewModel.pdfPaperFormat.collectAsState()
+    val logoUriStr by viewModel.schoolLogoUri.collectAsState()
 
     val isLightMode = viewModel.selectedTheme.collectAsState().value == "MODERN"
     val primaryColor = if (isLightMode) com.example.ui.theme.GoldGingerEnd else com.example.ui.theme.GoldGingerStart
@@ -165,6 +173,24 @@ fun MoreScreen(viewModel: ClassViewModel, onNavigate: (String) -> Unit = {}) {
                             modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
+                            // Pacing module
+                            Card(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { com.example.ui.SoundManager.playClick(); onNavigate("PACING") },
+                                colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.CreamBeige.copy(alpha = 0.5f)),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Icon(Icons.Default.DateRange, contentDescription = "הספקים", tint = primaryColor, modifier = Modifier.size(28.dp))
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text("הספקים", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, textAlign = TextAlign.Center)
+                                }
+                            }
+                            
                             // Grades Screen card
                             Card(
                                 modifier = Modifier
@@ -242,6 +268,261 @@ fun MoreScreen(viewModel: ClassViewModel, onNavigate: (String) -> Unit = {}) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Text("מצב 'Modern' (ניגודיות גבוהה)", color = com.example.ui.theme.ChocolateBrown, fontSize = 12.sp)
                                 Icon(Icons.Default.Settings, contentDescription = null, tint = com.example.ui.theme.MochaTaupe)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Customizable Pin-Code Passcode Lock Settings Card
+            item {
+                val pinEnabled by viewModel.pinEnabled.collectAsState()
+                val currentPin by viewModel.appPinCode.collectAsState()
+                var newPinText by remember(currentPin) { mutableStateOf(currentPin) }
+                var pinSavedFeedback by remember { mutableStateOf(false) }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(16.dp), spotColor = Color(0x1264748B)),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.End
+                    ) {
+                        Text(
+                            "אבטחת לוח בקרה וקוד כניסה",
+                            fontWeight = FontWeight.Bold,
+                            color = primaryColor,
+                            style = MaterialTheme.typography.titleMedium,
+                            textAlign = TextAlign.End,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            "שלוט באבטחת המערכת ומנע גישה מקרית של תלמידים לחלקי הניהול.",
+                            color = Color.Gray,
+                            fontSize = 11.sp,
+                            textAlign = TextAlign.End,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // Switch to disable or enable PIN lock completely
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Switch(
+                                checked = pinEnabled,
+                                onCheckedChange = { enabled ->
+                                    com.example.ui.SoundManager.playClick()
+                                    viewModel.updatePinEnabled(enabled)
+                                },
+                                colors = SwitchDefaults.colors(checkedThumbColor = primaryColor, checkedTrackColor = primaryColor.copy(alpha = 0.5f))
+                            )
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text("דרוש קוד סודי בכניסה לאפליקציה", color = com.example.ui.theme.ChocolateBrown, fontSize = 12.sp)
+                                Icon(Icons.Default.Lock, contentDescription = "נעילת אפליקציה", tint = com.example.ui.theme.MochaTaupe)
+                            }
+                        }
+
+                        if (pinEnabled) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text("החלף קוד כניסה (4 ספרות בלבד):", fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = com.example.ui.theme.ChocolateBrown)
+                            Spacer(modifier = Modifier.height(6.dp))
+                            
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Button(
+                                    onClick = {
+                                        if (newPinText.length == 4 && newPinText.all { it.isDigit() }) {
+                                            com.example.ui.SoundManager.playClick()
+                                            viewModel.updatePinCode(newPinText)
+                                            pinSavedFeedback = true
+                                        }
+                                    },
+                                    enabled = newPinText.length == 4 && newPinText.all { it.isDigit() } && newPinText != currentPin,
+                                    modifier = Modifier.height(38.dp),
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
+                                ) {
+                                    Text("שמור קוד חדש", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+
+                                OutlinedTextField(
+                                    value = newPinText,
+                                    onValueChange = { val clean = it.filter { c -> c.isDigit() }; if (clean.length <= 4) newPinText = clean },
+                                    modifier = Modifier.weight(1f).height(48.dp),
+                                    singleLine = true,
+                                    textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, fontSize = 13.sp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = primaryColor,
+                                        cursorColor = primaryColor,
+                                        unfocusedBorderColor = Color.LightGray
+                                    )
+                                )
+                            }
+                            
+                            LaunchedEffect(pinSavedFeedback) {
+                                if (pinSavedFeedback) {
+                                    kotlinx.coroutines.delay(2000)
+                                    pinSavedFeedback = false
+                                }
+                            }
+                            
+                            androidx.compose.animation.AnimatedVisibility(visible = pinSavedFeedback) {
+                                Text(
+                                    text = "הקוד עודכן בהצלחה! הקוד החדש: $currentPin",
+                                    color = com.example.ui.theme.PositiveGreen,
+                                    fontSize = 11.sp,
+                                    modifier = Modifier.padding(top = 4.dp).fillMaxWidth(),
+                                    textAlign = TextAlign.End
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Institutional Branding & PDF format settings card
+            item {
+                val pdfFormat by viewModel.pdfPaperFormat.collectAsState()
+                val logoUriStr by viewModel.schoolLogoUri.collectAsState()
+                
+                val brandingLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+                    contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
+                ) { uri: android.net.Uri? ->
+                    if (uri != null) {
+                        viewModel.setSchoolLogoUri(uri.toString())
+                    }
+                }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(16.dp), spotColor = Color(0x1264748B)),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.End
+                    ) {
+                        Text(
+                            "מיתוג מוסד והגדרות ייצוא",
+                            fontWeight = FontWeight.Bold,
+                            color = primaryColor,
+                            style = MaterialTheme.typography.titleMedium,
+                            textAlign = TextAlign.End,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            "קבע את ממדי ייצוא ה-PDF והעלה סמל מוסד (לוגו) שיוטמע כסימן מים וכותרת עטיפה רשמית בכל מסמכי השיעור ומפות הישיבה.",
+                            color = Color.Gray,
+                            fontSize = 11.sp,
+                            textAlign = TextAlign.End,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // A4 vs Letter custom selector
+                        Text("פורמט נייר מועדף:", fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = com.example.ui.theme.ChocolateBrown)
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = { com.example.ui.SoundManager.playClick(); viewModel.setPdfPaperFormat("Letter") },
+                                modifier = Modifier.weight(1f).height(38.dp),
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (pdfFormat == "Letter") primaryColor else com.example.ui.theme.CreamBeige,
+                                    contentColor = if (pdfFormat == "Letter") Color.White else com.example.ui.theme.ChocolateBrown
+                                )
+                            ) {
+                                Text("Letter (אופטימלי זום)", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                            Button(
+                                onClick = { com.example.ui.SoundManager.playClick(); viewModel.setPdfPaperFormat("A4") },
+                                modifier = Modifier.weight(1f).height(38.dp),
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (pdfFormat == "A4") primaryColor else com.example.ui.theme.CreamBeige,
+                                    contentColor = if (pdfFormat == "A4") Color.White else com.example.ui.theme.ChocolateBrown
+                                )
+                            ) {
+                                Text("A4 סנדרטי (ישראל)", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // School Logo Picker Action
+                        Text("סמל מוסד רשמי:", fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = com.example.ui.theme.ChocolateBrown)
+                        Spacer(modifier = Modifier.height(6.dp))
+                        
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (!logoUriStr.isNullOrEmpty()) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Button(
+                                        onClick = { com.example.ui.SoundManager.playClick(); viewModel.setSchoolLogoUri(null) },
+                                        shape = RoundedCornerShape(8.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC0392B), contentColor = Color.White),
+                                        modifier = Modifier.height(32.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp)
+                                    ) {
+                                        Text("הסר סמל", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                    
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(com.example.ui.theme.CreamBeige)
+                                            .border(1.dp, primaryColor, RoundedCornerShape(8.dp)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(Icons.Default.CheckCircle, contentDescription = "לוגו פעיל", tint = primaryColor, modifier = Modifier.size(16.dp))
+                                    }
+                                }
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(com.example.ui.theme.CreamBeige.copy(alpha=0.6f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.Default.Star, contentDescription = "לוגו ברירת מחדל", tint = Color.Gray, modifier = Modifier.size(16.dp))
+                                }
+                            }
+
+                            Button(
+                                onClick = { com.example.ui.SoundManager.playClick(); brandingLauncher.launch("image/*") },
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
+                                modifier = Modifier.height(36.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Text("העלה לוגו בית ספר", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
                     }
@@ -917,7 +1198,7 @@ fun MoreScreen(viewModel: ClassViewModel, onNavigate: (String) -> Unit = {}) {
                         horizontalAlignment = Alignment.End
                     ) {
                         Text(
-                            "מפיק דוחות הודעות שבועיים",
+                            "מנהל דוחות סיכום כיתתיים שבועיים (PDF)",
                             fontWeight = FontWeight.Bold,
                             color = primaryColor,
                             style = MaterialTheme.typography.titleMedium,
@@ -926,7 +1207,7 @@ fun MoreScreen(viewModel: ClassViewModel, onNavigate: (String) -> Unit = {}) {
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            "בונה הודעה שבועית מותאמת להורים המפרטת את מצטייני הלמידה והישגי המשמעת השבועיים של הכיתה.",
+                            "מערכת מובנית המפיקה דוחות כיתתיים מקיפים המסכמים התקדמות, ציונים ממוצעים, נוכחות והתנהגות לכלל התלמידים בכיתה, כולל קומפוזר לעריכה חיה ותצוגה מקדימה מלאה של דף ה-PDF לפני ההורדה.",
                             color = com.example.ui.theme.MochaTaupe,
                             fontSize = 11.sp,
                             textAlign = TextAlign.Right,
@@ -935,20 +1216,6 @@ fun MoreScreen(viewModel: ClassViewModel, onNavigate: (String) -> Unit = {}) {
 
                         Button(
                             onClick = { com.example.ui.SoundManager.playClick(); 
-                                val topSts = leaderList.take(3).map { it.first.name }
-                                val transcript = """
-                                    שלום רב להורי כיתת ClassPro היקרים,
-                                    להלן סיכום הישגים שבועי פדגוגק של כיתתנו:
-                                    
-                                    🌟 מצטייני השבוע שבלטו בלמידה ובצבירת הישגים:
-                                    ${topSts.mapIndexed { i, n -> "${i + 1}. $n" }.joinToString("\n")}
-                                    
-                                    נמשיך לעקוב ולתמוך בהתפתחות הפדגוגית של כל תלמיד ותלמיד, בסיוע מנוע ה-AI למפת ישיבה אופטימלית וכלים דידקטיים תומכים.
-                                    
-                                    בברכת שבת שלום,
-                                    הנהלת המוסד החינוכי
-                                """.trimIndent()
-                                reportOutputText = transcript
                                 showReportDialog = true
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
@@ -956,7 +1223,7 @@ fun MoreScreen(viewModel: ClassViewModel, onNavigate: (String) -> Unit = {}) {
                         ) {
                             Icon(Icons.Default.MailOutline, contentDescription = null, tint = Color.Black)
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("הפק דוח שבועי", color = Color.Black, fontWeight = FontWeight.Bold)
+                            Text("פתח קומפוזר ותצוגה מקדימה", color = Color.Black, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -1082,15 +1349,15 @@ fun MoreScreen(viewModel: ClassViewModel, onNavigate: (String) -> Unit = {}) {
                 onDismissRequest = { showReportDialog = false },
                 confirmButton = {
                     Button(
-                        onClick = { com.example.ui.SoundManager.playClick();  showReportDialog = false },
+                        onClick = { com.example.ui.SoundManager.playClick(); showReportDialog = false },
                         colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
                     ) {
-                        Text("הבנתי, סגור", color = Color.Black)
+                        Text("סגור קומפוזר", color = Color.Black, fontWeight = FontWeight.Bold)
                     }
                 },
                 title = {
                     Text(
-                        "הודעת דיווח שבועית מוכנה",
+                        "קומפוזר ותצוגה מקדימה ל-PDF כיתתי",
                         fontWeight = FontWeight.Bold,
                         color = com.example.ui.theme.ChocolateBrown,
                         modifier = Modifier.fillMaxWidth(),
@@ -1098,21 +1365,258 @@ fun MoreScreen(viewModel: ClassViewModel, onNavigate: (String) -> Unit = {}) {
                     )
                 },
                 text = {
-                    Box(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color.White.copy(alpha = 0.8f))
-                            .padding(12.dp)
+                            .verticalScroll(rememberScrollState()),
+                        horizontalAlignment = Alignment.End
                     ) {
                         Text(
-                            reportOutputText,
-                            color = com.example.ui.theme.ChocolateBrown,
-                            fontSize = 12.sp,
-                            lineHeight = 18.sp,
-                            textAlign = TextAlign.Right,
-                            modifier = Modifier.fillMaxWidth()
+                            "ערוך את פרטי הדוח השבועי המקיף לכלל התלמידים. השינויים ישתקפו מיידית בתצוגה המקדימה מטה:",
+                            color = com.example.ui.theme.MochaTaupe,
+                            fontSize = 11.sp,
+                            textAlign = TextAlign.End,
+                            modifier = Modifier.padding(bottom = 12.dp)
                         )
+
+                        // Input 1: Weekly theme
+                        OutlinedTextField(
+                            value = classReportTheme,
+                            onValueChange = { viewModel.setClassReportWeeklyTheme(it) },
+                            label = { Text("נושא פדגוגי שבועי", textAlign = TextAlign.End, modifier = Modifier.fillMaxWidth()) },
+                            textStyle = androidx.compose.ui.text.TextStyle(textAlign = TextAlign.Right),
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = primaryColor,
+                                unfocusedBorderColor = com.example.ui.theme.MochaTaupe.copy(alpha = 0.5f)
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Input 2: Teacher summary
+                        OutlinedTextField(
+                            value = classReportTeacherSummary,
+                            onValueChange = { viewModel.setClassReportTeacherSummary(it) },
+                            label = { Text("משוב כללי ודגשים מהמורה", textAlign = TextAlign.End, modifier = Modifier.fillMaxWidth()) },
+                            textStyle = androidx.compose.ui.text.TextStyle(textAlign = TextAlign.Right),
+                            modifier = Modifier.fillMaxWidth(),
+                            minLines = 3,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = primaryColor,
+                                unfocusedBorderColor = com.example.ui.theme.MochaTaupe.copy(alpha = 0.5f)
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // Paper format toggle inside compiler dialog (using grid-based layout structure with min-w-0 and shrink-0 equivalent weight constraints)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                modifier = Modifier.weight(1.1f),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.Start),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Button(
+                                    onClick = { com.example.ui.SoundManager.playClick(); viewModel.setPdfPaperFormat("Letter") },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (pdfPaperFormat == "Letter") primaryColor else Color.LightGray.copy(alpha = 0.4f)
+                                    ),
+                                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                                    modifier = Modifier.height(29.dp).weight(1f)
+                                ) {
+                                    Text("Letter", fontSize = 11.sp, color = Color.Black, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                                }
+                                Button(
+                                    onClick = { com.example.ui.SoundManager.playClick(); viewModel.setPdfPaperFormat("A4") },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (pdfPaperFormat == "A4") primaryColor else Color.LightGray.copy(alpha = 0.4f)
+                                    ),
+                                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                                    modifier = Modifier.height(29.dp).weight(1f)
+                                ) {
+                                    Text("A4", fontSize = 11.sp, color = Color.Black, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                "גודל דף הדפסה:", 
+                                fontSize = 12.sp, 
+                                fontWeight = FontWeight.Bold, 
+                                color = com.example.ui.theme.ChocolateBrown,
+                                modifier = Modifier.weight(0.9f, fill = false),
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                textAlign = TextAlign.End
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Text(
+                            "תצוגה מקדימה פנימית לכותרות ומבנה ה-PDF:",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = primaryColor,
+                            modifier = Modifier.padding(bottom = 6.dp)
+                        )
+
+                        // HIGH FIDELITY PRINT PREVIEW
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .shadow(4.dp, RoundedCornerShape(8.dp)),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color.White)
+                                    .border(2.dp, com.example.ui.theme.GoldGingerStart, RoundedCornerShape(8.dp))
+                                    .border(3.5.dp, Color.White, RoundedCornerShape(8.dp))
+                                    .border(0.5.dp, com.example.ui.theme.GoldGingerStart, RoundedCornerShape(8.dp))
+                                    .padding(14.dp),
+                                horizontalAlignment = Alignment.End
+                            ) {
+                                // PDF crest fallback or logo (proportional grid constraints with min-w-0 & shrink-0 behavior)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(31.dp)
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(com.example.ui.theme.CreamBeige),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Star,
+                                            contentDescription = null,
+                                            tint = com.example.ui.theme.GoldGingerStart,
+                                            modifier = Modifier.size(15.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        horizontalAlignment = Alignment.End
+                                    ) {
+                                        Text(
+                                            "דוח סיכום כיתתי שבועי - ClassPro",
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF1E1B4B),
+                                            fontSize = 12.sp,
+                                            maxLines = 1,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                            textAlign = TextAlign.End
+                                        )
+                                        Text(
+                                            "פורמט נייר: $pdfPaperFormat | נושא: $classReportTheme",
+                                            fontSize = 9.sp,
+                                            color = Color.Gray,
+                                            maxLines = 1,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                            textAlign = TextAlign.End
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Divider(color = Color(0xFFE5E7EB), thickness = 0.75.dp)
+                                Spacer(modifier = Modifier.height(10.dp))
+
+                                // Section 1
+                                Text(
+                                    "1. מדדי התנהגות כיתתית שבועיים:",
+                                    fontWeight = FontWeight.Bold,
+                                    color = com.example.ui.theme.GoldGingerStart,
+                                    fontSize = 10.sp,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    textAlign = TextAlign.End
+                                )
+                                Spacer(modifier = Modifier.height(3.dp))
+                                Column(horizontalAlignment = Alignment.End, modifier = Modifier.fillMaxWidth()) {
+                                    studentsList.sortedByDescending { viewModel.getStudentPoints(it) }.take(4).forEachIndexed { i, st ->
+                                        Text(
+                                            "${i + 1}. תלמיד: ${st.name}  —  צבר: ${viewModel.getStudentPoints(st)} נק'",
+                                            fontSize = 9.sp,
+                                            color = Color.Black,
+                                            textAlign = TextAlign.End
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(10.dp))
+
+                                // Section 2
+                                Text(
+                                    "2. סיכום הישגים ממוצעים וציונים:",
+                                    fontWeight = FontWeight.Bold,
+                                    color = com.example.ui.theme.GoldGingerStart,
+                                    fontSize = 10.sp,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    textAlign = TextAlign.End
+                                )
+                                Spacer(modifier = Modifier.height(3.dp))
+                                Column(horizontalAlignment = Alignment.End, modifier = Modifier.fillMaxWidth()) {
+                                    studentsList.take(4).forEachIndexed { i, st ->
+                                        val studGrades = gradesList.filter { it.studentId == st.id }
+                                        val avg = studGrades.mapNotNull { it.gradeValue.toIntOrNull() }.let { if (it.isEmpty()) 0.0 else it.average() }
+                                        val avgStr = if (avg > 0) "${avg.toInt()}" else "ללא דיווח"
+                                        Text(
+                                            "${i + 1}. תלמיד: ${st.name} | ציון ממוצע: $avgStr",
+                                            fontSize = 9.sp,
+                                            color = Color.Black,
+                                            textAlign = TextAlign.End
+                                        )
+                                    }
+                                    if (studentsList.size > 4) {
+                                        Text("... (ועוד ${studentsList.size - 4} תלמידים בדוח ה-PDF המלא)", fontSize = 8.sp, color = Color.Gray)
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(10.dp))
+
+                                // Section 3
+                                Text(
+                                    "3. דגשים פדגוגיים, יעדים והערות מהמורה:",
+                                    fontWeight = FontWeight.Bold,
+                                    color = com.example.ui.theme.GoldGingerStart,
+                                    fontSize = 10.sp,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    textAlign = TextAlign.End
+                                )
+                                Spacer(modifier = Modifier.height(3.dp))
+                                Text(
+                                    classReportTeacherSummary,
+                                    fontSize = 9.sp,
+                                    color = Color.Black,
+                                    textAlign = TextAlign.End,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // EXPORT BUTTONS
+                        Button(
+                            onClick = { com.example.ui.SoundManager.playClick();
+                                viewModel.exportClassWeeklyReportToPDF(context)
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
+                            modifier = Modifier.fillMaxWidth().testTag("export_pdf_report_confirm_button")
+                        ) {
+                            Icon(Icons.Default.Share, contentDescription = null, tint = Color.Black)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("ייצא קובץ PDF ושתף עכשיו", color = Color.Black, fontWeight = FontWeight.Bold)
+                        }
                     }
                 },
                 containerColor = appBg

@@ -3,9 +3,6 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.VIBRATE" />
-
-    <attribution android:tag="com.aistudio.classpro.wkhpyq" android:label="@string/app_name" />
 
     <application
         android:allowBackup="true"

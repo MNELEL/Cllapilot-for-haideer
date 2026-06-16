@@ -27,7 +27,8 @@ object GeminiSeatingOptimizer {
         students: List<StudentEntity>,
         unlockedDesks: List<DeskEntity>,
         allDesks: List<DeskEntity>,
-        layoutRows: Int
+        layoutRows: Int,
+        grades: List<com.example.data.model.StudentGradeEntity> = emptyList()
     ): Map<Pair<Int, Int>, StudentEntity> = withContext(Dispatchers.IO) {
         val apiKey = BuildConfig.GEMINI_API_KEY
         if (apiKey.isEmpty() || apiKey == "MY_GEMINI_API_KEY") {
@@ -36,16 +37,27 @@ object GeminiSeatingOptimizer {
             return@withContext emptyMap()
         }
 
+        // Aggregate actual database grades
+        val studentGradesMap = grades.groupBy { it.studentId }.mapValues { entry ->
+            entry.value.mapNotNull { it.gradeValue.toIntOrNull() }.average().let { if (it.isNaN()) 0.0 else it }
+        }
+
         // Build a prompt summarizing the constraints
         val desksStr = unlockedDesks.joinToString("; ") { "Desk(${it.row},${it.col})" }
         val studentsStrString = StringBuilder()
         for (st in students) {
+            val dbAverage = studentGradesMap[st.id] ?: 0.0
+            
+            // Also keep legacy point tracking if needed
             val ptsPrefix = "ניקוד: "
             val currentPoints = if (st.notes.startsWith(ptsPrefix)) {
                 val parts = st.notes.split(" | ", limit = 2)
                 parts.first().removePrefix(ptsPrefix).toIntOrNull() ?: 0
             } else 0
-            studentsStrString.append("- ${st.id} (${st.name}): height=${st.height}, rowPref=${st.rowPreference}, lovesToSitNextTo=[${st.loves.joinToString()}], forbidsNextTo=[${st.forbids.joinToString()}], separateFrom=[${st.separate.joinToString()}], academicPoints=$currentPoints, notes='${st.notes}'\n")
+            
+            val totalAcademicValue = dbAverage + currentPoints
+            
+            studentsStrString.append("- ${st.id} (${st.name}): height=${st.height}, rowPref=${st.rowPreference}, lovesToSitNextTo=[${st.loves.joinToString()}], forbidsNextTo=[${st.forbids.joinToString()}], separateFrom=[${st.separate.joinToString()}], academicPerformanceMetric=$totalAcademicValue, notes='${st.notes}'\n")
         }
 
         val prompt = """
@@ -61,7 +73,7 @@ object GeminiSeatingOptimizer {
             1. 'Low' height students should sit at the front (row <= ${layoutRows / 3}), 'Tall' in the back (row >= ${layoutRows * 2 / 3}).
             2. Respect 'rowPreference' ('Front', 'Middle', 'Back').
             3. Behavioral Constraints: Students in 'lovesToSitNextTo' MUST sit at adjacent desks. Students in 'forbidsNextTo' or 'separateFrom' MUST NOT sit next to each other. Use the 'notes' field for any behavioral red flags to separate disruptive students.
-            4. Academic Performance: Use 'academicPoints' to balance the classroom academically. Don't clump all low-performing or high-performing students together. Place stronger peer mentors near weaker ones if possible.
+            4. Academic Performance: Use 'academicPerformanceMetric' to balance the classroom academically. Don't clump all low-performing or high-performing students together. Place stronger peer mentors near weaker ones if possible.
 
             Return exactly ONE valid JSON object, structured as an array of assignments mapping a desk to a student.
             Format output strictly as raw JSON (no markdown text):

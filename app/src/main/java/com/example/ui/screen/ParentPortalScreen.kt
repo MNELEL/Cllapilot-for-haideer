@@ -99,50 +99,89 @@ fun ParentPortalScreen(viewModel: ClassViewModel) {
                     ) {
                         Row(
                             modifier = Modifier.padding(12.dp).fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            if (isSubmitted) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
+                            // Left column: submission elements (mimicking shrink-0 and proportional layout weight)
+                            Row(
+                                modifier = Modifier.weight(1.1f),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Start
+                            ) {
+                                if (isSubmitted) {
                                     Icon(Icons.Default.CheckCircle, contentDescription = null, tint = com.example.ui.theme.PositiveGreen, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("הוגש ונבדק", color = com.example.ui.theme.PositiveGreen, fontSize = 12.sp)
+                                    Text(
+                                        "הוגש ונבדק",
+                                        color = com.example.ui.theme.PositiveGreen,
+                                        fontSize = 11.sp,
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f, fill = false)
+                                    )
                                     // Simulated Parent Read Receipt
-                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
                                     Icon(Icons.Default.Done, contentDescription = null, tint = Color(0xFF3B82F6), modifier = Modifier.size(14.dp))
-                                }
-                            } else {
-                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    IconButton(
-                                        onClick = { com.example.ui.SoundManager.playClick(); 
-                                            // Trigger WhatsApp implicit deep link
-                                            val number = "972500000000" // mocked
-                                            val url = "https://wa.me/$number?text=הורה יקר, תזכורת: ${student.name} לא פרסם את מטלת השבוע. נשמח לשיתוף פעולה."
-                                            val i = Intent(Intent.ACTION_VIEW)
-                                            i.data = Uri.parse(url)
-                                            context.startActivity(i)
-                                        },
-                                        modifier = Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFF128C7E))
+                                } else {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                                     ) {
-                                        Icon(Icons.Default.Email, contentDescription = "WhatsApp Remind", tint = com.example.ui.theme.ChocolateBrown, modifier = Modifier.size(14.dp))
-                                    }
-                                    
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFC0392B), modifier = Modifier.size(16.dp))
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text("חסר (ממתין)", color = com.example.ui.theme.ChocolateBrown, fontSize = 12.sp)
+                                        IconButton(
+                                            onClick = { com.example.ui.SoundManager.playClick(); 
+                                                // Trigger WhatsApp implicit deep link
+                                                val number = "972500000000" // mocked
+                                                val url = "https://wa.me/$number?text=הורה יקר, תזכורת: ${student.name} לא פרסם את מטלת השבוע. נשמח לשיתוף פעולה."
+                                                val i = Intent(Intent.ACTION_VIEW)
+                                                i.data = Uri.parse(url)
+                                                context.startActivity(i)
+                                            },
+                                            modifier = Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFF128C7E))
+                                        ) {
+                                            Icon(Icons.Default.Email, contentDescription = "WhatsApp Remind", tint = com.example.ui.theme.ChocolateBrown, modifier = Modifier.size(14.dp))
+                                        }
+                                        
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.Start
+                                        ) {
+                                            Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFC0392B), modifier = Modifier.size(14.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                "חסר",
+                                                color = com.example.ui.theme.ChocolateBrown,
+                                                fontSize = 11.sp,
+                                                maxLines = 1,
+                                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                            )
+                                        }
                                     }
                                 }
                             }
 
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(student.name, color = com.example.ui.theme.ChocolateBrown, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            // Right column: student info (mimicking min-w-0 / truncate)
+                            Row(
+                                modifier = Modifier.weight(0.9f),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                Text(
+                                    student.name,
+                                    color = com.example.ui.theme.ChocolateBrown,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                    textAlign = TextAlign.End,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
                                 Box(
-                                    modifier = Modifier.size(32.dp).clip(RoundedCornerShape(16.dp)).background(Color.White.copy(alpha = 0.8f)),
+                                    modifier = Modifier.size(28.dp).clip(RoundedCornerShape(14.dp)).background(Color.White.copy(alpha = 0.8f)),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text(student.name.take(1), color = primaryColor, fontWeight = FontWeight.Bold)
+                                    Text(student.name.take(1), fontSize = 11.sp, color = primaryColor, fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
