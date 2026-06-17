@@ -91,7 +91,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val themeState by viewModel.selectedTheme.collectAsState()
             
-            MyApplicationTheme {
+            MyApplicationTheme(themePreference = themeState) {
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                     var currentDestination by remember { mutableStateOf("DASHBOARD") }
 

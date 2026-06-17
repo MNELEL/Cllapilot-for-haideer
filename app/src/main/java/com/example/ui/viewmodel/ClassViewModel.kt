@@ -1,6 +1,7 @@
 package com.example.ui.viewmodel
 
 import android.app.Application
+import com.example.data.network.ChuckNorrisClient
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -103,6 +104,28 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
     val classReportWeeklyTheme = MutableStateFlow("למידה שיתופית ושיפור מיומנויות חברתיות")
     val classReportTeacherSummary = MutableStateFlow("השבוע התקדמנו בלמידת עמיתים בסיוע סידור הישיבה האופטימלי שנוצר ע״י ה-AI. רמת הקשב, ההשתתפות והמשמעת של כלל התלמידים עלו בצורה ניכרת, בייחוד בשלבי התרגול הממוקדים.")
 
+    // Chuck Norris joke states
+    val chuckNorrisJoke = MutableStateFlow<String>("Loading classroom discipline instructions from Chuck Norris...")
+    val chuckNorrisLoading = MutableStateFlow<Boolean>(false)
+    val chuckNorrisError = MutableStateFlow<String?>(null)
+
+    fun fetchChuckNorrisJoke() {
+        viewModelScope.launch {
+            chuckNorrisLoading.value = true
+            chuckNorrisError.value = null
+            try {
+                val joke = ChuckNorrisClient.api.getRandomJoke()
+                // Replace curly / special quotes if any
+                chuckNorrisJoke.value = joke.value ?: "Chuck Norris never fails to return a joke."
+            } catch (e: Exception) {
+                Log.e("ClassViewModel", "Error fetching Chuck Norris joke", e)
+                chuckNorrisError.value = "שגיאה בתקשורת עם שרת הבדיחות"
+            } finally {
+                chuckNorrisLoading.value = false
+            }
+        }
+    }
+
     // Simulate Firebase real-time Sync
     fun simulateSync() {
         viewModelScope.launch {
@@ -119,6 +142,9 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
         val sharedPref = getApplication<android.app.Application>().getSharedPreferences("classpro_prefs", android.content.Context.MODE_PRIVATE)
         pdfPaperFormat.value = sharedPref.getString("pdf_paper_format", "A4") ?: "A4"
         schoolLogoUri.value = sharedPref.getString("school_logo_uri", null)
+
+        // Fetch initial Chuck Norris classroom motivation joke
+        fetchChuckNorrisJoke()
 
         // Initialize default database records if empty
         viewModelScope.launch {
@@ -412,7 +438,7 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // AI Multi-row / Height Smart Seat Placement Solver
-    fun runIntelligentAIPlacement() {
+    fun runIntelligentAIPlacement(additionalConstraints: String = "") {
         savePlacementState()
         val allGrades = grades.value
         
@@ -442,7 +468,7 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
 
             // Dynamic arrangement algorithm using simulated annealing style score optimizer or AI
             var bestArrangement = com.example.util.GeminiSeatingOptimizer.optimizeSeating(
-                stToPlace, unlockedDesks, allDs, layoutRows.value, allGrades
+                stToPlace, unlockedDesks, allDs, layoutRows.value, allGrades, additionalConstraints
             )
 
             // Fallback to local heuristic if AI fails (or API key is missing)
@@ -706,6 +732,24 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private fun sanitizeHeight(input: String): String {
+        val trimmed = input.trim()
+        return when {
+            trimmed.equals("Low", ignoreCase = true) || trimmed == "נמוך" || trimmed == "נמוכה" -> "Low"
+            trimmed.equals("Tall", ignoreCase = true) || trimmed == "גבוה" || trimmed == "גבוהה" -> "Tall"
+            else -> "Medium"
+        }
+    }
+
+    private fun sanitizeRowPreference(input: String): String {
+        val trimmed = input.trim()
+        return when {
+            trimmed.equals("Front", ignoreCase = true) || trimmed == "קדמית" || trimmed == "קדימה" || trimmed == "ראשונה" -> "Front"
+            trimmed.equals("Back", ignoreCase = true) || trimmed == "אחורית" || trimmed == "אחורה" || trimmed == "אחרונה" -> "Back"
+            else -> "Middle"
+        }
+    }
+
     // Ingest JSON or text batch formats
     fun processBulkIntake(bulkInput: String) {
         viewModelScope.launch {
@@ -737,8 +781,8 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
                             StudentEntity(
                                 id = UUID.randomUUID().toString(),
                                 name = obj.getString("name"),
-                                height = obj.optString("height", "Medium"),
-                                rowPreference = obj.optString("rowPreference", "Middle"),
+                                height = sanitizeHeight(obj.optString("height", "Medium")),
+                                rowPreference = sanitizeRowPreference(obj.optString("rowPreference", "Middle")),
                                 loves = lovesList,
                                 forbids = forbidsList,
                                 separate = sepList,
@@ -763,8 +807,8 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
                                 StudentEntity(
                                     id = UUID.randomUUID().toString(),
                                     name = name,
-                                    height = height,
-                                    rowPreference = rowPref,
+                                    height = sanitizeHeight(height),
+                                    rowPreference = sanitizeRowPreference(rowPref),
                                     loves = emptyList(),
                                     forbids = emptyList(),
                                     separate = emptyList(),
@@ -1486,8 +1530,8 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
                     StudentEntity(
                         id = UUID.randomUUID().toString(),
                         name = name,
-                        height = if (height in listOf("Low", "Medium", "Tall")) height else "Medium",
-                        rowPreference = if (pref in listOf("Front", "Middle", "Back")) pref else "Middle",
+                        height = sanitizeHeight(height),
+                        rowPreference = sanitizeRowPreference(pref),
                         loves = emptyList(),
                         forbids = emptyList(),
                         separate = emptyList(),

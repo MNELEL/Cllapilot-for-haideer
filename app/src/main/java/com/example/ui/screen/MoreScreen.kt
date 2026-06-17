@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.StudentEntity
@@ -54,6 +55,7 @@ fun MoreScreen(viewModel: ClassViewModel, onNavigate: (String) -> Unit = {}) {
     val gradesList by viewModel.grades.collectAsState()
     val pdfPaperFormat by viewModel.pdfPaperFormat.collectAsState()
     val logoUriStr by viewModel.schoolLogoUri.collectAsState()
+    val activeDark by com.example.ui.theme.ThemeManager.isDarkTheme.collectAsState()
 
     val isLightMode = viewModel.selectedTheme.collectAsState().value == "MODERN"
     val primaryColor = if (isLightMode) com.example.ui.theme.GoldGingerEnd else com.example.ui.theme.GoldGingerStart
@@ -117,17 +119,19 @@ fun MoreScreen(viewModel: ClassViewModel, onNavigate: (String) -> Unit = {}) {
                             Card(
                                 modifier = Modifier
                                     .weight(1f)
+                                    .height(96.dp)
                                     .clickable { com.example.ui.SoundManager.playClick(); onNavigate("LIBRARY") },
                                 colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.CreamBeige.copy(alpha = 0.5f)),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 Column(
-                                    modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                                    modifier = Modifier.padding(12.dp).fillMaxSize(),
+                                    verticalArrangement = Arrangement.Center,
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    Icon(Icons.Default.List, contentDescription = "ספרייה", tint = primaryColor, modifier = Modifier.size(28.dp))
+                                    Icon(Icons.Default.List, contentDescription = "ספריית שיעורים", tint = primaryColor, modifier = Modifier.size(28.dp))
                                     Spacer(modifier = Modifier.height(4.dp))
-                                    Text("ספריית שיעורים", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, textAlign = TextAlign.Center)
+                                    Text("ספרייה", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }
                             }
 
@@ -135,17 +139,19 @@ fun MoreScreen(viewModel: ClassViewModel, onNavigate: (String) -> Unit = {}) {
                             Card(
                                 modifier = Modifier
                                     .weight(1f)
+                                    .height(96.dp)
                                     .clickable { com.example.ui.SoundManager.playClick(); onNavigate("PORTAL") },
                                 colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.CreamBeige.copy(alpha = 0.5f)),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 Column(
-                                    modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                                    modifier = Modifier.padding(12.dp).fillMaxSize(),
+                                    verticalArrangement = Arrangement.Center,
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    Icon(Icons.Default.Email, contentDescription = "קשר הורים", tint = primaryColor, modifier = Modifier.size(28.dp))
+                                    Icon(Icons.Default.Email, contentDescription = "פורטל הורים", tint = primaryColor, modifier = Modifier.size(28.dp))
                                     Spacer(modifier = Modifier.height(4.dp))
-                                    Text("פורטל הורים", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, textAlign = TextAlign.Center)
+                                    Text("פורטל הורים", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }
                             }
 
@@ -153,17 +159,19 @@ fun MoreScreen(viewModel: ClassViewModel, onNavigate: (String) -> Unit = {}) {
                             Card(
                                 modifier = Modifier
                                     .weight(1f)
+                                    .height(96.dp)
                                     .clickable { com.example.ui.SoundManager.playClick(); onNavigate("TIMER") },
                                 colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.CreamBeige.copy(alpha = 0.5f)),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 Column(
-                                    modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                                    modifier = Modifier.padding(12.dp).fillMaxSize(),
+                                    verticalArrangement = Arrangement.Center,
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
                                     Icon(Icons.Default.PlayArrow, contentDescription = "טיימר", tint = primaryColor, modifier = Modifier.size(28.dp))
                                     Spacer(modifier = Modifier.height(4.dp))
-                                    Text("טיימר מלא", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, textAlign = TextAlign.Center)
+                                    Text("טיימר", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }
                             }
                         }
@@ -177,17 +185,19 @@ fun MoreScreen(viewModel: ClassViewModel, onNavigate: (String) -> Unit = {}) {
                             Card(
                                 modifier = Modifier
                                     .weight(1f)
+                                    .height(96.dp)
                                     .clickable { com.example.ui.SoundManager.playClick(); onNavigate("PACING") },
                                 colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.CreamBeige.copy(alpha = 0.5f)),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 Column(
-                                    modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                                    modifier = Modifier.padding(12.dp).fillMaxSize(),
+                                    verticalArrangement = Arrangement.Center,
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
                                     Icon(Icons.Default.DateRange, contentDescription = "הספקים", tint = primaryColor, modifier = Modifier.size(28.dp))
                                     Spacer(modifier = Modifier.height(4.dp))
-                                    Text("הספקים", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, textAlign = TextAlign.Center)
+                                    Text("הספקים", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }
                             }
                             
@@ -195,17 +205,19 @@ fun MoreScreen(viewModel: ClassViewModel, onNavigate: (String) -> Unit = {}) {
                             Card(
                                 modifier = Modifier
                                     .weight(1f)
+                                    .height(96.dp)
                                     .clickable { com.example.ui.SoundManager.playClick(); onNavigate("GRADES") },
                                 colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.CreamBeige.copy(alpha = 0.5f)),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 Column(
-                                    modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                                    modifier = Modifier.padding(12.dp).fillMaxSize(),
+                                    verticalArrangement = Arrangement.Center,
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    Icon(Icons.Default.Edit, contentDescription = "ציונים", tint = primaryColor, modifier = Modifier.size(28.dp))
+                                    Icon(Icons.Default.Edit, contentDescription = "ניהול ציונים", tint = primaryColor, modifier = Modifier.size(28.dp))
                                     Spacer(modifier = Modifier.height(4.dp))
-                                    Text("ניהול ציונים", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, textAlign = TextAlign.Center)
+                                    Text("ציונים", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }
                             }
                             
@@ -213,17 +225,19 @@ fun MoreScreen(viewModel: ClassViewModel, onNavigate: (String) -> Unit = {}) {
                             Card(
                                 modifier = Modifier
                                     .weight(1f)
+                                    .height(96.dp)
                                     .clickable { com.example.ui.SoundManager.playClick(); onNavigate("GAMIFICATION") },
                                 colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.CreamBeige.copy(alpha = 0.5f)),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 Column(
-                                    modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                                    modifier = Modifier.padding(12.dp).fillMaxSize(),
+                                    verticalArrangement = Arrangement.Center,
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    Icon(Icons.Default.Star, contentDescription = "גמיפיקציה", tint = primaryColor, modifier = Modifier.size(28.dp))
+                                    Icon(Icons.Default.Star, contentDescription = "מובילים", tint = primaryColor, modifier = Modifier.size(28.dp))
                                     Spacer(modifier = Modifier.height(4.dp))
-                                    Text("מובילים", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, textAlign = TextAlign.Center)
+                                    Text("מובילים", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }
                             }
                         }
@@ -825,8 +839,6 @@ fun MoreScreen(viewModel: ClassViewModel, onNavigate: (String) -> Unit = {}) {
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            val activeDark by com.example.ui.theme.ThemeManager.isDarkTheme.collectAsState()
-                            
                             Switch(
                                 checked = activeDark,
                                 onCheckedChange = { checked ->
@@ -875,6 +887,7 @@ fun MoreScreen(viewModel: ClassViewModel, onNavigate: (String) -> Unit = {}) {
                         Spacer(modifier = Modifier.height(8.dp))
 
                         // Screen mock container (light theme background)
+                        val currentTheme by viewModel.selectedTheme.collectAsState()
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -884,6 +897,16 @@ fun MoreScreen(viewModel: ClassViewModel, onNavigate: (String) -> Unit = {}) {
                                     Brush.linearGradient(
                                         colors = listOf(com.example.ui.theme.WhiteWarm, com.example.ui.theme.CreamBeige, Color(0xFFFFF2D9))
                                     )
+                                )
+                                .clickable {
+                                    com.example.ui.SoundManager.playClick()
+                                    viewModel.setTheme("CREAM")
+                                    com.example.ui.theme.ThemeManager.setDarkTheme(context, false)
+                                }
+                                .border(
+                                    width = if ((currentTheme == "CREAM" || currentTheme == "WARM") && !activeDark) 2.5.dp else 0.dp,
+                                    color = if ((currentTheme == "CREAM" || currentTheme == "WARM") && !activeDark) com.example.ui.theme.GoldGingerStart else Color.Transparent,
+                                    shape = RoundedCornerShape(16.dp)
                                 )
                                 .padding(12.dp),
                             contentAlignment = Alignment.Center
@@ -900,7 +923,16 @@ fun MoreScreen(viewModel: ClassViewModel, onNavigate: (String) -> Unit = {}) {
                                         .height(75.dp)
                                         .clip(RoundedCornerShape(14.dp))
                                         .background(Brush.radialGradient(colors = listOf(com.example.ui.theme.LightPinkStart, com.example.ui.theme.LightPinkEnd)))
-                                        .border(1.dp, Color.White.copy(alpha = 0.5f), RoundedCornerShape(14.dp))
+                                        .clickable {
+                                            com.example.ui.SoundManager.playPop()
+                                            viewModel.setTheme("PINK")
+                                            com.example.ui.theme.ThemeManager.setDarkTheme(context, false)
+                                        }
+                                        .border(
+                                            width = if (currentTheme == "PINK" && !activeDark) 2.5.dp else 1.dp,
+                                            color = if (currentTheme == "PINK" && !activeDark) com.example.ui.theme.GoldGingerStart else Color.White.copy(alpha = 0.5f),
+                                            shape = RoundedCornerShape(14.dp)
+                                        )
                                         .padding(8.dp),
                                     contentAlignment = Alignment.BottomEnd
                                 ) {
@@ -914,7 +946,16 @@ fun MoreScreen(viewModel: ClassViewModel, onNavigate: (String) -> Unit = {}) {
                                         .height(75.dp)
                                         .clip(RoundedCornerShape(14.dp))
                                         .background(Brush.radialGradient(colors = listOf(com.example.ui.theme.LightTealStart, com.example.ui.theme.LightTealEnd)))
-                                        .border(1.dp, Color.White.copy(alpha = 0.5f), RoundedCornerShape(14.dp))
+                                        .clickable {
+                                            com.example.ui.SoundManager.playPop()
+                                            viewModel.setTheme("TEAL")
+                                            com.example.ui.theme.ThemeManager.setDarkTheme(context, false)
+                                        }
+                                        .border(
+                                            width = if (currentTheme == "TEAL" && !activeDark) 2.5.dp else 1.dp,
+                                            color = if (currentTheme == "TEAL" && !activeDark) com.example.ui.theme.GoldGingerStart else Color.White.copy(alpha = 0.5f),
+                                            shape = RoundedCornerShape(14.dp)
+                                        )
                                         .padding(8.dp),
                                     contentAlignment = Alignment.BottomEnd
                                 ) {
@@ -928,7 +969,16 @@ fun MoreScreen(viewModel: ClassViewModel, onNavigate: (String) -> Unit = {}) {
                                         .height(75.dp)
                                         .clip(RoundedCornerShape(14.dp))
                                         .background(Brush.radialGradient(colors = listOf(com.example.ui.theme.LightGoldStart, com.example.ui.theme.LightGoldEnd)))
-                                        .border(1.dp, Color.White.copy(alpha = 0.5f), RoundedCornerShape(14.dp))
+                                        .clickable {
+                                            com.example.ui.SoundManager.playPop()
+                                            viewModel.setTheme("GOLD")
+                                            com.example.ui.theme.ThemeManager.setDarkTheme(context, false)
+                                        }
+                                        .border(
+                                            width = if (currentTheme == "GOLD" && !activeDark) 2.5.dp else 1.dp,
+                                            color = if (currentTheme == "GOLD" && !activeDark) com.example.ui.theme.GoldGingerStart else Color.White.copy(alpha = 0.5f),
+                                            shape = RoundedCornerShape(14.dp)
+                                        )
                                         .padding(8.dp),
                                     contentAlignment = Alignment.BottomEnd
                                 ) {
@@ -945,7 +995,7 @@ fun MoreScreen(viewModel: ClassViewModel, onNavigate: (String) -> Unit = {}) {
                             horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("ערכת נושא כהה (Dark Mode)", fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, fontSize = 14.sp)
+                            Text("ערכת נושא כהה (Dark Theme)", fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, fontSize = 14.sp)
                             Icon(Icons.Default.Warning, contentDescription = null, tint = com.example.ui.theme.ChocolateBrown, modifier = Modifier.size(16.dp))
                         }
 
@@ -977,7 +1027,16 @@ fun MoreScreen(viewModel: ClassViewModel, onNavigate: (String) -> Unit = {}) {
                                         .height(75.dp)
                                         .clip(RoundedCornerShape(14.dp))
                                         .background(Brush.radialGradient(colors = listOf(com.example.ui.theme.DarkPurpleStart, com.example.ui.theme.DarkPurpleEnd)))
-                                        .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(14.dp))
+                                        .clickable {
+                                            com.example.ui.SoundManager.playPop()
+                                            viewModel.setTheme("PURPLE")
+                                            com.example.ui.theme.ThemeManager.setDarkTheme(context, true)
+                                        }
+                                        .border(
+                                            width = if (currentTheme == "PURPLE" && activeDark) 2.5.dp else 1.dp,
+                                            color = if (currentTheme == "PURPLE" && activeDark) com.example.ui.theme.GoldGingerStart else Color.White.copy(alpha = 0.15f),
+                                            shape = RoundedCornerShape(14.dp)
+                                        )
                                         .padding(8.dp),
                                     contentAlignment = Alignment.BottomEnd
                                 ) {
@@ -991,7 +1050,16 @@ fun MoreScreen(viewModel: ClassViewModel, onNavigate: (String) -> Unit = {}) {
                                         .height(75.dp)
                                         .clip(RoundedCornerShape(14.dp))
                                         .background(Brush.radialGradient(colors = listOf(com.example.ui.theme.DarkTealStart, com.example.ui.theme.DarkTealEnd)))
-                                        .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(14.dp))
+                                        .clickable {
+                                            com.example.ui.SoundManager.playPop()
+                                            viewModel.setTheme("DARK_TEAL")
+                                            com.example.ui.theme.ThemeManager.setDarkTheme(context, true)
+                                        }
+                                        .border(
+                                            width = if (currentTheme == "DARK_TEAL" && activeDark) 2.5.dp else 1.dp,
+                                            color = if (currentTheme == "DARK_TEAL" && activeDark) com.example.ui.theme.GoldGingerStart else Color.White.copy(alpha = 0.15f),
+                                            shape = RoundedCornerShape(14.dp)
+                                        )
                                         .padding(8.dp),
                                     contentAlignment = Alignment.BottomEnd
                                 ) {
@@ -1005,7 +1073,16 @@ fun MoreScreen(viewModel: ClassViewModel, onNavigate: (String) -> Unit = {}) {
                                         .height(75.dp)
                                         .clip(RoundedCornerShape(14.dp))
                                         .background(Brush.radialGradient(colors = listOf(com.example.ui.theme.DarkBlueStart, com.example.ui.theme.DarkBlueEnd)))
-                                        .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(14.dp))
+                                        .clickable {
+                                            com.example.ui.SoundManager.playPop()
+                                            viewModel.setTheme("DARK_BLUE")
+                                            com.example.ui.theme.ThemeManager.setDarkTheme(context, true)
+                                        }
+                                        .border(
+                                            width = if (currentTheme == "DARK_BLUE" && activeDark) 2.5.dp else 1.dp,
+                                            color = if (currentTheme == "DARK_BLUE" && activeDark) com.example.ui.theme.GoldGingerStart else Color.White.copy(alpha = 0.15f),
+                                            shape = RoundedCornerShape(14.dp)
+                                        )
                                         .padding(8.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
@@ -1100,18 +1177,27 @@ fun MoreScreen(viewModel: ClassViewModel, onNavigate: (String) -> Unit = {}) {
                         )
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        Row(
+                        Column(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            horizontalAlignment = Alignment.End
                         ) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Button(onClick = { com.example.ui.SoundManager.playClick();  viewModel.generateGroupsOfSize(2) }, colors = ButtonDefaults.outlinedButtonColors(contentColor = primaryColor)) { Text("זוגות (2)") }
-                                Button(onClick = { com.example.ui.SoundManager.playClick();  viewModel.generateGroupsOfSize(3) }, colors = ButtonDefaults.outlinedButtonColors(contentColor = primaryColor)) { Text("שלשות (3)") }
-                                Button(onClick = { com.example.ui.SoundManager.playClick();  viewModel.generateGroupsOfSize(4) }, colors = ButtonDefaults.outlinedButtonColors(contentColor = primaryColor)) { Text("קבוצות של 4") }
+                            Text(
+                                "מספר חברים בקבוצה:", 
+                                color = com.example.ui.theme.MochaTaupe, 
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                textAlign = TextAlign.End,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
+                            ) {
+                                Button(onClick = { com.example.ui.SoundManager.playClick(); viewModel.generateGroupsOfSize(4) }, colors = ButtonDefaults.outlinedButtonColors(contentColor = primaryColor)) { Text("רביעיות (4)") }
+                                Button(onClick = { com.example.ui.SoundManager.playClick(); viewModel.generateGroupsOfSize(3) }, colors = ButtonDefaults.outlinedButtonColors(contentColor = primaryColor)) { Text("שלשות (3)") }
+                                Button(onClick = { com.example.ui.SoundManager.playClick(); viewModel.generateGroupsOfSize(2) }, colors = ButtonDefaults.outlinedButtonColors(contentColor = primaryColor)) { Text("זוגות (2)") }
                             }
-
-                            Text("מספר חברים:", color = com.example.ui.theme.MochaTaupe, fontSize = 12.sp)
                         }
 
                         if (generatedGroups.isNotEmpty()) {

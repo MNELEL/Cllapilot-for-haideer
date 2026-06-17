@@ -11,7 +11,7 @@ android {
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
   defaultConfig {
-    applicationId = "com.aistudio.classpro.wkhpyq"
+    applicationId = "com.aistudio.voicecloner.abcvdx"
     minSdk = 24
     targetSdk = 36
     versionCode = 6
@@ -114,6 +114,42 @@ tasks.register("addHaptics") {
         content = content.replace("onClick = {", "onClick = { com.example.ui.SoundManager.playClick(); ")
         content = content.replace(".clickable {", ".clickable { com.example.ui.SoundManager.playClick(); ")
         f.writeText(content)
+      }
+    }
+  }
+}
+
+tasks.register("syncAndIncrement") {
+  val buildFile = File(projectDir, "build.gradle.kts")
+  val metadataFile = File(projectDir.parentFile, "play_store_metadata.json")
+
+  doLast {
+    if (buildFile.exists()) {
+      var content = buildFile.readText()
+      val vCodeRegex = Regex("""versionCode\s*=\s*(\d+)""")
+      val match = vCodeRegex.find(content)
+      if (match != null) {
+        val currentCode = match.groupValues[1].toInt()
+        val nextCode = currentCode + 1
+        content = content.replace("versionCode = $currentCode", "versionCode = $nextCode")
+        
+        val vNameRegex = Regex("""versionName\s*=\s*"([^"]+)"""")
+        val nameMatch = vNameRegex.find(content)
+        if (nameMatch != null) {
+          content = content.replace("versionName = \"${nameMatch.groupValues[1]}\"", "versionName = \"$nextCode.0\"")
+        }
+        
+        buildFile.writeText(content)
+        println("[✓] Incremented build.gradle.kts versionCode from $currentCode to $nextCode")
+
+        // Also synchronize play_store_metadata.json
+        if (metadataFile.exists()) {
+          var metaText = metadataFile.readText()
+          metaText = metaText.replace(Regex("""\"versionCode\"\s*:\s*\d+"""), "\"versionCode\": $nextCode")
+          metaText = metaText.replace(Regex("""\"versionName\"\s*:\s*\"[^\"]+\""""), "\"versionName\": \"$nextCode.0\"")
+          metadataFile.writeText(metaText)
+          println("[✓] Synced play_store_metadata.json to version $nextCode")
+        }
       }
     }
   }

@@ -27,6 +27,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.R
@@ -272,7 +273,9 @@ fun DashboardScreen(viewModel: ClassViewModel, onNavigate: (String) -> Unit = {}
                                 color = com.example.ui.theme.MochaTaupe,
                                 fontSize = 12.sp,
                                 textAlign = TextAlign.End,
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
@@ -328,6 +331,158 @@ fun DashboardScreen(viewModel: ClassViewModel, onNavigate: (String) -> Unit = {}
                             Spacer(modifier = Modifier.height(8.dp))
                             Text("נוכחות היום", style = MaterialTheme.typography.bodySmall.copy(color = com.example.ui.theme.MochaTaupe))
                             Text("$attendanceRate%", style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, color = com.example.ui.theme.PositiveGreen))
+                        }
+                    }
+                }
+            }
+
+            // Chuck Norris Classroom Humor & Discipline Card
+            item {
+                val jokeText by viewModel.chuckNorrisJoke.collectAsState()
+                val isLoading by viewModel.chuckNorrisLoading.collectAsState()
+                val hasError by viewModel.chuckNorrisError.collectAsState()
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(8.dp, RoundedCornerShape(24.dp), spotColor = Color(0x1F64748B))
+                        .testTag("chuck_norris_joke_card"),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.CreamBeige),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.MochaTaupe.copy(alpha = 0.4f))
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        horizontalAlignment = Alignment.End
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Left side - Refresh button (minimum 48dp touch target)
+                            IconButton(
+                                onClick = {
+                                    com.example.ui.SoundManager.playClick()
+                                    viewModel.fetchChuckNorrisJoke()
+                                },
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .testTag("refresh_joke_button"),
+                                colors = IconButtonDefaults.iconButtonColors(
+                                    containerColor = Color.White.copy(alpha = 0.6f)
+                                )
+                            ) {
+                                if (isLoading) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(22.dp),
+                                        color = com.example.ui.theme.GoldGingerEnd,
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.Refresh,
+                                        contentDescription = "בדיחה חדשה",
+                                        tint = com.example.ui.theme.GoldGingerEnd,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                            }
+
+                            // Right side - Title and Icon
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    text = "קורטוב משמעת והומור כיתתי",
+                                    fontWeight = FontWeight.Bold,
+                                    color = com.example.ui.theme.ChocolateBrown,
+                                    fontSize = 14.sp
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.Info,
+                                    contentDescription = null,
+                                    tint = com.example.ui.theme.GoldGingerEnd,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Speech bubble for Chuck Norris
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Color.White)
+                                .border(1.dp, Color.White, RoundedCornerShape(16.dp))
+                                .padding(16.dp)
+                        ) {
+                            if (isLoading) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 12.dp)
+                                ) {
+                                    CircularProgressIndicator(
+                                        color = com.example.ui.theme.GoldGingerEnd,
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .testTag("joke_loading_indicator"),
+                                        strokeWidth = 3.dp
+                                    )
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Text(
+                                        text = "צ'אק נוריס מנסח חוק משמעת חדש...",
+                                        color = com.example.ui.theme.MochaTaupe,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            } else {
+                                Column(
+                                    horizontalAlignment = Alignment.End,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    hasError?.let { errorMsg ->
+                                        Text(
+                                            text = errorMsg,
+                                            color = MaterialTheme.colorScheme.error,
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            textAlign = TextAlign.End,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    } ?: run {
+                                        Text(
+                                            text = jokeText,
+                                            color = com.example.ui.theme.ChocolateBrown,
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            textAlign = TextAlign.End,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    }
+                                    
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    
+                                    Text(
+                                        text = "— חוקי המשמעת של צ'אק נוריס",
+                                        color = com.example.ui.theme.MochaTaupe,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        textAlign = TextAlign.Start,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -608,13 +763,13 @@ fun DashboardScreen(viewModel: ClassViewModel, onNavigate: (String) -> Unit = {}
                                         com.example.ui.SoundManager.playClick()
                                         showStudentModal = student
                                     },
-                                    modifier = Modifier.size(32.dp)
+                                    modifier = Modifier.size(48.dp)
                                 ) {
                                     Icon(
                                         Icons.Default.Person,
-                                        contentDescription = "Profile",
+                                        contentDescription = "צפייה בפרופיל תלמיד",
                                         tint = com.example.ui.theme.GoldGingerEnd,
-                                        modifier = Modifier.size(20.dp)
+                                        modifier = Modifier.size(24.dp)
                                     )
                                 }
 

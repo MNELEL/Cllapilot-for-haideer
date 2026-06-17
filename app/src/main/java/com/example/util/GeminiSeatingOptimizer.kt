@@ -28,7 +28,8 @@ object GeminiSeatingOptimizer {
         unlockedDesks: List<DeskEntity>,
         allDesks: List<DeskEntity>,
         layoutRows: Int,
-        grades: List<com.example.data.model.StudentGradeEntity> = emptyList()
+        grades: List<com.example.data.model.StudentGradeEntity> = emptyList(),
+        additionalConstraints: String = ""
     ): Map<Pair<Int, Int>, StudentEntity> = withContext(Dispatchers.IO) {
         val apiKey = BuildConfig.GEMINI_API_KEY
         if (apiKey.isEmpty() || apiKey == "MY_GEMINI_API_KEY") {
@@ -74,6 +75,8 @@ object GeminiSeatingOptimizer {
             2. Respect 'rowPreference' ('Front', 'Middle', 'Back').
             3. Behavioral Constraints: Students in 'lovesToSitNextTo' MUST sit at adjacent desks. Students in 'forbidsNextTo' or 'separateFrom' MUST NOT sit next to each other. Use the 'notes' field for any behavioral red flags to separate disruptive students.
             4. Academic Performance: Use 'academicPerformanceMetric' to balance the classroom academically. Don't clump all low-performing or high-performing students together. Place stronger peer mentors near weaker ones if possible.
+            5. Additional Teacher Requests & Directives:
+               $additionalConstraints
 
             Return exactly ONE valid JSON object, structured as an array of assignments mapping a desk to a student.
             Format output strictly as raw JSON (no markdown text):

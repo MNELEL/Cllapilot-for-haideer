@@ -42,6 +42,13 @@ import androidx.compose.ui.draw.shadow
 import com.example.data.model.DeskEntity
 import com.example.data.model.StudentEntity
 import com.example.ui.viewmodel.ClassViewModel
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.window.Popup
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,6 +78,12 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
     var dragSourceCoords by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     var tooltipDesk by remember { mutableStateOf<DeskEntity?>(null) }
     
+    // Drag-and-Drop system states
+    var draggingStudent by remember { mutableStateOf<StudentEntity?>(null) }
+    var draggingStartDesk by remember { mutableStateOf<DeskEntity?>(null) }
+    var draggingCurrentPosition by remember { mutableStateOf(Offset.Zero) }
+    val dropTargets = remember { mutableStateMapOf<String, Rect>() }
+    
     val isMultiSelectMode by viewModel.isMultiSelectMode.collectAsState()
     val selectedDesksForMulti by viewModel.selectedDesksForMulti.collectAsState()
     val seatHistoryMap by viewModel.seatHistoryMap.collectAsState()
@@ -78,6 +91,13 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
     // Note dialog state
     var editingStudent by remember { mutableStateOf<StudentEntity?>(null) }
     var noteText by remember { mutableStateOf("") }
+    
+    // AI seating chart generator custom constraints
+    var showAIConstraintsDialog by remember { mutableStateOf(false) }
+    var customAIConstraintsText by remember { mutableStateOf("") }
+    var selectedLearningNeedOption by remember { mutableStateOf(false) }
+    var selectedFrontRowOption by remember { mutableStateOf(false) }
+    var selectedAcademicBalanceOption by remember { mutableStateOf(false) }
     
     val unassignedStudents = students.filter { s ->
         desks.none { it.studentId == s.id }
@@ -224,7 +244,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
             ) {
                 // AI Optimizer launch bubble
                 Button(
-                    onClick = { com.example.ui.SoundManager.playClick();  viewModel.runIntelligentAIPlacement() },
+                    onClick = { com.example.ui.SoundManager.playClick(); showAIConstraintsDialog = true },
                     colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.testTag("ai_optimize_button")
@@ -728,7 +748,57 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                                             }
                                                         },
                                                         onEvict = { studentId -> viewModel.removeStudentFromLayout(studentId) },
-                                                        modifier = Modifier.weight(1f)
+                                                        modifier = Modifier
+                                                            .weight(1f)
+                                                            .onGloballyPositioned { coordinates ->
+                                                                dropTargets["desk_${r}_${c}"] = coordinates.boundsInWindow()
+                                                            }
+                                                            .then(
+                                                                if (studentAssigned != null) {
+                                                                    Modifier.pointerInput(studentAssigned.id) {
+                                                                        detectDragGesturesAfterLongPress(
+                                                                            onDragStart = { localOffset ->
+                                                                                draggingStudent = studentAssigned
+                                                                                draggingStartDesk = desk
+                                                                                val startRect = dropTargets["desk_${r}_${c}"] ?: Rect.Zero
+                                                                                draggingCurrentPosition = startRect.topLeft + localOffset
+                                                                                com.example.ui.SoundManager.playClick()
+                                                                            },
+                                                                            onDrag = { change, dragAmount ->
+                                                                                change.consume()
+                                                                                val startRect = dropTargets["desk_${r}_${c}"] ?: Rect.Zero
+                                                                                draggingCurrentPosition = startRect.topLeft + change.position
+                                                                            },
+                                                                            onDragEnd = {
+                                                                                val dropTarget = dropTargets.entries.find { it.value.contains(draggingCurrentPosition) }
+                                                                                if (dropTarget != null) {
+                                                                                    val key = dropTarget.key
+                                                                                    if (key.startsWith("desk_")) {
+                                                                                        val parts = key.split("_")
+                                                                                        val targetRow = parts[1].toInt()
+                                                                                        val targetCol = parts[2].toInt()
+                                                                                        viewModel.swapOrMoveStudent(
+                                                                                            desk.row,
+                                                                                            desk.col,
+                                                                                            targetRow,
+                                                                                            targetCol
+                                                                                        )
+                                                                                    } else if (key == "unassigned_shelf") {
+                                                                                        viewModel.removeStudentFromLayout(studentAssigned.id)
+                                                                                    }
+                                                                                }
+                                                                                draggingStudent = null
+                                                                                draggingStartDesk = null
+                                                                                com.example.ui.SoundManager.playClick()
+                                                                            },
+                                                                            onDragCancel = {
+                                                                                draggingStudent = null
+                                                                                draggingStartDesk = null
+                                                                            }
+                                                                        )
+                                                                    }
+                                                                } else Modifier
+                                                            )
                                                     )
                                                 } else {
                                                     Box(modifier = Modifier.weight(1f))
@@ -743,7 +813,11 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                         // Sidebar/Shelf for unassigned students (RHS/LHS depending on layout)
                         if (selectedMode == "PLACEMENT" && unassignedStudents.isNotEmpty()) {
                             Card(
-                                modifier = Modifier.weight(0.28f),
+                                modifier = Modifier
+                                    .weight(0.28f)
+                                    .onGloballyPositioned { coordinates ->
+                                        dropTargets["unassigned_shelf"] = coordinates.boundsInWindow()
+                                    },
                                 shape = RoundedCornerShape(16.dp),
                                 colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f))
                             ) {
@@ -770,6 +844,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                     ) {
                                         items(unassignedStudents, key = { it.id }) { student ->
                                             val isSelected = selectedUnassignedStudent?.id == student.id
+                                            var itemRect by remember { mutableStateOf(Rect.Zero) }
                                             Box(
                                                 modifier = Modifier
                                                     .animateItem()
@@ -779,6 +854,43 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                                     .border(1.dp, if (isSelected) Color.White else Color.Transparent, RoundedCornerShape(8.dp))
                                                     .clickable { com.example.ui.SoundManager.playClick();  viewModel.selectUnassignedStudent(student) }
                                                     .padding(8.dp)
+                                                    .onGloballyPositioned { coordinates ->
+                                                        itemRect = coordinates.boundsInWindow()
+                                                    }
+                                                    .pointerInput(student.id) {
+                                                        detectDragGesturesAfterLongPress(
+                                                            onDragStart = { localOffset ->
+                                                                draggingStudent = student
+                                                                draggingStartDesk = null
+                                                                draggingCurrentPosition = itemRect.topLeft + localOffset
+                                                                com.example.ui.SoundManager.playClick()
+                                                            },
+                                                            onDrag = { change, dragAmount ->
+                                                                change.consume()
+                                                                draggingCurrentPosition = itemRect.topLeft + change.position
+                                                            },
+                                                            onDragEnd = {
+                                                                val dropTarget = dropTargets.entries.find { it.value.contains(draggingCurrentPosition) }
+                                                                if (dropTarget != null) {
+                                                                    val key = dropTarget.key
+                                                                    if (key.startsWith("desk_")) {
+                                                                        val parts = key.split("_")
+                                                                        val targetRow = parts[1].toInt()
+                                                                        val targetCol = parts[2].toInt()
+                                                                        viewModel.selectUnassignedStudent(student)
+                                                                        viewModel.placeStudentAt(targetRow, targetCol)
+                                                                    }
+                                                                }
+                                                                draggingStudent = null
+                                                                draggingStartDesk = null
+                                                                com.example.ui.SoundManager.playClick()
+                                                            },
+                                                            onDragCancel = {
+                                                                draggingStudent = null
+                                                                draggingStartDesk = null
+                                                            }
+                                                        )
+                                                    }
                                             ) {
                                                 Text(
                                                     student.name,
@@ -1199,7 +1311,57 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                                     }
                                                 },
                                                 onEvict = { studentId -> viewModel.removeStudentFromLayout(studentId) },
-                                                modifier = Modifier.weight(1f)
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .onGloballyPositioned { coordinates ->
+                                                        dropTargets["desk_${r}_${c}"] = coordinates.boundsInWindow()
+                                                    }
+                                                    .then(
+                                                        if (studentAssigned != null) {
+                                                            Modifier.pointerInput(studentAssigned.id) {
+                                                                detectDragGesturesAfterLongPress(
+                                                                    onDragStart = { localOffset ->
+                                                                        draggingStudent = studentAssigned
+                                                                        draggingStartDesk = desk
+                                                                        val startRect = dropTargets["desk_${r}_${c}"] ?: Rect.Zero
+                                                                        draggingCurrentPosition = startRect.topLeft + localOffset
+                                                                        com.example.ui.SoundManager.playClick()
+                                                                    },
+                                                                    onDrag = { change, dragAmount ->
+                                                                        change.consume()
+                                                                        val startRect = dropTargets["desk_${r}_${c}"] ?: Rect.Zero
+                                                                        draggingCurrentPosition = startRect.topLeft + change.position
+                                                                    },
+                                                                    onDragEnd = {
+                                                                        val dropTarget = dropTargets.entries.find { it.value.contains(draggingCurrentPosition) }
+                                                                        if (dropTarget != null) {
+                                                                            val key = dropTarget.key
+                                                                            if (key.startsWith("desk_")) {
+                                                                                val parts = key.split("_")
+                                                                                val targetRow = parts[1].toInt()
+                                                                                val targetCol = parts[2].toInt()
+                                                                                viewModel.swapOrMoveStudent(
+                                                                                    desk.row,
+                                                                                    desk.col,
+                                                                                    targetRow,
+                                                                                    targetCol
+                                                                                )
+                                                                            } else if (key == "unassigned_shelf") {
+                                                                                viewModel.removeStudentFromLayout(studentAssigned.id)
+                                                                            }
+                                                                        }
+                                                                        draggingStudent = null
+                                                                        draggingStartDesk = null
+                                                                        com.example.ui.SoundManager.playClick()
+                                                                    },
+                                                                    onDragCancel = {
+                                                                        draggingStudent = null
+                                                                        draggingStartDesk = null
+                                                                    }
+                                                                )
+                                                            }
+                                                        } else Modifier
+                                                    )
                                             )
                                         } else {
                                             Box(modifier = Modifier.weight(1f))
@@ -1214,7 +1376,11 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                 // Sidebar/Shelf for unassigned students (RHS/LHS depending on layout)
                 if (selectedMode == "PLACEMENT" && unassignedStudents.isNotEmpty()) {
                     Card(
-                        modifier = Modifier.weight(0.28f),
+                        modifier = Modifier
+                            .weight(0.28f)
+                            .onGloballyPositioned { coordinates ->
+                                dropTargets["unassigned_shelf"] = coordinates.boundsInWindow()
+                            },
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f))
                     ) {
@@ -1241,6 +1407,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                             ) {
                                 items(unassignedStudents, key = { it.id }) { student ->
                                     val isSelected = selectedUnassignedStudent?.id == student.id
+                                    var itemRect by remember { mutableStateOf(Rect.Zero) }
                                     Box(
                                         modifier = Modifier
                                             .animateItem()
@@ -1250,6 +1417,43 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                             .border(1.dp, if (isSelected) Color.White else Color.Transparent, RoundedCornerShape(8.dp))
                                             .clickable { com.example.ui.SoundManager.playClick();  viewModel.selectUnassignedStudent(student) }
                                             .padding(8.dp)
+                                            .onGloballyPositioned { coordinates ->
+                                                itemRect = coordinates.boundsInWindow()
+                                            }
+                                            .pointerInput(student.id) {
+                                                detectDragGesturesAfterLongPress(
+                                                    onDragStart = { localOffset ->
+                                                        draggingStudent = student
+                                                        draggingStartDesk = null
+                                                        draggingCurrentPosition = itemRect.topLeft + localOffset
+                                                        com.example.ui.SoundManager.playClick()
+                                                    },
+                                                    onDrag = { change, dragAmount ->
+                                                        change.consume()
+                                                        draggingCurrentPosition = itemRect.topLeft + change.position
+                                                    },
+                                                    onDragEnd = {
+                                                        val dropTarget = dropTargets.entries.find { it.value.contains(draggingCurrentPosition) }
+                                                        if (dropTarget != null) {
+                                                            val key = dropTarget.key
+                                                            if (key.startsWith("desk_")) {
+                                                                val parts = key.split("_")
+                                                                val targetRow = parts[1].toInt()
+                                                                val targetCol = parts[2].toInt()
+                                                                viewModel.selectUnassignedStudent(student)
+                                                                viewModel.placeStudentAt(targetRow, targetCol)
+                                                            }
+                                                        }
+                                                        draggingStudent = null
+                                                        draggingStartDesk = null
+                                                        com.example.ui.SoundManager.playClick()
+                                                    },
+                                                    onDragCancel = {
+                                                        draggingStudent = null
+                                                        draggingStartDesk = null
+                                                    }
+                                                )
+                                            }
                                     ) {
                                         Text(
                                             student.name,
@@ -1264,6 +1468,54 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                     }
                                 }
                             }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Floating drag overlay representing the student being dragged across the screen
+        if (draggingStudent != null) {
+            Popup(
+                alignment = Alignment.TopStart,
+                offset = androidx.compose.ui.unit.IntOffset(
+                    draggingCurrentPosition.x.toInt() - 75,
+                    draggingCurrentPosition.y.toInt() - 75
+                )
+            ) {
+                Card(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .shadow(16.dp, RoundedCornerShape(16.dp)),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = primaryColor),
+                    border = BorderStroke(2.dp, Color.White)
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = null,
+                                tint = Color.Black,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = draggingStudent!!.name,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Black,
+                                textAlign = TextAlign.Center,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(horizontal = 4.dp)
+                            )
                         }
                     }
                 }
@@ -1350,6 +1602,142 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                     Text("ביטול")
                 }
             }
+        )
+    }
+
+    if (showAIConstraintsDialog) {
+        AlertDialog(
+            onDismissRequest = { showAIConstraintsDialog = false },
+            title = {
+                Text(
+                    text = "🤖 הגדרות סידור מקומות מבוסס AI",
+                    fontWeight = FontWeight.Bold,
+                    color = com.example.ui.theme.ChocolateBrown,
+                    fontSize = 18.sp,
+                    textAlign = TextAlign.Right,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = "בחר דגשים פדגוגיים וחברתיים לסידור הכיתה:",
+                        fontSize = 14.sp,
+                        color = Color.Gray,
+                        textAlign = TextAlign.Right,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { selectedLearningNeedOption = !selectedLearningNeedOption }
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("הפרד תלמידים מאותגרים משמעתית / תוססים בקבוצה", fontSize = 13.sp, modifier = Modifier.padding(end = 8.dp))
+                        Checkbox(
+                            checked = selectedLearningNeedOption,
+                            onCheckedChange = { selectedLearningNeedOption = it }
+                        )
+                    }
+                    
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { selectedFrontRowOption = !selectedFrontRowOption }
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("קדם תלמידים נמוכים או בעלי קשיי קשב/ראייה לקדמה", fontSize = 13.sp, modifier = Modifier.padding(end = 8.dp))
+                        Checkbox(
+                            checked = selectedFrontRowOption,
+                            onCheckedChange = { selectedFrontRowOption = it }
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { selectedAcademicBalanceOption = !selectedAcademicBalanceOption }
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("מזג תלמידים מאותגרים ליד חונכים חזקים", fontSize = 13.sp, modifier = Modifier.padding(end = 8.dp))
+                        Checkbox(
+                            checked = selectedAcademicBalanceOption,
+                            onCheckedChange = { selectedAcademicBalanceOption = it }
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    Text(
+                        text = "בקשות מיוחדות מהמורה (חופשי):",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = com.example.ui.theme.ChocolateBrown,
+                        textAlign = TextAlign.Right,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    
+                    OutlinedTextField(
+                        value = customAIConstraintsText,
+                        onValueChange = { customAIConstraintsText = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(80.dp),
+                        textStyle = androidx.compose.ui.text.TextStyle(textAlign = TextAlign.End),
+                        placeholder = { 
+                            Text(
+                                "לדוגמה: אל תושיב את עידן ליד נועה, ושים את דני קרוב לשולחן המורה...", 
+                                fontSize = 11.sp,
+                                textAlign = TextAlign.Right,
+                                modifier = Modifier.fillMaxWidth()
+                            ) 
+                        }
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showAIConstraintsDialog = false
+                        com.example.ui.SoundManager.playClick()
+                        val parts = mutableListOf<String>()
+                        if (selectedLearningNeedOption) {
+                            parts.add("Disruptive/chatty students should be separated from each other as much as possible.")
+                        }
+                        if (selectedFrontRowOption) {
+                            parts.add("Students with ADHD, learning needs, or shorter height must definitely occupy front row seats near the smartboard/teacher.")
+                        }
+                        if (selectedAcademicBalanceOption) {
+                            parts.add("Pair high-performing students as peer-mentors next to students with lower academic performance.")
+                        }
+                        if (customAIConstraintsText.isNotBlank()) {
+                            parts.add("Specific teacher requests: " + customAIConstraintsText)
+                        }
+                        val constraints = parts.joinToString("\n")
+                        viewModel.runIntelligentAIPlacement(constraints)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("צור מפת ישיבה אופטימלית", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAIConstraintsDialog = false; com.example.ui.SoundManager.playClick() }) {
+                    Text("ביטול", color = Color.Gray)
+                }
+            },
+            containerColor = Color.White
         )
     }
 

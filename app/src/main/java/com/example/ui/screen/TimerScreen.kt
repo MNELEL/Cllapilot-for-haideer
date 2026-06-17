@@ -293,18 +293,19 @@ fun HoverScalePillButton(label: String, onClick: () -> Unit) {
 
     Box(
         modifier = Modifier
+            .width(96.dp)
+            .height(44.dp)
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
             }
-            .shadow(if (isPressed) 1.dp else 4.dp, RoundedCornerShape(24.dp), spotColor = Color(0x1F6366F1))
-            .clip(RoundedCornerShape(24.dp))
+            .shadow(if (isPressed) 1.dp else 4.dp, RoundedCornerShape(22.dp), spotColor = Color(0x1F6366F1))
+            .clip(RoundedCornerShape(22.dp))
             .background(Color.White)
-            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 12.dp),
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        Text(label, fontWeight = FontWeight.Bold, color = com.example.ui.theme.GoldGingerEnd, fontSize = 15.sp)
+        Text(label, fontWeight = FontWeight.Bold, color = com.example.ui.theme.GoldGingerEnd, fontSize = 14.sp)
     }
 }
 

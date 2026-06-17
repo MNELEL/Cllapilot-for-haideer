@@ -3,6 +3,15 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+
+    <supports-screens
+        android:smallScreens="true"
+        android:normalScreens="true"
+        android:largeScreens="true"
+        android:xlargeScreens="true"
+        android:anyDensity="true" />
 
     <application
         android:allowBackup="true"
@@ -13,6 +22,17 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.MyApplication">
+
+        <!-- Google Play Console Metadata Compliance Keys -->
+        <meta-data
+            android:name="com.aistudio.play.PRIVACY_POLICY"
+            android:value="https://example.com/classpro-privacy-policy" />
+        <meta-data
+            android:name="com.aistudio.play.CONTENT_RATING"
+            android:value="PEGI 3" />
+        <meta-data
+            android:name="com.aistudio.play.APPLICATION_ID"
+            android:value="com.aistudio.voicecloner.abcvdx" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

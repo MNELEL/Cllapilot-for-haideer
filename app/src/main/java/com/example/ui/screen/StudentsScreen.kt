@@ -24,6 +24,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.StudentEntity
+import com.example.ui.components.StudentProfileComponent
 import com.example.ui.viewmodel.ClassViewModel
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
@@ -913,127 +914,347 @@ fun StudentsScreen(viewModel: ClassViewModel) {
                         modifier = Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.End
                     ) {
-                        Text(st.name, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = primaryColor)
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(st.name, fontSize = 21.sp, fontWeight = FontWeight.Bold, color = primaryColor, textAlign = TextAlign.End, modifier = Modifier.fillMaxWidth())
+                        Spacer(modifier = Modifier.height(10.dp))
                         
-                        // Gamification summary (using grid-based proportional layout avoiding wrapping crash on 320dp)
-                        Card(
-                            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f)),
-                            modifier = Modifier.fillMaxWidth()
+                        var activeProfileTab by remember { mutableStateOf(0) }
+                        
+                        // Responsive Pill Tabs Row
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column(modifier = Modifier.padding(12.dp).fillMaxWidth(), horizontalAlignment = Alignment.End) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.End
+                            val tabLabels = listOf("יומן", "הורים", "קבצים", "ביצועים")
+                            val tabIcons = listOf(Icons.Default.List, Icons.Default.Phone, Icons.Default.Build, Icons.Default.CheckCircle)
+                            
+                            tabLabels.forEachIndexed { idx, label ->
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(if (activeProfileTab == idx) primaryColor else Color.White.copy(alpha = 0.15f))
+                                        .clickable {
+                                            com.example.ui.SoundManager.playClick()
+                                            activeProfileTab = idx
+                                        }
+                                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Text(
-                                        "נקודות התנהגות או הישגים",
-                                        color = com.example.ui.theme.MochaTaupe,
-                                        fontSize = 11.sp,
-                                        maxLines = 1,
-                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                                        modifier = Modifier.weight(1f),
-                                        textAlign = TextAlign.End
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Icon(
-                                        Icons.Default.Star,
-                                        contentDescription = null,
-                                        tint = com.example.ui.theme.GoldGingerStart,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        "$pts",
-                                        fontSize = 20.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = com.example.ui.theme.PositiveGreen
-                                    )
-                                }
-                            }
-                        }
-                        
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        Text("סטטוס משימות ושיעורי בית", fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, fontSize = 14.sp)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        
-                        // Mocked Homework List
-                        Card(
-                            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f)),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(modifier = Modifier.padding(12.dp).fillMaxWidth(), horizontalAlignment = Alignment.End) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically, 
-                                    horizontalArrangement = Arrangement.End
-                                ) {
-                                    Text(
-                                        "דף עבודה בספר בראשית - הוגש", 
-                                        color = com.example.ui.theme.ChocolateBrown, 
-                                        fontSize = 12.sp,
-                                        maxLines = 1,
-                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                                        modifier = Modifier.weight(1f),
-                                        textAlign = TextAlign.End
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = com.example.ui.theme.PositiveGreen, modifier = Modifier.size(16.dp))
-                                }
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically, 
-                                    horizontalArrangement = Arrangement.End
-                                ) {
-                                    Text(
-                                        "מטלת סיכום משנה - חסר", 
-                                        color = com.example.ui.theme.MochaTaupe, 
-                                        fontSize = 12.sp,
-                                        maxLines = 1,
-                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                                        modifier = Modifier.weight(1f),
-                                        textAlign = TextAlign.End
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFC0392B), modifier = Modifier.size(16.dp))
-                                }
-                                Spacer(modifier = Modifier.height(12.dp))
-                                
-                                Button(
-                                    onClick = { com.example.ui.SoundManager.playClick();  /* Simulated WhatsApp Trigger */ },
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF128C7E)), // WhatsApp Green
-                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                                    modifier = Modifier.align(Alignment.Start).height(32.dp),
-                                    shape = RoundedCornerShape(8.dp)
-                                ) {
-                                    Icon(Icons.Default.Email, contentDescription = null, tint = com.example.ui.theme.ChocolateBrown, modifier = Modifier.size(14.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("שלח תזכורת להורה (WhatsApp)", color = com.example.ui.theme.ChocolateBrown, fontSize = 10.sp)
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Text(
+                                            label,
+                                             fontSize = 10.sp,
+                                             fontWeight = FontWeight.Bold,
+                                             color = if (activeProfileTab == idx) Color.Black else com.example.ui.theme.ChocolateBrown
+                                        )
+                                        Icon(
+                                            imageVector = tabIcons[idx],
+                                            contentDescription = null,
+                                            tint = if (activeProfileTab == idx) Color.Black else com.example.ui.theme.ChocolateBrown,
+                                            modifier = Modifier.size(11.dp)
+                                        )
+                                    }
                                 }
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text("הערות ומשוב מורה", fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, fontSize = 14.sp)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        
-                        var teacherNotes by remember(st.id) { mutableStateOf(st.notes) }
-                        
-                        OutlinedTextField(
-                            value = teacherNotes,
-                            onValueChange = { 
-                                teacherNotes = it 
-                                viewModel.updateStudentNotes(st.id, it)
-                            },
-                            modifier = Modifier.fillMaxWidth().height(100.dp),
-                            textStyle = TextStyle(textAlign = TextAlign.End),
-                            placeholder = { Text("הזן הערות יומיומיות...", textAlign = TextAlign.End, modifier = Modifier.fillMaxWidth()) }
-                        )
-                    }
-                },
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        when (activeProfileTab) {
+                            3 -> { // "ביצועים" -> Performance, stats, task indicators
+                                Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.End) {
+                                    Text("מדדי ביצוע והתנהגות", fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, fontSize = 13.sp)
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    
+                                    Card(
+                                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f)),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Column(modifier = Modifier.padding(10.dp), horizontalAlignment = Alignment.End) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text("$pts", fontSize = 18.sp, fontWeight = FontWeight.Black, color = com.example.ui.theme.PositiveGreen)
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Text("נקודות התנהגות מצטברות", fontSize = 11.sp, color = com.example.ui.theme.MochaTaupe)
+                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    Icon(Icons.Default.Star, contentDescription = null, tint = com.example.ui.theme.GoldGingerStart, modifier = Modifier.size(14.dp))
+                                                }
+                                            }
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            // Behavioral Indicator bar
+                                            val fillPct = (pts.coerceIn(-10, 50) + 10) / 60f
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .height(6.dp)
+                                                    .clip(RoundedCornerShape(3.dp))
+                                                    .background(Color.LightGray.copy(alpha = 0.4f))
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth(fillPct)
+                                                        .fillMaxHeight()
+                                                        .background(primaryColor)
+                                                )
+                                            }
+                                            Text("יעד הצטיינות כיתתי: 30 נקודות", fontSize = 9.sp, color = com.example.ui.theme.MochaTaupe, modifier = Modifier.padding(top = 4.dp))
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(12.dp))
+
+                                    Text("שיעורי בית ומשימות השבוע", fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, fontSize = 13.sp)
+                                    Spacer(modifier = Modifier.height(6.dp))
+
+                                    var t1Checked by remember { mutableStateOf(true) }
+                                    var t2Checked by remember { mutableStateOf(false) }
+                                    var t3Checked by remember { mutableStateOf(true) }
+
+                                    Card(
+                                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f)),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Column(modifier = Modifier.padding(10.dp), horizontalAlignment = Alignment.End) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.End
+                                            ) {
+                                                Text("מטלת בראשית - תקן בריאת העולם", fontSize = 11.sp, color = com.example.ui.theme.ChocolateBrown, modifier = Modifier.weight(1f), textAlign = TextAlign.End)
+                                                Checkbox(checked = t1Checked, onCheckedChange = { t1Checked = it; com.example.ui.SoundManager.playClick() }, colors = CheckboxDefaults.colors(checkedColor = primaryColor))
+                                            }
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.End
+                                            ) {
+                                                Text("מטלת סיכום משנה - השבת", fontSize = 11.sp, color = com.example.ui.theme.ChocolateBrown, modifier = Modifier.weight(1f), textAlign = TextAlign.End)
+                                                Checkbox(checked = t2Checked, onCheckedChange = { t2Checked = it; com.example.ui.SoundManager.playClick() }, colors = CheckboxDefaults.colors(checkedColor = primaryColor))
+                                            }
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.End
+                                            ) {
+                                                Text("מבדק השתתפות שבועי", fontSize = 11.sp, color = com.example.ui.theme.ChocolateBrown, modifier = Modifier.weight(1f), textAlign = TextAlign.End)
+                                                Checkbox(checked = t3Checked, onCheckedChange = { t3Checked = it; com.example.ui.SoundManager.playClick() }, colors = CheckboxDefaults.colors(checkedColor = primaryColor))
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            2 -> { // "קבצים" -> File Folder
+                                Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.End) {
+                                    Text("תיקיית מסמכים וקבצי למידה", fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, fontSize = 13.sp)
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    
+                                    val mockFiles = listOf(
+                                        "מבדק_הבנה_מחצית_ב.pdf" to "1.2 MB",
+                                        "סיכום_אישי_מילים_קדומות.docx" to "450 KB",
+                                        "עבודת_חקר_ספר_יהושע.pdf" to "2.1 MB"
+                                    )
+                                    
+                                    mockFiles.forEach { (name, size) ->
+                                        Card(
+                                            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f)),
+                                            modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(8.dp).fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                     TextButton(
+                                                         onClick = { 
+                                                             com.example.ui.SoundManager.playClick()
+                                                             android.widget.Toast.makeText(context, "סימולציה: מציג קובץ $name", android.widget.Toast.LENGTH_SHORT).show()
+                                                         },
+                                                         contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                                                         modifier = Modifier.height(28.dp)
+                                                     ) {
+                                                         Text("הצג", fontSize = 10.sp, color = primaryColor)
+                                                     }
+                                                     TextButton(
+                                                         onClick = { 
+                                                             com.example.ui.SoundManager.playClick()
+                                                             android.widget.Toast.makeText(context, "שותף בהצלחה עם הורי התלמיד!", android.widget.Toast.LENGTH_SHORT).show()
+                                                         },
+                                                         contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                                                         modifier = Modifier.height(28.dp)
+                                                     ) {
+                                                         Text("שתף להורים", fontSize = 10.sp, color = com.example.ui.theme.MochaTaupe)
+                                                     }
+                                                }
+                                                
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Column(horizontalAlignment = Alignment.End) {
+                                                        Text(name, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown)
+                                                        Text(size, fontSize = 9.sp, color = Color.Gray)
+                                                    }
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Icon(Icons.Default.ArrowBack, contentDescription = null, tint = primaryColor, modifier = Modifier.size(14.dp))
+                                                }
+                                            }
+                                        }
+                                    }
+                                    
+                                    Button(
+                                        onClick = { 
+                                            com.example.ui.SoundManager.playClick()
+                                            android.widget.Toast.makeText(context, "אנא בחר קובץ להעלאה ממנהל הקבצים", android.widget.Toast.LENGTH_SHORT).show()
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.fillMaxWidth().height(32.dp).padding(top = 4.dp),
+                                        contentPadding = PaddingValues(0.dp)
+                                    ) {
+                                        Icon(Icons.Default.Add, contentDescription = null, tint = Color.Black, modifier = Modifier.size(12.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("העלה מסמך נוסף לתיקיית התלמיד", fontSize = 10.sp, color = Color.Black, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                            1 -> { // "הורים" -> Parent contact details
+                                Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.End) {
+                                    Text("פרטי יצירת קשר והורים", fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown, fontSize = 13.sp)
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    
+                                    Card(
+                                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f)),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Column(modifier = Modifier.padding(10.dp), horizontalAlignment = Alignment.End) {
+                                            Text("פרטי אמא: שרה כהן", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown)
+                                            Text("טלפון: 050-1234567", fontSize = 10.sp, color = com.example.ui.theme.MochaTaupe)
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                Button(
+                                                    onClick = { 
+                                                        com.example.ui.SoundManager.playClick()
+                                                        android.widget.Toast.makeText(context, "מתקשר לשרה כהן: 050-1234567", android.widget.Toast.LENGTH_SHORT).show()
+                                                    },
+                                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2B579A)),
+                                                    modifier = Modifier.weight(1f).height(28.dp),
+                                                    contentPadding = PaddingValues(0.dp),
+                                                    shape = RoundedCornerShape(6.dp)
+                                                ) {
+                                                    Text("התקשר לאימא", fontSize = 9.sp, color = Color.White)
+                                                }
+                                                Button(
+                                                    onClick = { 
+                                                        com.example.ui.SoundManager.playClick()
+                                                        android.widget.Toast.makeText(context, "פותח שיחת WhatsApp עם שרה כהן", android.widget.Toast.LENGTH_SHORT).show()
+                                                    },
+                                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF128C7E)),
+                                                    modifier = Modifier.weight(1f).height(28.dp),
+                                                    contentPadding = PaddingValues(0.dp),
+                                                    shape = RoundedCornerShape(6.dp)
+                                                ) {
+                                                    Text("וואטסאפ לאימא", fontSize = 9.sp, color = Color.White)
+                                                }
+                                            }
+                                        }
+                                    }
+                                    
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    
+                                    Card(
+                                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.8f)),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Column(modifier = Modifier.padding(10.dp), horizontalAlignment = Alignment.End) {
+                                            Text("פרטי אבא: אברהם כהן", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown)
+                                            Text("טלפון: 050-7654321", fontSize = 10.sp, color = com.example.ui.theme.MochaTaupe)
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                             ) {
+                                                 Button(
+                                                     onClick = { 
+                                                         com.example.ui.SoundManager.playClick()
+                                                         android.widget.Toast.makeText(context, "מתקשר לאברהם כהן: 050-7654321", android.widget.Toast.LENGTH_SHORT).show()
+                                                     },
+                                                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2B579A)),
+                                                     modifier = Modifier.weight(1f).height(28.dp),
+                                                     contentPadding = PaddingValues(0.dp),
+                                                     shape = RoundedCornerShape(6.dp)
+                                                 ) {
+                                                     Text("התקשר לאבא", fontSize = 9.sp, color = Color.White)
+                                                 }
+                                                 Button(
+                                                     onClick = { 
+                                                         com.example.ui.SoundManager.playClick()
+                                                         android.widget.Toast.makeText(context, "פותח שיחת WhatsApp עם אברהם כהן", android.widget.Toast.LENGTH_SHORT).show()
+                                                     },
+                                                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF128C7E)),
+                                                     modifier = Modifier.weight(1f).height(28.dp),
+                                                     contentPadding = PaddingValues(0.dp),
+                                                     shape = RoundedCornerShape(6.dp)
+                                                 ) {
+                                                     Text("וואטסאפ לאבא", fontSize = 9.sp, color = Color.White)
+                                                 }
+                                             }
+                                        }
+                                    }
+                                }
+                            }
+                            0 -> { // "יומן" -> Log timeline and real-time updates notes
+                                Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.End) {
+                                    StudentProfileComponent(
+                                        student = st,
+                                        viewModel = viewModel,
+                                        onDismiss = { showProgressReportFor = null }
+                                    )
+                                    
+                                     Spacer(modifier = Modifier.height(10.dp))
+                                     Text("היסטוריית אירועים השבוע", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = com.example.ui.theme.ChocolateBrown)
+                                     Spacer(modifier = Modifier.height(4.dp))
+                                     
+                                     val historyLogs = listOf(
+                                         "11:15 - הוגשה בהצלחה מטלת השבוע בריאת העולם" to true,
+                                         "09:30 - פתח חצי כוכב בלוח Seating Map" to true,
+                                         "08:15 - סימון נוכחות יומי: נוכח בכיתה" to false
+                                     )
+                                     
+                                     Column(
+                                         modifier = Modifier.fillMaxWidth(),
+                                         verticalArrangement = Arrangement.spacedBy(4.dp)
+                                     ) {
+                                         historyLogs.forEach { (log, info) ->
+                                             Row(
+                                                 modifier = Modifier.fillMaxWidth(),
+                                                 horizontalArrangement = Arrangement.End,
+                                                 verticalAlignment = Alignment.CenterVertically
+                                             ) {
+                                                 Text(log, fontSize = 10.sp, color = com.example.ui.theme.MochaTaupe, textAlign = TextAlign.End, modifier = Modifier.weight(1f))
+                                                 Spacer(modifier = Modifier.width(6.dp))
+                                                 Icon(
+                                                     imageVector = if (info) Icons.Default.Check else Icons.Default.LocationOn,
+                                                     contentDescription = null,
+                                                     tint = if (info) com.example.ui.theme.PositiveGreen else primaryColor,
+                                                     modifier = Modifier.size(10.dp)
+                                                 )
+                                             }
+                                         }
+                                     }
+                                 }
+                             }
+                         }
+                     }
+                 },
                 containerColor = darkBg
             )
         }
