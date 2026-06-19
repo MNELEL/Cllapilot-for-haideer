@@ -14,8 +14,8 @@ android {
     applicationId = "com.aistudio.classpro.wkhpyq"
     minSdk = 24
     targetSdk = 36
-    versionCode = 6
-    versionName = "6.0"
+    versionCode = 7
+    versionName = "7.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
@@ -180,7 +180,7 @@ dependencies {
   implementation(libs.androidx.compose.ui.graphics)
   implementation(libs.androidx.compose.ui.tooling.preview)
   implementation(libs.androidx.core.ktx)
-  // implementation(libs.androidx.datastore.preferences)
+  implementation(libs.androidx.datastore.preferences)
   implementation(libs.androidx.lifecycle.runtime.compose)
   implementation(libs.androidx.lifecycle.runtime.ktx)
   implementation(libs.androidx.lifecycle.viewmodel.compose)
@@ -197,6 +197,9 @@ dependencies {
   implementation(libs.moshi.kotlin)
   implementation(libs.okhttp)
   // implementation(libs.play.services.location)
+  implementation(libs.play.review.ktx)
+  implementation(libs.credentials)
+  implementation(libs.credentials.play.services.auth)
   implementation(libs.retrofit)
   testImplementation(libs.androidx.compose.ui.test.junit4)
   testImplementation(libs.androidx.core)

@@ -51,7 +51,12 @@ object SoundManager {
         
         if (vibrator == null) {
             vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                val vibratorManager = appContext.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+                val vibratorContext = try {
+                    appContext.createAttributionContext("ClassPro")
+                } catch (e: Exception) {
+                    appContext
+                }
+                val vibratorManager = vibratorContext.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
                 vibratorManager.defaultVibrator
             } else {
                 @Suppress("DEPRECATION")

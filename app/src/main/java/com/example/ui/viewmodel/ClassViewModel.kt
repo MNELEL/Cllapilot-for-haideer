@@ -152,6 +152,7 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
                 if (list.isEmpty()) {
                     loadDemoData()
                 } else {
+                    repository.saveStudentsToIndexedCache(list) // Local cache mirror
                     simulateSync()
                 }
             }
@@ -161,7 +162,15 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
                 if (list.isEmpty()) {
                     generateDefaultGrid(6, 6)
                 } else {
+                    backupDesksToIndexedCache(list) // Local cache mirror
                     simulateSync()
+                }
+            }
+        }
+        viewModelScope.launch {
+            materials.collectLatest { list ->
+                if (list.isNotEmpty()) {
+                    repository.saveMaterialsToIndexedCache(list)
                 }
             }
         }
@@ -245,6 +254,17 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
             val desk = list.find { it.row == row && it.col == col }
             if (desk != null && desk.type == "DESK") {
                 repository.insertDesk(desk.copy(isLocked = !desk.isLocked))
+            }
+        }
+    }
+
+    private fun backupDesksToIndexedCache(deskList: List<DeskEntity>) {
+        viewModelScope.launch {
+            try {
+                val json = "[ " + deskList.joinToString(",") { """{"row":${it.row}, "col":${it.col}, "type":"${it.type}", "studentId":${if(it.studentId==null) "null" else "\"${it.studentId}\""}}""" } + " ]"
+                repository.saveSeatingLayoutToCache(json)
+            } catch (e: Exception) {
+                Log.e("ClassViewModel", "Error caching layout", e)
             }
         }
     }

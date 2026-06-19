@@ -46,7 +46,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.boundsInWindow
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.window.Popup
 
@@ -674,7 +674,8 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                 // Dynamic layout 2D desks rendering
                                 LazyColumn(
                                     verticalArrangement = Arrangement.spacedBy(8.dp),
-                                    modifier = Modifier.weight(1f)
+                                    modifier = Modifier.weight(1f),
+                                    userScrollEnabled = false
                                 ) {
                                     items(rows) { r ->
                                         Row(
@@ -756,7 +757,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                                             .then(
                                                                 if (studentAssigned != null) {
                                                                     Modifier.pointerInput(studentAssigned.id) {
-                                                                        detectDragGesturesAfterLongPress(
+                                                                        detectDragGestures(
                                                                             onDragStart = { localOffset ->
                                                                                 draggingStudent = studentAssigned
                                                                                 draggingStartDesk = desk
@@ -858,7 +859,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                                         itemRect = coordinates.boundsInWindow()
                                                     }
                                                     .pointerInput(student.id) {
-                                                        detectDragGesturesAfterLongPress(
+                                                        detectDragGestures(
                                                             onDragStart = { localOffset ->
                                                                 draggingStudent = student
                                                                 draggingStartDesk = null
@@ -1319,7 +1320,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                                     .then(
                                                         if (studentAssigned != null) {
                                                             Modifier.pointerInput(studentAssigned.id) {
-                                                                detectDragGesturesAfterLongPress(
+                                                                detectDragGestures(
                                                                     onDragStart = { localOffset ->
                                                                         draggingStudent = studentAssigned
                                                                         draggingStartDesk = desk
@@ -1421,7 +1422,7 @@ fun SeatingMapScreen(viewModel: ClassViewModel) {
                                                 itemRect = coordinates.boundsInWindow()
                                             }
                                             .pointerInput(student.id) {
-                                                detectDragGesturesAfterLongPress(
+                                                detectDragGestures(
                                                     onDragStart = { localOffset ->
                                                         draggingStudent = student
                                                         draggingStartDesk = null

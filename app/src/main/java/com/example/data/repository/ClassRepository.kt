@@ -2,12 +2,14 @@ package com.example.data.repository
 
 import android.content.Context
 import com.example.data.local.ClassProDatabase
+import com.example.data.local.LocalCacheManager
 import com.example.data.model.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 
 class ClassRepository(context: Context) {
     private val database = ClassProDatabase.getDatabase(context)
+    private val localCacheManager = LocalCacheManager(context)
     private val studentDao = database.studentDao()
     private val deskDao = database.deskDao()
     private val academicDao = database.academicDao()
@@ -107,4 +109,26 @@ class ClassRepository(context: Context) {
         }
         return true
     }
+
+    // --- IndexedDB Cache specific actions ---
+    suspend fun saveStudentsToIndexedCache(students: List<StudentEntity>) {
+        localCacheManager.saveCachedStudents(students)
+    }
+
+    suspend fun saveDraftNoteToIndexedCache(draft: String) {
+        localCacheManager.cacheDraftNote(draft)
+    }
+    
+    suspend fun saveSeatingLayoutToCache(layoutJson: String) {
+        localCacheManager.cacheSeatingLayout(layoutJson)
+    }
+
+    suspend fun saveMaterialsToIndexedCache(materials: List<AcademicMaterialEntity>) {
+        localCacheManager.saveCachedMaterials(materials)
+    }
+
+    val cachedStudentsFlow = localCacheManager.cachedStudentsFlow
+    val cachedDraftNoteFlow = localCacheManager.cachedDraftNoteFlow
+    val cachedSeatingLayoutFlow = localCacheManager.cachedSeatingLayoutFlow
+    val cachedMaterialsFlow = localCacheManager.cachedMaterialsFlow
 }

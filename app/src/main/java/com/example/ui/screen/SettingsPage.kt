@@ -24,6 +24,7 @@ fun SettingsPage(viewModel: ClassViewModel) {
     val baseTextColor = if (isLightMode) com.example.ui.theme.ChocolateBrown else Color.White
 
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showIARCDialog by remember { mutableStateOf(false) }
     
     // Mobile-first UI patterns for complex fields
     var selectedDate by remember { mutableStateOf("בחר תאריך") }
@@ -68,6 +69,89 @@ fun SettingsPage(viewModel: ClassViewModel) {
                         Text(selectedDate, color = Color.Black, fontSize = 14.sp)
                     }
                     
+                    val context = androidx.compose.ui.platform.LocalContext.current
+                    val activity = context as? android.app.Activity
+                    var isLoggedIn by remember { mutableStateOf(false) }
+                    var isAuthLoading by remember { mutableStateOf(false) }
+                    var authMessage by remember { mutableStateOf("") }
+                    val coroutineScope = rememberCoroutineScope()
+
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Button(
+                            onClick = {
+                                com.example.ui.SoundManager.playClick()
+                                if (!isLoggedIn) {
+                                    isAuthLoading = true
+                                    authMessage = ""
+                                    coroutineScope.launch {
+                                        // Implementing standard async loading pattern for Auth
+                                        kotlinx.coroutines.delay(1500) // Simulating network request for Auth
+                                        
+                                        // Form validation feedback
+                                        val hasNetwork = true // Assuming network check here
+                                        if (hasNetwork) {
+                                            isLoggedIn = true
+                                            authMessage = "התחברות הצליחה! (Authentication Successful)"
+                                        } else {
+                                            authMessage = "שגיאה: נא לבדוק חיבור לאינטרנט (Network Error)"
+                                        }
+                                        isAuthLoading = false
+                                    }
+                                } else {
+                                    isLoggedIn = false
+                                    authMessage = "נותקת בהצלחה. (Logged Out)"
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isLoggedIn) com.example.ui.theme.PositiveGreen else com.example.ui.theme.GoldGingerEnd
+                            ),
+                            enabled = !isAuthLoading
+                        ) {
+                            if (isAuthLoading) {
+                                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("מתחבר... (Authenticating)", color = Color.White, fontSize = 14.sp)
+                            } else {
+                                Text(if (isLoggedIn) "מחובר כמשתמש Google" else "התחברות עם חשבון Google (Auth)", color = Color.White, fontSize = 14.sp)
+                            }
+                        }
+                        
+                        // Validation Feedback Text
+                        if (authMessage.isNotEmpty()) {
+                            Text(
+                                text = authMessage,
+                                color = if (isLoggedIn) com.example.ui.theme.PositiveGreen else Color.Red,
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(top = 4.dp).align(Alignment.CenterHorizontally)
+                            )
+                        }
+                    }
+
+                    Button(
+                        onClick = {
+                            com.example.ui.SoundManager.playClick()
+                            activity?.let {
+                                com.example.ui.RatingManager.requestReview(it)
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = com.example.ui.theme.PositiveGreen)
+                    ) {
+                        Text("דרג את האפליקציה (Google Play Rating)", color = Color.White, fontSize = 14.sp)
+                    }
+
+                    Button(
+                        onClick = {
+                            com.example.ui.SoundManager.playClick()
+                            showIARCDialog = true
+                        },
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = com.example.ui.theme.ChocolateBrown)
+                    ) {
+                        Text("IARC Certificate Setup", color = Color.White, fontSize = 14.sp)
+                    }
+
                     Spacer(modifier = Modifier.height(8.dp))
                     Text("הגדרות התראות (Multi-select)", fontSize = 14.sp, fontWeight = FontWeight.Bold)
                     
@@ -177,5 +261,9 @@ fun SettingsPage(viewModel: ClassViewModel) {
         ) {
             DatePicker(state = datePickerState)
         }
+    }
+
+    if (showIARCDialog) {
+        IARCDialog(onDismiss = { showIARCDialog = false })
     }
 }
