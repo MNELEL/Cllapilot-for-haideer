@@ -1,5 +1,5 @@
 {
-  "applicationId": "com.aistudio.voicecloner.abcvdx",
+  "applicationId": "com.aistudio.classpro.wkhpyq",
   "name": "ClassPro Ultimate",
   "short_description": "A professional classroom management tool with AI seating chart optimization and smartboard integration.",
   "full_description": "ClassPro Ultimate is the ultimate pedagogical suite designed for modern educators. Streamline your classroom administration, keep track of student participation with a behavior score-tracker, and automatically generate optimized classroom seating maps with Gemini AI and Simulated Annealing algorithms. ClassPro features smartboard-optimized landscape views, group generators, pedagogical note-keeping, and real-time synchronization. Perfect for secondary schools, higher education, or elementary classrooms looking to create structural harmony and optimize peer learning networks.",
@@ -23,5 +23,7 @@
   "graphic_assets": {
     "app_icon": "res/mipmap-anydpi-v26/ic_launcher.xml",
     "feature_graphic": "assets/feature_graphic.png"
-  }
+  },
+  "versionCode": 6,
+  "versionName": "6.0"
 }

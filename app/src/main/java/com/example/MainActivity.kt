@@ -317,6 +317,7 @@ class MainActivity : ComponentActivity() {
                                     "GRADES" -> GradesScreen(viewModel)
                                     "GAMIFICATION" -> GamificationScreen(viewModel)
                                     "PACING" -> PacingScreen(viewModel)
+                                    "SETTINGS" -> SettingsPage(viewModel)
                                 }
                             }
                             
